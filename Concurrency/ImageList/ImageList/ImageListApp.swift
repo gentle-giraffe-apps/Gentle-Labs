@@ -3,10 +3,10 @@
 import SwiftUI
 
 @main
-struct MiniProfileLoaderApp: App {
+struct ImageListApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ImageList()
         }
     }
 }

@@ -2,7 +2,7 @@
 
 import XCTest
 
-final class MiniProfileLoaderUITestsLaunchTests: XCTestCase {
+final class ImageListUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
