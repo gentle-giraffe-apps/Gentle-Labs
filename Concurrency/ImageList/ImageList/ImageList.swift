@@ -16,11 +16,11 @@ struct ImageModel: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
-protocol ImageFetchServiceProtocol {
+protocol ImageFetchServiceProtocol: Sendable {
     func fetchImage(url: String) async throws -> ImageModel
 }
 
-struct ImageFetchServiceMock: ImageFetchServiceProtocol {
+struct ImageFetchServiceMock: ImageFetchServiceProtocol, Sendable {
     func fetchImage(url: String) async throws -> ImageModel {
         // Simulate latency
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
@@ -69,14 +69,25 @@ struct ImageFetchServiceMock: ImageFetchServiceProtocol {
 }
 
 @Observable
+@MainActor
 final class ImageListViewModel {
     var bannerImage: ImageModel? = nil
     var logoImage: ImageModel? = nil
     var listImages: [ImageModel] = []
+    let service: ImageFetchServiceProtocol
+    init(service: ImageFetchServiceProtocol) {
+        self.service = service
+    }
+    // MILESTONE 1: Add a method that just fetches the banner image, call it from the view
+    // MILESTONE 2: Change the method in (1) so it fetches the banner and log in parallel
+    // MILESTONE 3: Add a method that fetches 10 images in parallel, call it from the view
+
 }
 
 struct ImageList: View {
-    @State private var viewModel = ImageListViewModel()
+    @State private var viewModel = ImageListViewModel(
+        service: ImageFetchServiceMock()
+    )
     
     var body: some View {
         VStack {
@@ -86,7 +97,7 @@ struct ImageList: View {
                     .frame(width: 120, height: 80)
                     .cornerRadius(12)
             }
-            if let logoImage = viewModel.bannerImage?.asSwiftUIImage() {
+            if let logoImage = viewModel.logoImage?.asSwiftUIImage() {
                 logoImage
                     .resizable()
                     .frame(width: 120, height: 80)
