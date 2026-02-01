@@ -24,6 +24,7 @@ struct ImageFetchServiceMock: ImageFetchServiceProtocol, Sendable {
     func fetchImage(url: String) async throws -> ImageModel {
         // Simulate latency
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+        try Task.checkCancellation()
         return ImageModel(
             id: UUID().uuidString,
             url: url,
@@ -80,8 +81,7 @@ final class ImageListViewModel {
     }
     // MILESTONE 1: Add a method that just fetches the banner image, call it from the view
     // MILESTONE 2: Change the method in (1) so it fetches the banner and log in parallel
-    // MILESTONE 3: Add a method that fetches 10 images in parallel, call it from the view
-
+    // MILESTONE 3: Fetch a RANDOM number of images (between 5 and 15) IN PARALLEL and assign them to `listImages`.
 }
 
 struct ImageList: View {
