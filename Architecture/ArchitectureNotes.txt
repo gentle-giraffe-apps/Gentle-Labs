@@ -1,0 +1,161 @@
+Client Architecture Notes
+
+┌ App/Features ───┐ Coordinator / SessionManager → Views → ViewModels ─┐
+|                 |                                                    | (Domain Models)
+├ Domain Layer ───┤ Use Case / Repository Protocols                   ─┘ 
+|                 |
+├ Data Layer ─────┤ Repository Implementation, DTOs ⇄ Mappers ⇄ Domain Models, Caching
+|
+| Infra ──────────┤ Concrete networking and DB clients
+
+
+1. Clean architecture
+    1. Coordinator -> View -> ViewModel -> UseCase/Repository <-> Services -> Persistence (DB/Disk) + Network
+2. Modular architecture
+    1. Modularize by layer
+        1. Modules:
+            1. App/Features: UI, coordinates, feature composition / assembly
+            2. Domain: entity models, use cases, repository protocols
+            3. Data: repository implementations + DTO↔domain mapping, caching 
+            4. Infra: concrete networking and DB clients
+        2. Domain imports nothing
+        3. Features import Domain.
+        4. Data imports Domain and Infra
+        5. Infra imports only Apple/vendor SDKs - no app modules.
+
+-----
+
+
+System Design Notes
+
+# Delivery Framework
+
+## Requirements (5 mins)
+
+### Functional (what)
+
+These are the "whats" the system should do. Use the phrase: "Users should be able to":
+Shoot for only 3 or at most 4 top things. If pressed for more mark additional ones as Bonus to possibly circle back to later.
+For twitter:
+1. Post tweets
+1. Follow other users
+1. See tweets from users they follow
+For a cache:
+1. Insert items
+1. Set expirations
+1. Read items
+
+### Non-functional (how well)
+
+These are the how-well should a system do the whats.
+1. Security
+2. Consistency vs. Availability (CAP Theorem)
+3. Scalability (follows from CAP)
+4. Latency (follows from CAP)
+    a. P50 < 100ms (wifi), 250ms (cell) … P(Percentage) means Percentage of requests are below time.
+    b. P95 < 300ms (wifi), 800ms (cell)
+   c. P99 < 800ms (wifi), 1.6s (cell)
+6. Durability (data loss)
+7. Compliance
+8. Fault Tolerance
+
+Mnemonic (SCSL D)
+
+### Capacity Estimation
+
+1. Storage
+1. DAU - Daily Active Users
+1. QPS - Queries per second
+
+## Core Entities (2 mins)
+
+Who are the system's actors and are they overlapping? What are the nouns we're dealing with.
+
+## API (5 mins)
+
+Choose REST, GraphQL, RPC, SSE, Websockets.
+
+POST /tweets
+body: { "text": string }
+
+GET /tweets/{tweetId} -> Tweet
+
+POST /follows
+body: { "followee_id": string }
+
+GET /feed -> Tweet[]
+
+## [Optional] Data Flow (5 mins)
+
+For some problems, such as a webcrawler, it's helpful to describe data flow:
+i.e.
+
+1. Fetch seed URLs
+2. Partse HTML
+3. Extract URLs
+4. Store data
+5. Repeat
+
+## High Level Design (10-15 mins)
+
+Draw out the components in the system. Start simple. If optimizations do come up, verbally note them, and circle back later to improve. Get the functional requirements taken care of first.
+
+Important points:
+1. Draw arrows with data flow.
+2. After diagramming out the database, that's a good time to start on the schema.
+3. Don't document every field in the schema, only note the important ones.
+
+One approach is to start diagramming from the easiest endpoint, then update the diagram to accomodate different endpoints.
+
+## Client Architecture(Mobile) (3-5 mins)
+
+1. Client responsibilities
+    1. local validation, optimistic UI, retries, backoff (standard retry with backoff)
+    2. dedupe / idempotency keys for POSTs
+    3. pagination strategy (cursor-based pagination with push invalidation if supported)
+2. Data model + state
+    1. local cache as read source, server as authority
+    2. sync state machine: idle -> syncing -> success/fail
+    3. server authoritative w/ conflict resolution strategy
+3. Caching
+    1. memory cache, disk cache, database
+    2. cache keys, TTLs, invalidation
+    3. image/video caching if relevant
+4. Offline + sync
+    1. outbox pattern: queue writes locally, sync later
+    2. background refresh limits (iOS)
+    3. resumable uploads/downloads?
+5. Observability
+    1. client logs/metrics: latency, error rates, retries, cache hit rate
+    2. crash reporting / tracing
+
+## Deep Dives (5 mins)
+
+Go through the non-functional requirements looking at the diagram to make sure it meets those.
+
+Address edge cases
+
+Identify bottlenecks
+
+Improve design
+
+## Client Deep Dive (5 mins)
+
+"If there's time, I can briefly cover how the mobile client architectural best practices".
+
+1. Clean architecture
+    1. Coordinator -> View -> ViewModel -> UseCase/Repository <-> Services -> Persistence (DB/Disk) + Network
+2. Modular architecture
+    1. Modularize by layer
+        1. Modules:
+            1. App/Features: UI, coordinates, feature composition / assembly
+            2. Domain: entity models, use cases, repository protocols
+            3. Data: repository implementations + DTO↔domain mapping, caching 
+            4. Infra: concrete networking and DB clients
+        2. Domain imports nothing
+        3. Features import Domain.
+        4. Data imports Domain and Infra
+        5. Infra imports only Apple/vendor SDKs - no app modules.
+3. Integration test best practices
+    1. Data + Infra modules tested together w/ real persistence + network
+    2. In-memory / sandbox environments for CI and local runs
