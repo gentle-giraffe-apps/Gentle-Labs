@@ -4,20 +4,6 @@ import Observation
 import SwiftUI
 import UIKit
 
-// TaskGroup (dynamic number of tasks)
-//
-// await withTaskGroup(of: ResultType.self) { group in
-//     for item in items {
-//         group.addTask {
-//             await someAsyncCall(item)
-//         }
-//     }
-//
-//     for await result in group {
-//         // collect results
-//     }
-// }
-
 struct ImageModel: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let url: String
@@ -109,17 +95,24 @@ final class ImageListViewModel {
     // Syntax:
     // TaskGroup (dynamic number of tasks)
     //
-    // await withTaskGroup(of: ResultType.self) { group in
-    //     for item in items {
-    //         group.addTask {
-    //             await someAsyncCall(item)
-    //         }
-    //     }
+    //    let results: [ResultType] = try await withThrowingTaskGroup(
+    //        of: ResultType.self
+    //    ) { group in
     //
-    //     for await result in group {
-    //         // collect results
-    //     }
-    // }
+    //        for item in items {
+    //            group.addTask {
+    //                try await someAsyncCall(item)
+    //            }
+    //        }
+    //
+    //        var collected: [ResultType] = []
+    //
+    //        for try await result in group {
+    //            collected.append(result)
+    //        }
+    //
+    //        return collected
+    //    }
 }
 
 struct ImageList: View {

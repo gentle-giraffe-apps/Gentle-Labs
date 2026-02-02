@@ -7,6 +7,7 @@ struct ImageListApp: App {
     var body: some Scene {
         WindowGroup {
             ImageList()
+            // Solution_ImageList()
         }
     }
 }
