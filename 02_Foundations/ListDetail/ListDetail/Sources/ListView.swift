@@ -37,8 +37,8 @@ protocol UserService: Sendable {
 struct MockUserService: UserService, Sendable {
 
     // Tune these once; everything else derives from them
-    private let totalUsers = 12
-    private let perPage = 6
+    private let totalUsers = 100
+    private let perPage = 20
 
     func fetchUsers(page: Int) async throws -> PaginatedPage<UserModel> {
         // Simulate network latency (nice for UI testing)
@@ -157,22 +157,22 @@ struct ListView: View {
                         }
                         // Footer sentinel: when it appears, load the next page
                         if viewModel.canLoadMore {
-                                HStack {
-                                    Spacer()
-                                    ProgressView()
-                                    Spacer()
-                                }
-                                .onAppear {
-                                    Task { await viewModel.loadNextPage() }
-                                }
-                            } else {
-                                HStack {
-                                    Spacer()
-                                    Text("End")
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                Spacer()
                             }
+                            .onAppear {
+                                Task { await viewModel.loadNextPage() }
+                            }
+                        } else {
+                            HStack {
+                                Spacer()
+                                Text("End")
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                        }
                     }
                 case .loading:
                     ProgressView("Loading...")
@@ -187,6 +187,9 @@ struct ListView: View {
                     }
                 }
             }
+        }
+        .task {
+            await viewModel.loadInitialIfNeeded()
         }
     }
 }
