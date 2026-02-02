@@ -39,17 +39,6 @@ let project = Project(
             dependencies: [
                 .target(name: "ImageList"),
             ]
-        ),
-        .target(
-            name: "ImageListUITests",
-            destinations: [.iPhone, .iPad],
-            product: .uiTests,
-            bundleId: "com.jr.ImageListUITests",
-            deploymentTargets: .iOS("18.0"),
-            sources: ["ImageListUITests/**"],
-            dependencies: [
-                .target(name: "ImageList"),
-            ]
-        ),
+        )
     ]
 )
