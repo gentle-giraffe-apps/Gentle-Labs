@@ -1,6 +1,6 @@
-# Live Coding Guide
+# Lab Coding Guide
 
-## List / Detail Pattern
+## General
 
 ### Immediate First Steps
 
@@ -16,10 +16,9 @@
     - Use the Mark keyword to group things logically so that it's easy to follow.
 5. Add a `// MARK: - Model` to start working on the initial model(s) in the project.
 
-### Creating the Model, Service, and MockServices
+### Create the Model and ModelWrapper(if applicable)
 
 1. Add `// Mark: - Model`
-2. Add (general idea template, adapt to specific question):
 
 ```swift
 // MARK: - Model
@@ -46,7 +45,11 @@ struct ModelWrapper: Codable, Sendable {
         case models = "users"
     }
 }
+```
 
+### Implement ModelService Protocol and MockService
+
+```
 // MARK: - Service
 
 protocol ModelService: Sendable {
@@ -81,10 +84,7 @@ struct FailingModelService: ModelService {
 
 ```
 
-### Implement the ModelListViewModel
-
-1. Add `// MARK: - View Models`
-1. Annotating the entire view model with @MainActor avoids off-main mutations and reinforces a clear mental model that UI state lives on the main actor. Any heavier or background work goes into use cases or services that run off the main actor and publish their results back.
+### Implement a Generic ContentLoadingState Enum
 
 ```swift
 // MARK: - View Models
@@ -96,6 +96,15 @@ enum ContentLoadingState<T: Equatable>: Equatable {
     case error(String)
     case complete([T])
 }
+```
+
+### Implement the ViewModel
+
+1. Add `// MARK: - View Models`
+1. Annotating the entire view model with @MainActor avoids off-main mutations and reinforces a clear mental model that UI state lives on the main actor. Any heavier or background work goes into use cases or services that run off the main actor and publish their results back.
+
+```swift
+// MARK: - View Models
 
 @MainActor
 @Observable
@@ -135,7 +144,7 @@ final class ModelListViewModel {
 }
 ```
 
-### Implement the ModelListView
+### Implement the Views
 
 1. Add `// MARK: - Views`
 
@@ -184,7 +193,7 @@ struct ModelListView: View {
 }
 ```
 
-### Implement the ModelDetailView and Previews
+### Implement the ModelDetailView
 
 ```swift
 struct ModelDetail: View {
@@ -224,7 +233,11 @@ struct ModelDetail: View {
         }
     }
 }
+```
 
+### Implement Previews
+
+```swift
 // MARK: - Previews
 
 #Preview("List Mock") {
