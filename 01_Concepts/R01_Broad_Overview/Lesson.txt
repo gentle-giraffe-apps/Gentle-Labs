@@ -1,0 +1,126 @@
+iOS and Swift Broad Overview
+A Verbal Lesson
+
+========================================
+Part One: Swift Foundations
+========================================
+
+Let's start with the fundamentals that come up in every iOS interview.
+
+Value types versus reference types. Structs are value types. When you assign a struct to a new variable, you get an independent copy. Classes are reference types. When you assign a class instance, both variables point to the same object. Structs are usually stack-allocated and don't support inheritance. Classes are heap-allocated and do. Use structs for data. Use classes when identity matters, when you need to know it's the same instance, not just equal data.
+
+Swift optimizes value types with copy-on-write. Large collections like Array and Dictionary share their storage until you mutate one copy, then the actual copy happens. You get value semantics without paying for copies you don't need.
+
+ARC, Automatic Reference Counting, manages class instance lifetimes. The compiler inserts retain and release calls. When an object's reference count hits zero, it's deallocated. Retain cycles happen when two objects hold strong references to each other. Common causes are closures capturing self and delegate patterns. Break cycles with weak, which becomes nil when the object is deallocated, or unowned, which assumes the object outlives the reference.
+
+Protocols versus generics. Protocols enable dynamic dispatch through existential containers. They're flexible and let you build heterogeneous collections. Generics enable static dispatch. The compiler knows the concrete type and can specialize the code, giving better performance. Use protocols for abstraction and flexibility. Use generics for performance-critical paths.
+
+Sendable is a marker protocol indicating a type can be safely passed across actor boundaries. Value types are implicitly Sendable. Classes must be final and immutable, or use internal synchronization. Data races happen when multiple threads access shared mutable state without synchronization. Swift 6's strict concurrency checking catches these at compile time.
+
+Actors guarantee serial access to their state. Only one task can touch an actor's mutable properties at a time. But actors don't guarantee execution order, they don't protect against reentrancy issues, and they don't provide atomicity across multiple actors. Accessing an actor from outside requires await, which is a potential suspension point.
+
+MainActor versus MainActor.run versus DispatchQueue.main. MainActor is an attribute marking code as main-thread isolated. The compiler enforces this. MainActor.run is an explicit hop to the main actor from an async context. DispatchQueue.main is the old GCD approach with no compiler isolation checks. Prefer MainActor annotation in new code.
+
+Task cancellation is cooperative. When you cancel a task, Swift sets a flag. The task must check isCancelled or call checkCancellation to respond. Cancellation propagates automatically to child tasks in structured concurrency, but it doesn't force anything to stop. Your code must honor it.
+
+Async let versus TaskGroup. Use async let when you have a fixed number of concurrent operations, typically two to five, and you want to bind results to named variables. Use TaskGroup when you have a dynamic number of tasks or need to process results as they complete. TaskGroup is more flexible but more verbose.
+
+Error handling in async code follows standard Swift patterns. Use throws with try and catch for propagating errors. Use Result when you need to store or pass errors explicitly. Swift 6 introduces typed throws, letting you specify exact error types for better exhaustiveness checking.
+
+Codable has common pitfalls. Dates default to seconds since 1970, but most APIs use ISO 8601, so configure your decoder. Use CodingKeys enum when JSON keys don't match your property names. JSONDecoder is slow for large payloads. And changing types or adding non-optional fields breaks previously encoded data.
+
+========================================
+Part Two: SwiftUI Essentials
+========================================
+
+Navigation in SwiftUI centers on NavigationStack. The simplest push uses NavigationLink with a label and destination view inline. For programmatic navigation, use NavigationPath, a type-erased stack you can push and pop. Pair NavigationLink with a value parameter and navigationDestination modifier for data-driven navigation. This keeps your navigation state testable.
+
+State and data flow have several property wrappers. @State is view-local storage that triggers re-render on change. @Binding is a two-way reference to someone else's State. @StateObject owns an ObservableObject and keeps it alive for the view's lifetime. @ObservedObject observes but doesn't own, so the parent must keep it alive. @EnvironmentObject injects dependencies through the environment. iOS 17's @Observable macro provides finer-grained updates without property wrappers.
+
+A view re-renders when its State changes, a Binding changes, an ObservableObject's Published property fires, or its parent re-renders. To avoid state explosion, lift shared state up, use a single ViewModel rather than scattered State, and derive computed values rather than storing duplicates.
+
+For lists and grids, List is UIKit-backed with built-in separators and swipe actions. LazyVStack loads lazily but needs a ScrollView wrapper. Plain ScrollView loads all children immediately, no lazy behavior. LazyVGrid handles column layouts but struggles with complex sizing. Watch out for Identifiable: unstable IDs like array indices cause animation glitches, and duplicate IDs cause crashes.
+
+Side effects have three main modifiers. OnAppear fires when the view appears and can fire multiple times, like when switching tabs. Task is preferred for async work because it ties to view lifetime and auto-cancels on disappear. OnChange reacts to value changes. Prevent duplicate fetches by tracking loading state or using task with an id parameter, which restarts the task only when the id changes.
+
+Common SwiftUI issues: NavigationLink not firing usually means you're missing a NavigationStack or have a button inside a button. Async fetch running multiple times means you're using onAppear without guards; switch to task. ViewModel deinit not called means something is retaining it, often a closure or environment storage. Binding not updating means the source of truth isn't changing.
+
+========================================
+Part Three: Swift Concurrency
+========================================
+
+Structured concurrency means child tasks are scoped to their parent. The parent waits for all children to complete before returning. This gives you automatic cancellation propagation, no orphaned tasks, clear lifetimes, and easier reasoning. Unstructured tasks created with Task { } escape this scope.
+
+Task { } inherits actor context and priority from the caller. Task.detached { } inherits nothing and runs on the global executor. Prefer Task { }. Detached is rare, useful for truly independent background work that shouldn't be tied to the current actor.
+
+To coalesce concurrent requests to the same resource, use an actor with a dictionary of in-flight tasks keyed by request identifier. When a request comes in, check if a task already exists for that key. If so, await the existing task. If not, create a new task, store it, and await. All callers share the same task. Clear the entry on completion.
+
+Building an async cache with deduplication follows the same pattern. Your actor holds a dictionary mapping keys to tasks. On get, check for an existing task. If found, await it. If not, create a task that fetches the value, store it, await it, cache the result, and clear the task entry. Decide whether to cache failures or allow retries.
+
+Testing async code deterministically requires controlling time. Inject a Clock protocol. Production uses ContinuousClock, tests use a TestClock you control. Advance time manually. Mark tests as async and await completion explicitly. Never use real delays in tests.
+
+Mixing Combine and async/await creates friction. You can bridge with the values property, which gives an AsyncSequence from a Publisher. But cancellation semantics differ. Mixing models makes code harder to reason about. Prefer one pattern per layer.
+
+AsyncSequence produces values over time asynchronously. Use it for network streams, file reading, notifications, timers. You iterate with for await. Backpressure is natural: the consumer controls the pace. AsyncStream lets you yield values from imperative code into an AsyncSequence.
+
+========================================
+Part Four: Unit Testing
+========================================
+
+Testing an async ViewModel: mark the test function as async, inject mock dependencies, call the ViewModel's async methods, await them, and assert final state. Use MainActor for UI-bound ViewModels to avoid threading issues.
+
+Deterministic time requires dependency injection. Define a Clock protocol. Production injects ContinuousClock. Tests inject a TestClock. Your code calls clock.sleep instead of Task.sleep. Tests advance time manually, making timing deterministic.
+
+Testing cancellation: create a task, call cancel on it, await completion, and assert expected state. Did cleanup run? Did partial results appear? Did the expected error throw? Use XCTestExpectation or async assertions.
+
+Testing that coalescing works: spy on your network layer to count calls. Trigger multiple concurrent requests for the same resource. Await all. Assert the network was called exactly once.
+
+Avoiding flaky tests: no real timers, inject clocks. No race conditions, use actors or serial execution. Await completion explicitly, never use arbitrary sleeps. Use deterministic IDs and data.
+
+Dependency injection strategies: protocols are most flexible but verbose. Closures are lightweight for single-function dependencies. Containers centralize dependencies, good for large apps.
+
+Spying versus mocking: a spy records calls and may return canned values. A mock fully replaces behavior with strict expectations. Prefer spies for flexibility; mocks for strict contract verification.
+
+========================================
+Part Five: Architecture
+========================================
+
+Clean Architecture layers an iOS app into three zones. Presentation holds Views and ViewModels. Domain holds use cases and entities. Data holds repositories and DTOs. Dependencies point inward: Presentation depends on Domain, Data depends on Domain. Domain has no iOS imports, pure Swift. This enables testing and platform independence.
+
+DTOs live in the Data layer and match API or database schemas. They're Codable. Domain models live in the Domain layer, are app-centric, and validated. Mappers live at the Data layer boundary, converting between DTO and Domain. Views never see DTOs directly.
+
+Keep SwiftUI Views simple. Views render state and dispatch actions. No business logic. Extract logic to ViewModel or domain layer. Use computed properties. Avoid inline conditionals. Break large views into small, focused subviews.
+
+Caching and idempotency: cache in memory using an actor with a dictionary. Persist to disk for offline support. For idempotency, use idempotency keys for mutations and dedupe on server or client. Stale-while-revalidate shows cached data immediately while fetching fresh data in the background.
+
+Pagination end-to-end: the UI has a List with onAppear on the last item triggering loadMore. The ViewModel holds the items array, cursor or page number, and loading state. It exposes a loadMore method. The service accepts a cursor and returns a page plus the next cursor. Handle loading, empty, error, and end-of-list states. Show inline errors with retry buttons. Don't clear existing data on error.
+
+========================================
+Part Six: Data Structures and Algorithms
+========================================
+
+A brief survey of patterns that come up in technical interviews.
+
+Hash map counting and lookup. Use a Dictionary. Average O(1) insert and lookup. O(n) space. Patterns include frequency counting, two-sum, and grouping by key. Edge cases: empty input, all elements the same.
+
+BFS and DFS for graphs. BFS uses a queue, O(V+E) time, finds shortest path in unweighted graphs. DFS uses a stack or recursion, same complexity, good for exhaustive search. Reconstruct paths with a parent dictionary, backtracking from goal. Watch for cycles with a visited set.
+
+Two pointers. Works on arrays in O(n) time with O(1) space. Patterns include finding pairs with a target sum in sorted arrays, removing duplicates, and partitioning. Edge cases: empty array, single element.
+
+Sliding window. Array with two indices. O(n) time. Patterns include maximum sum subarray and longest substring without repeating characters. Edge cases: window larger than array.
+
+Heap for top-K. Use a min-heap of size K. O(n log k) time, O(k) space. Patterns include finding the Kth largest element and merging K sorted lists. Edge cases: k greater than n, k equals zero.
+
+Sorting plus interval merge. Sort by start time, O(n log n). Merge overlapping intervals by comparing current end with next start. Edge cases: empty input, single interval, all overlapping, none overlapping.
+
+LRU cache. Doubly-linked list plus hash map. O(1) get and put. On access, move to front. On insert when full, evict the tail. Edge cases: capacity zero, duplicate puts.
+
+========================================
+Bringing It All Together
+========================================
+
+These topics form the foundation of iOS development expertise. Swift's type system gives you safety. ARC and value semantics give you predictable memory behavior. SwiftUI gives you declarative UI. Structured concurrency gives you safe async code. Testing patterns give you confidence. Architecture gives you maintainability.
+
+The key is understanding how these pieces connect. Actors use ARC but provide isolation. SwiftUI views are value types but can hold reference types through StateObject. Copy-on-write makes value types efficient. Cancellation flows through structured concurrency automatically.
+
+When you understand the why behind each concept, you can reason about novel situations. When you know the tradeoffs, you can make informed decisions. That's what separates senior engineers from those who just follow patterns.
