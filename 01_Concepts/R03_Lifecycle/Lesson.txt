@@ -1,0 +1,92 @@
+iOS and Swift Lifecycle Concepts
+A Verbal Lesson
+
+========================================
+Part One: App Lifecycle
+========================================
+
+Let's start with how an iOS app lives and breathes.
+
+An iOS app exists in one of five states: not running, inactive, active, background, and suspended. When you tap an app icon, it launches into the inactive state briefly, then becomes active. Active is where your app is front and center, receiving events and interacting with the user.
+
+When the user swipes home or switches apps, your app first becomes inactive, meaning it's still in the foreground but not receiving events, then it transitions to background. In background, your app gets a brief window to wrap things up, maybe save data or finish a network request. After that window closes, the system moves your app to suspended. Suspended means your app is still in memory, but it's not executing any code. It's frozen. The system can terminate a suspended app at any time to reclaim memory, and your app won't even know it happened.
+
+Here's an important edge case: an app can launch directly into the background without ever becoming active. This happens when the system wakes your app for a background fetch, a push notification, or a location update. Your app does its work in the background and may return to suspended without the user ever seeing it.
+
+In UIKit, you respond to these transitions through the UIApplicationDelegate. The key methods are applicationDidBecomeActive, applicationWillResignActive, applicationDidEnterBackground, and applicationWillEnterForeground. The difference between willResignActive and didEnterBackground is subtle but important. WillResignActive fires first when your app is about to lose focus, like when a phone call comes in or the user pulls down the notification center. Your app might still be visible. DidEnterBackground fires later, when your app is fully in the background.
+
+In SwiftUI apps using the App protocol, you observe lifecycle through the scenePhase environment value. ScenePhase can be active, inactive, or background. You watch for changes using onChange and respond accordingly. The scene-based approach is more granular because iOS now supports multiple scenes, meaning multiple windows of your app running simultaneously on iPad.
+
+You can still use an app delegate in SwiftUI when you need to handle things like push notification registration, deep links, or other system callbacks that don't have SwiftUI equivalents yet. You do this with the UIApplicationDelegateAdaptor property wrapper.
+
+========================================
+Part Two: SwiftUI View Lifecycle
+========================================
+
+Now let's talk about how SwiftUI views come and go.
+
+A SwiftUI view is a struct. When you create a view, you're creating a lightweight description of what should appear on screen. The view's body property returns another view, describing the view hierarchy. But here's what trips people up: initializing a view is not the same as rendering it. SwiftUI creates and recreates view structs frequently as part of its diffing process. The body property might be evaluated many times during the lifetime of what you perceive as a single on-screen element.
+
+What triggers a view to re-evaluate its body? State changes. When a property marked with @State, @Binding, @ObservedObject, or @StateObject changes, SwiftUI invalidates the view and calls body again. But SwiftUI is smart. Just because a parent view's body is called doesn't mean every child view re-renders. SwiftUI compares the new view tree with the old one and only updates what actually changed.
+
+The onAppear modifier fires when a view is inserted into the view hierarchy. This typically happens after the view becomes visible, though the exact timing can vary slightly. OnDisappear fires when the view is removed. A key point: onAppear can fire multiple times for what looks like the same view. If you navigate away and back, or if a view is inside a conditional that toggles, onAppear fires each time the view is inserted.
+
+The difference between a view's init and onAppear is significant. Init runs every time SwiftUI creates the view struct, which might be many times for diffing purposes. OnAppear only runs when the view actually joins the visible hierarchy. Don't put expensive work in init.
+
+The task modifier is for async work. It starts a task when the view appears and automatically cancels that task when the view disappears. This is different from launching async work in onAppear, where you'd need to manage cancellation yourself. The task modifier handles the lifecycle for you.
+
+SwiftUI identifies views in two ways: structural identity and explicit identity. Structural identity comes from the view's position in the view hierarchy. The first Text in a VStack is identified by being first. Explicit identity comes from the id modifier or from using types that conform to Identifiable in lists. When you call id with a new value, SwiftUI treats it as an entirely new view. This destroys the old view's state and creates fresh state for the new identity. This is powerful but can be surprising if you don't expect it.
+
+========================================
+Part Three: Reference Types and ARC
+========================================
+
+Let's move to memory management for classes.
+
+Swift uses Automatic Reference Counting, or ARC, to manage the lifetime of class instances. Every class instance has a reference count. When you create a new reference to an object, the count increments. When a reference goes away, maybe a variable goes out of scope, or you assign nil to an optional, the count decrements. When the count reaches zero, the object is deallocated immediately.
+
+The problem arises with strong reference cycles. Imagine object A has a property pointing to object B, and object B has a property pointing back to object A. Each keeps the other's reference count above zero. Neither can ever be deallocated. This is a memory leak.
+
+You break cycles with weak and unowned references. A weak reference doesn't increment the reference count, and it automatically becomes nil when the referenced object is deallocated. That's why weak references must be optional. An unowned reference also doesn't increment the count, but it assumes the referenced object will always be valid for as long as you use it. If you access an unowned reference after the object is deallocated, your app crashes.
+
+Use weak when the referenced object might be deallocated while you still hold the reference. Use unowned when you're certain the referenced object will outlive the reference, like when a child object points back to its parent and cannot exist without that parent.
+
+Closures are a common source of retain cycles. When a closure captures self strongly, and self holds onto that closure, you have a cycle. Capture lists let you specify weak or unowned for captured references. Write [weak self] at the start of the closure when self might be deallocated before the closure runs. Write [unowned self] when you're certain self will outlive the closure.
+
+Now, @StateObject versus @ObservedObject. A @StateObject is owned by the view that declares it. SwiftUI creates the object once when the view first needs it and keeps it alive as long as that view's identity persists. An @ObservedObject is not owned by the view. The object is created elsewhere and passed in. The common mistake is using @ObservedObject for an object you create inline, like @ObservedObject var model = Model(). This is wrong because SwiftUI might create that object multiple times as it recreates the view struct. Use @StateObject when the view is the source of truth. Use @ObservedObject when the object is passed in from outside.
+
+========================================
+Part Four: Value Types and Copy-on-Write
+========================================
+
+Finally, let's cover value types.
+
+Value types, structs and enums, have different semantics than classes. When you assign a struct to a new variable, you get an independent copy. Modify one, and the other is unaffected.
+
+Where do value types live in memory? Not always on the stack, despite what you might have heard. Small, simple values that fit in a few words of memory and don't need dynamic lifetime often go on the stack. But structs stored as properties of a class instance live on the heap, inside that class's allocation. Structs that escape their local scope might also be heap-allocated. The compiler decides.
+
+When a function returns, any local value-type variables on the stack are simply gone. The stack pointer moves, and that memory is reclaimed instantly. No reference counting needed.
+
+If a struct contains another struct, the inner struct is stored inline within the outer struct. Copy the outer struct, and you copy the inner struct too. This is immediate, not deferred, unless copy-on-write applies.
+
+Copy-on-write is an optimization used by Swift's standard collection types: Array, Dictionary, Set, and String. The problem it solves is that copying large collections would be expensive. So Swift defers the copy. When you assign an array to a new variable, both variables share the same underlying storage. Only when you mutate one of them does Swift check whether the storage is uniquely referenced. If it's not, Swift makes a copy of the storage before mutating. This way, you get value semantics, independent copies, without paying for copies you never actually need.
+
+Under the hood, Swift uses a function called isKnownUniquelyReferenced to check whether the storage buffer has multiple owners. You can implement copy-on-write in your own types by wrapping your storage in a class and doing this uniqueness check before any mutation.
+
+Here's a subtle trap. If a struct contains a reference type, a class instance, copying the struct does not copy the class instance. Both struct copies point to the same object. This is a shallow copy. If you mutate the class instance through one struct, you see the change through the other. This breaks true value semantics. To avoid this, you can implement copy-on-write for the class reference or provide explicit deep copy behavior.
+
+========================================
+Bringing It Together
+========================================
+
+Let's tie these concepts together with a realistic scenario.
+
+Imagine a SwiftUI view with a @StateObject that holds an array of model objects, where those models are classes. The @StateObject is created the first time the view appears and survives re-evaluations of body as long as the view's identity stays the same. If you change the view's explicit identity, say by passing a different value to the id modifier, the @StateObject is destroyed and recreated.
+
+When you mutate the array, perhaps adding a model object, the @StateObject's @Published property triggers a view update. The model objects themselves live on the heap, as class instances always do. The array's buffer also lives on the heap, managed with copy-on-write.
+
+Consider the task modifier capturing self in a view. In SwiftUI, self in a view is a struct, a value type. Capturing it strongly doesn't cause a retain cycle like it would with a class. However, if your task captures a reference type, like an @ObservedObject's underlying class, you might need weak or unowned. SwiftUI's task modifier automatically cancels the task when the view disappears, so your async work doesn't continue unexpectedly.
+
+When you pass a large array into a function, the array isn't copied immediately. Both the caller and the function share the same buffer. If the function only reads the array, no copy ever happens. If the function mutates the array, copy-on-write kicks in, the buffer is copied first, and then the mutation happens on the copy. The caller's original array remains unchanged. Swift's optimizer takes this further with techniques like in-place mutation when it can prove no other references exist.
+
+That's the landscape of lifecycle in iOS and Swift. App states govern when your code runs. View lifecycle governs when your UI updates. ARC governs when your objects live and die. And value semantics, combined with copy-on-write, govern how data flows through your app. Master these, and you'll write code that's both correct and efficient.

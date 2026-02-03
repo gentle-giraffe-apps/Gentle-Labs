@@ -1,0 +1,305 @@
+========================================
+Answer Key: iOS / Swift Lifecycle Interview
+========================================
+
+========================================
+SECTION 1: App Lifecycle
+========================================
+
+1. What are the main states an iOS app can be in?
+   Not Running, Inactive, Active, Background, Suspended.
+
+   a. What triggers a transition from inactive to active?
+      The app finishes launching and the system grants it foreground focus, or returning from an interruption (e.g., phone call ends).
+
+   b. When does an app enter suspended vs. background?
+      Background: app is in the background but still executing code. Suspended: app is in memory but not executing—the system suspends it shortly after entering background if no background tasks are running.
+
+   c. Can an app go directly from not running to background?
+      Yes. Examples: background fetch, push notification with content-available, location updates, or responding to a Siri intent.
+
+2. In a UIKit-based app, where do you respond to lifecycle events?
+   In the UIApplicationDelegate (or UISceneDelegate for scene-based apps).
+
+   a. What is the role of UIApplicationDelegate?
+      It receives app-level lifecycle callbacks from the system—launch, termination, memory warnings, and (pre-iOS 13) foreground/background transitions.
+
+   b. What methods are called when the app moves to the background?
+      applicationWillResignActive(_:), then applicationDidEnterBackground(_:). With scenes: sceneWillResignActive(_:), sceneDidEnterBackground(_:).
+
+   c. Difference between applicationWillResignActive and applicationDidEnterBackground?
+      willResignActive: app is about to lose focus (could be temporary, e.g., incoming call). didEnterBackground: app is now fully in the background.
+
+3. In a SwiftUI app using the App protocol, how do you observe lifecycle changes?
+   Use the scenePhase environment value with onChange(of:).
+
+   a. What is scenePhase?
+      An environment value of type ScenePhase with cases: .active, .inactive, .background.
+
+   b. How does scene-based lifecycle differ from app delegate?
+      Scene-based tracks per-scene state (iPad multitasking). App delegate was app-global. Multiple scenes can have different phases simultaneously.
+
+   c. Can you still use an app delegate in a SwiftUI App?
+      Yes, via @UIApplicationDelegateAdaptor. Needed for push notification registration, handling universal links, or third-party SDK setup that requires delegate methods.
+
+4. What happens to your app's memory and execution when suspended?
+   The app remains in memory but receives no CPU time. Code does not execute.
+
+   a. Does your code continue to run?
+      No. Execution is frozen.
+
+   b. What can cause a suspended app to be terminated?
+      System memory pressure. The system terminates suspended apps to reclaim memory without notice.
+
+   c. How should you prepare for potential termination?
+      Save state in applicationDidEnterBackground or sceneDidEnterBackground. Don't rely on applicationWillTerminate—it's not called for suspended apps.
+
+========================================
+SECTION 2: SwiftUI View Lifecycle
+========================================
+
+5. Describe the lifecycle of a SwiftUI view.
+   A view struct is initialized, its body is evaluated to produce a render tree, and SwiftUI diffs against the previous tree to determine what to draw.
+
+   a. What does it mean for body to be evaluated?
+      SwiftUI calls the body property getter, which returns the view hierarchy. This is declarative—it describes what should be shown, not imperative drawing commands.
+
+   b. Is initialization the same as being rendered?
+      No. A view can be initialized but never rendered (e.g., inside an if-else branch not taken). Initialization is cheap; rendering happens only if needed.
+
+   c. How often can body be called?
+      Many times. Any state change affecting the view can trigger body re-evaluation. SwiftUI may call it more often than you expect for diffing purposes.
+
+6. What triggers a SwiftUI view to re-render?
+   A change to any state the view depends on: @State, @Binding, @ObservedObject, @EnvironmentObject, or @Environment values.
+
+   a. Role of @State, @Binding, @ObservedObject?
+      @State: view-owned mutable state. @Binding: two-way reference to state owned elsewhere. @ObservedObject: external ObservableObject the view watches.
+
+   b. If parent's body is called, do all children re-render?
+      No. SwiftUI evaluates child bodies only if their inputs changed. Unchanged subtrees are skipped.
+
+   c. How does SwiftUI decide whether to redraw?
+      It compares the new view description with the old one. If structurally identical with same values, no redraw. It uses Equatable conformance when available.
+
+7. Explain onAppear and onDisappear.
+   onAppear: called when the view is added to the visible hierarchy. onDisappear: called when removed.
+
+   a. When exactly is onAppear called?
+      After the view is inserted into the hierarchy, approximately when it becomes visible. Not guaranteed to be before first frame is drawn.
+
+   b. Can onAppear be called multiple times?
+      Yes. NavigationStack pushing/popping, TabView switching, or List cell recycling can cause repeated onAppear/onDisappear calls.
+
+   c. Difference between init and onAppear?
+      init: view struct created (may never appear). onAppear: view is actually presented on screen.
+
+8. What is the purpose of the task modifier?
+   Starts an async task tied to the view's lifetime.
+
+   a. How does its lifecycle relate to the view's?
+      The task starts when the view appears and is automatically cancelled when the view disappears.
+
+   b. What happens when the view disappears?
+      The task is cancelled via Swift's cooperative cancellation (Task.isCancelled becomes true, await points throw CancellationError).
+
+   c. How does task differ from onAppear for async work?
+      task provides structured concurrency with automatic cancellation. onAppear requires manual Task creation and cancellation management.
+
+9. How does SwiftUI manage view identity?
+   Through structural identity (position in the view hierarchy) and explicit identity (id() modifier or ForEach identifiers).
+
+   a. Structural vs explicit identity?
+      Structural: determined by code position—the first Text in an HStack is always "that" Text. Explicit: you assign an Identifiable id or use .id().
+
+   b. How does id() affect lifecycle?
+      Changing a view's id destroys the old view and creates a new one. All state is reset.
+
+   c. What happens to @State when identity changes?
+      It's destroyed and reinitialized. A new view identity means new state storage.
+
+========================================
+SECTION 3: Reference Object Lifecycle (ARC)
+========================================
+
+10. What is ARC?
+    Automatic Reference Counting: the compiler inserts retain/release calls to track how many strong references point to each heap object.
+
+    a. When does ARC increment the count?
+       When a new strong reference is created: assignment, passing to a function, capturing in a closure.
+
+    b. When does it decrement?
+       When a strong reference goes out of scope, is reassigned, or set to nil.
+
+    c. What happens at zero?
+       The object's deinit is called and memory is deallocated.
+
+11. What is a strong reference cycle?
+    Two or more objects holding strong references to each other, preventing either from reaching zero retain count.
+
+    a. Example of a retain cycle?
+       class A { var b: B? }; class B { var a: A? }. If a.b = b and b.a = a, neither can be deallocated.
+
+    b. How do weak references break cycles?
+       Weak references don't increment retain count. When the referenced object is deallocated, the weak reference becomes nil.
+
+    c. Difference between weak and unowned?
+       weak: optional, auto-nils when object deallocates. unowned: non-optional, assumes object outlives the reference—accessing after deallocation is undefined behavior (crash).
+
+12. When to use unowned vs weak?
+    Use unowned when the referenced object is guaranteed to outlive the reference. Use weak when it might not.
+
+    a. Accessing unowned after deallocation?
+       Crash (or undefined behavior). The pointer is dangling.
+
+    b. Accessing weak after deallocation?
+       Returns nil. Safe.
+
+    c. When is unowned the right choice?
+       Parent-child where child cannot exist without parent: a closure that captures self and will only run while self exists (e.g., animation completion on self's layer).
+
+13. How do closures interact with ARC?
+    Closures are reference types that capture variables from their enclosing scope, incrementing retain counts for captured references.
+
+    a. What is a capture list?
+       Syntax [weak self, unowned delegate] at the closure start to specify how variables are captured.
+
+    b. Why do closures cause retain cycles with self?
+       If self holds the closure (e.g., as a stored property or completion handler), and the closure captures self strongly, a cycle forms.
+
+    c. [weak self] vs [unowned self]?
+       [weak self]: self becomes optional inside closure, must unwrap. [unowned self]: self is non-optional but crashes if deallocated. Use weak when closure might outlive self.
+
+14. @StateObject vs @ObservedObject lifecycle?
+    @StateObject: SwiftUI creates and owns the object, tied to view identity. @ObservedObject: the view observes an externally-owned object.
+
+    a. Who owns the object?
+       @StateObject: the view (SwiftUI manages storage). @ObservedObject: the caller/parent.
+
+    b. When is it deallocated?
+       @StateObject: when the view's identity is destroyed. @ObservedObject: when its external owner releases it.
+
+    c. Common @ObservedObject mistake?
+       Creating the object inline: @ObservedObject var vm = ViewModel(). This creates a new instance every time body is called. Use @StateObject for view-owned objects.
+
+========================================
+SECTION 4: Value Type Lifecycle & Copy-on-Write
+========================================
+
+15. Where do value types live in memory?
+    It depends on context. Local variables of simple value types typically live on the stack. Value types stored in heap-allocated containers or as class properties live on the heap.
+
+    a. Are all value types on the stack?
+       No. Only local variables of fixed-size value types are stack-allocated. Class properties, closure captures, and escaped values go on the heap.
+
+    b. What determines stack vs heap?
+       Compiler analysis of lifetime and escape. If the value must outlive the current stack frame, it's heap-allocated.
+
+    c. What happens to a local Int when the function returns?
+       The stack frame is popped. The memory is reclaimed instantly—no deallocation overhead.
+
+16. How do value types behave inside structs?
+    Contained value types are stored inline within the outer struct's memory layout.
+
+    a. Where does the inner struct live?
+       Inline, as part of the outer struct's contiguous memory.
+
+    b. What happens when you copy the outer struct?
+       The entire contents, including inner values, are copied (for non-CoW types, this is immediate).
+
+    c. Is the copy immediate or deferred?
+       For plain structs without CoW: immediate. For CoW types like Array inside: deferred until mutation.
+
+17. Can value types be stored inside a class?
+    Yes. They become properties of the class instance.
+
+    a. Where does the value live?
+       On the heap, as part of the class instance's memory allocation.
+
+    b. What happens when the class is deallocated?
+       The value's memory is freed along with the rest of the instance. No separate deallocation needed for the value.
+
+    c. How does this differ from struct containing struct?
+       Class instances are heap-allocated and reference-counted. The inner value's lifetime is tied to ARC, not stack unwinding.
+
+18. Explain copy-on-write (CoW).
+    An optimization where copying a value only duplicates the underlying storage when a mutation occurs.
+
+    a. Which types use CoW?
+       Standard library collections: Array, Dictionary, Set, String. Not automatic for custom structs.
+
+    b. What problem does CoW solve?
+       Avoids expensive copies when values are passed around but never mutated. Provides value semantics with reference-type performance.
+
+    c. When does the actual copy happen?
+       At the point of mutation, if the storage buffer has more than one reference.
+
+19. How does Array implement CoW?
+    Array wraps a reference-counted buffer. On mutation, it checks uniqueness and copies if needed.
+
+    a. Role of isKnownUniquelyReferenced?
+       It checks if the buffer has exactly one strong reference. If true, mutation is safe in-place. If false, copy first.
+
+    b. When does duplication occur?
+       When you mutate (append, subscript-set, etc.) and the buffer is shared.
+
+    c. Can you implement CoW in a custom struct?
+       Yes. Wrap data in a class, store a reference in your struct, and check isKnownUniquelyReferenced before mutating. Copy the class instance if not unique.
+
+20. Struct containing a class instance?
+    The struct stores a reference (pointer) to the class instance.
+
+    a. When you copy the struct, what happens to the class instance?
+       The reference is copied, not the object. Both struct copies point to the same class instance.
+
+    b. Deep or shallow copy?
+       Shallow. The class instance is shared.
+
+    c. How does this create unexpected shared state?
+       Mutating the class instance through one struct copy affects all copies. This breaks expected value semantics.
+
+    d. How to get true value semantics?
+       Implement CoW manually: copy the class instance on mutation if shared. Or use only value types internally.
+
+========================================
+BONUS: Mixed Scenarios
+========================================
+
+21. @StateObject holding an array of class instances?
+
+    a. When is StateObject created?
+       Once, when the view first appears (view identity is established). Not on every body call.
+
+    b. If view identity changes?
+       The old StateObject is released (deallocated if no other references). A new one is created.
+
+    c. What triggers view update on array mutation?
+       The ObservableObject must publish changes. Use @Published on the array property. Reassigning the array or calling objectWillChange.send() triggers updates.
+
+    d. Where do model objects and array buffer live?
+       All on the heap. The array's buffer is heap-allocated (CoW). Each class instance is separately heap-allocated and reference-counted.
+
+22. Async task capturing self strongly?
+
+    a. Is this a problem?
+       In task {} modifier: usually not. The view struct is a value type—capturing it extends its lifetime briefly, but doesn't create a cycle.
+
+    b. What if view disappears before completion?
+       SwiftUI cancels the task. The closure may still hold the captured view struct briefly until cancellation completes.
+
+    c. How does task handle cancellation?
+       Cooperative cancellation. Task.isCancelled becomes true. Awaiting cancellation-aware APIs throws CancellationError. Your code should check for cancellation.
+
+23. Struct with large array passed to function?
+
+    a. Is the array copied when passed?
+       Logically yes (value semantics). Physically: only the struct wrapper is copied; the array buffer is shared (CoW).
+
+    b. If the function mutates the array?
+       CoW triggers: the buffer is duplicated before mutation. Original caller's array is unaffected.
+
+    c. If the function only reads?
+       No copy of the buffer. Both share the same underlying storage.
+
+    d. How does Swift optimize this?
+       CoW plus compiler optimizations. If the compiler proves the array isn't mutated, it avoids incrementing reference counts entirely. Inlining can eliminate even the struct copy.

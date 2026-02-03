@@ -1,0 +1,149 @@
+========================================
+Interactive iOS / Swift Interview
+(Concept-Driven, Precision-Oriented)
+========================================
+
+INTERVIEWER MODE (for LLM):
+- Ask one numbered question at a time.
+- Let the candidate answer before continuing.
+- Use follow-ups (a, b, c…) to narrow definitions or expose edge cases.
+- Do not correct immediately; probe first.
+- The goal is conceptual accuracy, not speed.
+
+========================================
+SECTION 1: App Lifecycle
+========================================
+
+1. What are the main states an iOS app can be in?
+   a. What triggers a transition from inactive to active?
+   b. When does an app enter the suspended state vs. the background state?
+   c. Can an app go directly from not running to background? Under what circumstances?
+
+2. In a UIKit-based app, where do you respond to lifecycle events?
+   a. What is the role of UIApplicationDelegate?
+   b. What methods are called when the app moves to the background?
+   c. What's the difference between applicationWillResignActive and applicationDidEnterBackground?
+
+3. In a SwiftUI app using the App protocol, how do you observe lifecycle changes?
+   a. What is the scenePhase environment value?
+   b. How does scene-based lifecycle differ from the traditional app delegate approach?
+   c. Can you still use an app delegate in a SwiftUI App? Why might you need to?
+
+4. What happens to your app's memory and execution when it enters the suspended state?
+   a. Does your code continue to run?
+   b. What can cause a suspended app to be terminated?
+   c. How should you prepare for potential termination?
+
+========================================
+SECTION 2: SwiftUI View Lifecycle
+========================================
+
+5. Describe the lifecycle of a SwiftUI view.
+   a. What does it mean for a view's body to be evaluated?
+   b. Is a view being initialized the same as it being rendered on screen?
+   c. How often can body be called for a single view instance?
+
+6. What triggers a SwiftUI view to re-render?
+   a. What role do @State, @Binding, and @ObservedObject play in this?
+   b. If a parent view's body is called, does that mean all child views re-render?
+   c. How does SwiftUI decide whether to actually redraw a view?
+
+7. Explain the onAppear and onDisappear modifiers.
+   a. When exactly is onAppear called—before or after the view is visible?
+   b. Can onAppear be called multiple times for the same view? Give an example.
+   c. What's the difference between a view's init and onAppear?
+
+8. What is the purpose of the task modifier?
+   a. How does its lifecycle relate to the view's lifecycle?
+   b. What happens to the task when the view disappears?
+   c. How does task differ from onAppear for async work?
+
+9. How does SwiftUI manage view identity?
+   a. What is structural identity vs. explicit identity?
+   b. How does the id() modifier affect a view's lifecycle?
+   c. What happens to @State when a view's identity changes?
+
+========================================
+SECTION 3: Reference Object Lifecycle (ARC)
+========================================
+
+10. What is Automatic Reference Counting (ARC)?
+    a. When does ARC increment a reference count?
+    b. When does it decrement?
+    c. What happens when the count reaches zero?
+
+11. What is a strong reference cycle, and why is it problematic?
+    a. Give an example of how two objects can create a retain cycle.
+    b. How do weak references break a cycle?
+    c. What's the difference between weak and unowned?
+
+12. When should you use unowned vs. weak?
+    a. What happens if you access an unowned reference after the object is deallocated?
+    b. What happens with a weak reference in the same scenario?
+    c. Can you describe a situation where unowned is the right choice?
+
+13. How do closures interact with ARC?
+    a. What is a capture list?
+    b. Why do closures often cause retain cycles with self?
+    c. When do you need [weak self] vs. [unowned self] in a closure?
+
+14. What is the lifecycle of an object marked with @StateObject vs @ObservedObject?
+    a. Who owns the object in each case?
+    b. When is the object deallocated for each?
+    c. What mistake do developers often make with @ObservedObject?
+
+========================================
+SECTION 4: Value Type Lifecycle & Copy-on-Write
+========================================
+
+15. Where do value types live in memory?
+    a. Are all value types stored on the stack?
+    b. What determines whether a value is on the stack or the heap?
+    c. What happens to a local Int variable when the function returns?
+
+16. How do value types behave inside structs?
+    a. If a struct contains another struct, where does the inner struct live?
+    b. What happens to the inner value when you copy the outer struct?
+    c. Is this copy immediate or deferred?
+
+17. Can value types be stored inside a class?
+    a. Where does the value live in memory if it's a property of a class instance?
+    b. What happens to the value's lifecycle when the class instance is deallocated?
+    c. How does this differ from a struct containing another struct?
+
+18. Explain copy-on-write (CoW).
+    a. Which Swift types use copy-on-write?
+    b. What problem does CoW solve?
+    c. At what moment does the actual copy happen?
+
+19. How does an Array implement copy-on-write?
+    a. What is the role of isKnownUniquelyReferenced?
+    b. If two variables reference the same array buffer, when does duplication occur?
+    c. Can you implement CoW in your own custom struct? What would that involve?
+
+20. Consider a struct that contains a reference type (a class instance).
+    a. When you copy the struct, what happens to the class instance?
+    b. Is this a deep copy or a shallow copy?
+    c. How might this create unexpected shared mutable state?
+    d. How would you design around this if you need true value semantics?
+
+========================================
+BONUS: Mixed Scenarios
+========================================
+
+21. You have a SwiftUI view with @StateObject that holds an array of model objects (classes).
+    a. Walk through the lifecycle: when is the StateObject created?
+    b. If the view's identity changes, what happens to the StateObject?
+    c. If you mutate the array, what triggers the view to update?
+    d. Where in memory do the model objects live? The array buffer?
+
+22. An async task is started in a view's task modifier. The closure captures self strongly.
+    a. Is this a problem? Why or why not?
+    b. What happens if the view disappears before the task completes?
+    c. How does SwiftUI's task modifier handle cancellation?
+
+23. You have a struct containing a large array, passed into a function.
+    a. Is the array copied when passed?
+    b. If the function mutates the array, what happens?
+    c. What if the function only reads the array?
+    d. How does Swift optimize this under the hood?
