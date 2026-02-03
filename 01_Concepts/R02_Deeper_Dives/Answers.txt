@@ -1,0 +1,187 @@
+========================================
+iOS / Swift Interview — Concise Answers
+========================================
+
+----------------------------------------
+SECTION 1 — Swift's Type System
+----------------------------------------
+
+1) Strongly typed vs statically typed:
+   a. Strongly typed = no implicit type coercion. You can't add an Int to a String.
+   b. Statically typed = types are checked at compile time, not runtime.
+   c. Different properties. Static = when checked. Strong = how strict.
+   d. Example: JavaScript allows "5" + 3 = "53". Swift won't compile it.
+
+2) Type inference:
+   a. At compile time. The type is fixed before the program runs.
+   b. No. Inference is just the compiler figuring out types you didn't write.
+   c. Complex expressions can confuse readers and slow the compiler.
+
+3) Arrays and mixed types:
+   a. Yes, using [Any] or a protocol.
+   b. [Any] holds anything. [SomeProtocol] holds conforming types.
+   c. You lose type safety and must cast to use the values.
+
+----------------------------------------
+SECTION 2 — Any, AnyObject, Opaque Types
+----------------------------------------
+
+4) Any vs AnyObject:
+   a. Any = any type at all (structs, enums, classes, functions).
+   b. AnyObject = only class instances (reference types).
+   c. AnyObject is narrower — classes only.
+
+5) Deeper on Any vs AnyObject:
+   a. Any holds literally anything: Int, String, closures, classes.
+   b. AnyObject exists for Objective-C interop (id type).
+   c. AnyObject guarantees reference semantics; Any does not.
+
+6) some Protocol:
+   a. "some" means one specific concrete type, compiler knows which.
+   b. "some" = one fixed type. "any" = could be different types at runtime.
+   c. "Opaque" because callers can't see the concrete type, but compiler can.
+   d. some: compiler knows at compile time. any: resolved at runtime.
+
+7) Comparing Any, any Protocol, some Protocol:
+
+   Any:
+   d. Use when you truly need to hold anything (rare).
+   e. Lose all type info; must cast everywhere.
+   f. No compile-time safety; boxing overhead.
+
+   any Protocol:
+   d. Use for heterogeneous collections of protocol conformers.
+   e. Lose static type; existential box overhead.
+   f. Runtime dispatch; heap allocation possible.
+
+   some Protocol:
+   d. Use for return types where you want to hide concrete type.
+   e. Lose ability to return different types conditionally.
+   f. Full type safety; compiler optimizes like concrete types.
+
+----------------------------------------
+SECTION 3 — Value Semantics & Memory
+----------------------------------------
+
+8) Value semantics:
+   a. Changing a copy never affects the original.
+   b. CoW delays copying until mutation — looks like copy, performs like share.
+   c. Actual copy happens on first mutation after sharing.
+
+9) Copy-on-write:
+   a. Avoids expensive copies when you just read.
+   b. No. CoW only ensures single-writer efficiency, not thread safety.
+   c. Two threads can trigger CoW simultaneously = data race.
+
+10) Struct containing a reference type:
+    a. The struct copies, but the reference inside still points to same object.
+    b. Struct's value fields are copied; reference points to shared object.
+    c. Mutating the shared object affects "both" structs unexpectedly.
+
+----------------------------------------
+SECTION 4 — ARC and Object Lifetimes
+----------------------------------------
+
+11) ARC basics:
+    a. Tracks how many strong references point to each object.
+    b. Incremented on new strong reference; decremented when reference goes away.
+    c. deinit runs when count hits zero.
+
+12) ARC: compile-time or runtime?
+    a. Compiler inserts retain/release calls at compile time.
+    b. Those calls execute at runtime.
+    c. Compile-time instrumentation, runtime execution.
+
+13) strong, weak, unowned:
+    a. weak breaks retain cycles by not incrementing the count.
+    b. unowned also doesn't increment, but assumes object outlives the reference.
+    c. unowned avoids the overhead of optional unwrapping.
+    d. Accessing deallocated unowned = crash (or trap in debug).
+
+----------------------------------------
+SECTION 5 — Concurrency Fundamentals
+----------------------------------------
+
+14) Threads vs queues:
+    a. Queues abstract thread management; system decides how many threads.
+    b. You think in "work items" not "thread lifecycle."
+
+15) Race conditions:
+    a. Two threads read/write shared state without synchronization.
+    b. Example: two threads increment a counter; final value is wrong.
+    c. Hard to reproduce because timing varies each run.
+    d. Prevent with: serial queues, locks, actors, or isolation.
+
+16) Value types and thread safety:
+    a. No. Copying isn't atomic; mutation during copy = race.
+    b. No synchronization built in.
+    c. Use actors, locks, or serial queues to enforce exclusive access.
+
+----------------------------------------
+SECTION 6 — Swift Concurrency & Cancellation
+----------------------------------------
+
+17) Actors:
+    a. Actors serialize access to their mutable state automatically.
+    b. Only one task can access actor's state at a time = isolated.
+    c. Wrong choice when you need synchronous access or high-frequency calls.
+
+18) Cancellation:
+    a. Sets a flag; task must check and stop cooperatively.
+    b. No. Work may have started or even finished.
+    c. Frees resources, stops wasted work, respects user intent.
+
+----------------------------------------
+SECTION 7 — SwiftUI, Lists, Async Work
+----------------------------------------
+
+19) Views and async lifetimes:
+    a. If view disappears, its async work may complete with nowhere to go.
+    b. Updates to gone views waste resources; can cause crashes or stale state.
+    c. .task modifier cancels automatically when view disappears.
+
+20) List with remote images:
+    a. Floods the network; many requests for off-screen rows.
+    b. Fast scrolling queues requests for rows user will never see.
+    c. Debounce, cancel on disappear, load only visible rows.
+
+21) Cancellation and server load:
+    a. Request may already be in flight or completed server-side.
+    b. Throttle requests, deduplicate in-flight requests.
+    c. Cache avoids repeat fetches; deduplication shares one request among waiters.
+
+----------------------------------------
+SECTION 8 — Generics and Dispatch
+----------------------------------------
+
+22) Generics:
+    a. Write code once that works with many types, safely.
+    b. Generics: compiler knows concrete type; existentials: type erased.
+    c. Generics: compile time. Existentials: runtime.
+
+23) Why it matters:
+    a. Generics enable inlining and specialization; existentials use indirection.
+    b. Generics = stricter APIs. Existentials = flexible APIs.
+    c. Accept existential cost when you need heterogeneous collections or dynamic dispatch.
+
+----------------------------------------
+QUICK MENTAL MODELS
+----------------------------------------
+
+Type Safety Spectrum:
+  some Protocol > Generics > any Protocol > AnyObject > Any
+  (most safe)                                    (least safe)
+
+Memory Rule:
+  Value type = copy on assign (CoW optimizes)
+  Reference type = share on assign (ARC manages)
+
+Concurrency Rule:
+  Shared mutable state + multiple threads = always protect it.
+
+Cancellation Rule:
+  Cancellation is cooperative. Always check. Always honor.
+
+========================================
+END OF ANSWERS
+========================================

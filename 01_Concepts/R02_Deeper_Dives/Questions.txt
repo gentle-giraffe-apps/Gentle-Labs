@@ -1,0 +1,213 @@
+========================================
+Interactive iOS / Swift Interview
+(Concept-Driven, Precision-Oriented)
+========================================
+
+INTERVIEWER MODE (for LLM):
+- Ask one numbered question at a time.
+- Let the candidate answer before continuing.
+- Use follow-ups (a, b, c…) to narrow definitions or expose edge cases.
+- Do not correct immediately; probe first.
+- The goal is conceptual accuracy, not speed.
+
+----------------------------------------
+SECTION 1 — Swift’s Type System (Precision Checks)
+----------------------------------------
+
+1) Swift is often described as both “strongly typed” and “statically typed.”
+   a. What does “strongly typed” mean in Swift specifically?
+   b. What does “statically typed” mean?
+   c. Are these the same thing, or do they describe different properties?
+
+(If needed:)
+   d. Can you give an example where Swift’s type system prevents a mistake that might compile in another language?
+
+----------------------------------------
+
+2) Swift uses type inference extensively.
+   a. When does the compiler determine a value’s type?
+   b. Does type inference make Swift dynamically typed in any way?
+   c. When can heavy inference reduce clarity or safety?
+
+----------------------------------------
+
+3) Consider arrays in Swift.
+   a. Can an array store values of different types?
+   b. If yes, how?
+   c. What tradeoffs does that approach introduce?
+
+----------------------------------------
+SECTION 2 — `Any`, `AnyObject`, and Opaque Types
+----------------------------------------
+
+4) Swift has several ways to talk about “unknown” or abstract types.
+   a. What is `Any`?
+   b. What is `AnyObject`?
+   c. How are they different?
+
+----------------------------------------
+
+5) Let’s go one level deeper.
+   a. What kinds of values can be stored in `Any`?
+   b. Why might `AnyObject` exist separately?
+   c. What guarantees does `AnyObject` give the compiler that `Any` does not?
+
+----------------------------------------
+
+6) Swift also has `some Protocol`.
+   a. What does `some` mean in Swift?
+   b. How is `some Protocol` different from `any Protocol`?
+   c. Why is `some` sometimes described as an “opaque type”?
+
+(Probe:)
+   d. When is the concrete type known to the compiler in each case?
+
+----------------------------------------
+
+7) Compare these three approaches.
+   a. Using `Any`
+   b. Using `any Protocol`
+   c. Using `some Protocol`
+
+   For each:
+   d. When would you use it intentionally?
+   e. What do you lose by choosing it?
+   f. How does it affect type safety and performance?
+
+----------------------------------------
+SECTION 3 — Value Semantics, Memory, and Copying
+----------------------------------------
+
+8) Swift emphasizes value semantics.
+   a. What does “value semantics” mean in practice?
+   b. How does copy-on-write change how values behave?
+   c. When does an actual copy occur?
+
+----------------------------------------
+
+9) Swift collections use copy-on-write.
+   a. Why is this important for performance?
+   b. Does copy-on-write imply thread safety?
+   c. Why or why not?
+
+----------------------------------------
+
+10) Suppose a struct contains a reference type.
+    a. What happens when the struct is copied?
+    b. What is shared, and what is not?
+    c. Why can this surprise developers?
+
+----------------------------------------
+SECTION 4 — ARC and Object Lifetimes
+----------------------------------------
+
+11) Let’s talk about Automatic Reference Counting.
+    a. At a high level, what does ARC do?
+    b. When are reference counts incremented and decremented?
+    c. When does `deinit` run?
+
+----------------------------------------
+
+12) ARC is implemented by the compiler.
+    a. Does that mean ARC is a compile-time feature?
+    b. Or a runtime feature?
+    c. How would you describe the relationship between the two?
+
+----------------------------------------
+
+13) Swift has `strong`, `weak`, and `unowned` references.
+    a. What problem do `weak` references solve?
+    b. How does `unowned` differ?
+    c. Why does `unowned` exist at all?
+
+(Probe:)
+    d. What happens if an `unowned` reference is accessed after deallocation?
+
+----------------------------------------
+SECTION 5 — Concurrency Fundamentals
+----------------------------------------
+
+14) Conceptually, what is the difference between a thread and a queue?
+    a. Why does Apple emphasize queues instead of manual thread management?
+    b. What does this abstraction buy you?
+
+----------------------------------------
+
+15) What is a race condition?
+    a. Can you describe one that might appear in an iOS app?
+    b. Why are race conditions often hard to reproduce?
+    c. How do you typically prevent them?
+
+----------------------------------------
+
+16) Swift collections are value types.
+    a. Does that make them safe to access from multiple threads?
+    b. If not, what guarantees are missing?
+    c. How would you enforce safe access?
+
+----------------------------------------
+SECTION 6 — Swift Concurrency & Cancellation
+----------------------------------------
+
+17) Swift Concurrency introduces tasks and actors.
+    a. What problems do actors solve?
+    b. How do they relate to data isolation?
+    c. When might an actor be the wrong choice?
+
+----------------------------------------
+
+18) Let’s talk about cancellation.
+    a. What does it mean to cancel a task in Swift?
+    b. Does cancellation guarantee that work never started?
+    c. Why is cancellation still valuable even if work already began?
+
+----------------------------------------
+SECTION 7 — SwiftUI, Lists, and Async Work
+----------------------------------------
+
+19) SwiftUI views are created and destroyed as users scroll.
+    a. Why does this matter for async operations?
+    b. What problems can occur if async work outlives a view?
+    c. How does SwiftUI help with cancellation?
+
+----------------------------------------
+
+20) Imagine a SwiftUI list where each row loads a remote image.
+    a. What happens if every row starts a network request immediately?
+    b. Why does fast scrolling make this worse?
+    c. What strategies reduce wasted work?
+
+----------------------------------------
+
+21) Cancellation doesn’t always prevent server load.
+    a. Why is that?
+    b. What other techniques reduce unnecessary network requests?
+    c. How do caching and deduplication fit into this?
+
+----------------------------------------
+SECTION 8 — Generics and Dispatch
+----------------------------------------
+
+22) What problem do generics solve?
+    a. How are generics different from protocol existentials?
+    b. When does the compiler know the concrete type in each case?
+
+----------------------------------------
+
+23) Why does this distinction matter?
+    a. How can it affect performance?
+    b. How can it affect API design?
+    c. When would you accept the tradeoff?
+
+----------------------------------------
+WRAP-UP — Calibration
+----------------------------------------
+
+24) Which of these areas do you feel strongest in?
+    a. Which required the most deliberate learning?
+    b. Which do you still think carefully about today?
+
+========================================
+END OF INTERVIEW
+========================================
+
