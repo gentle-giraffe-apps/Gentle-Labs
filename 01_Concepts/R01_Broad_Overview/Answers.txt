@@ -1,0 +1,296 @@
+========================
+SECTION A — 30-SECOND FOUNDATIONS
+========================
+
+1) Value type vs reference type
+- Struct: copied on assignment, stack-allocated (usually), no inheritance. Use for data.
+- Class: shared reference, heap-allocated, supports inheritance. Use when identity matters.
+- Follow-up: Copy-on-write optimizes large value types (Array, String, Dictionary).
+
+2) ARC and retain cycles
+- ARC: compiler inserts retain/release. Objects deallocate when refcount hits 0.
+- Retain cycles: two objects hold strong refs to each other. Common: closures capturing self, delegate patterns.
+- Fixes: weak (optional, nil-able), unowned (non-optional, crashes if accessed after dealloc).
+
+3) Protocols vs generics
+- Protocols: dynamic dispatch, existential box overhead, flexible heterogeneous collections.
+- Generics: static dispatch, monomorphization, better performance, compile-time type safety.
+- Tradeoff: protocols for flexibility/abstraction, generics for performance-critical paths.
+
+4) Sendable + data races
+- Sendable: marker protocol guaranteeing safe cross-isolation transfer.
+- Value types are implicitly Sendable. Classes must be final + immutable or use locks.
+- Data race: concurrent read+write to shared mutable state. Swift 6 strict concurrency catches these at compile time.
+
+5) Actor isolation
+- Guarantees: serial access to actor state, no data races on actor properties.
+- Doesn't guarantee: order of execution, reentrancy protection, cross-actor atomicity.
+- Access from outside requires await (suspension point).
+
+6) @MainActor vs MainActor.run vs DispatchQueue.main
+- @MainActor: attribute marking type/func as main-thread isolated. Compiler-enforced.
+- MainActor.run { }: explicit hop to main actor from async context.
+- DispatchQueue.main: old GCD API, no compiler isolation checks, avoid in new code.
+
+7) Task cancellation
+- Cooperative: tasks check isCancelled or Task.checkCancellation() throws.
+- Propagates to child tasks automatically in structured concurrency.
+- Doesn't force-stop; code must handle it explicitly.
+
+8) async let vs TaskGroup
+- async let: fixed number of concurrent tasks, results bound to variables.
+- TaskGroup: dynamic number of tasks, iterate over results as they complete.
+- Use async let for 2-5 known tasks; TaskGroup for collections or unknown count.
+
+9) Error handling in async code
+- throws: standard, use try/catch, errors propagate up.
+- Result: explicit success/failure, useful for storing or passing errors.
+- Typed throws (Swift 6): specify exact error type, better exhaustiveness.
+
+10) Codable pitfalls
+- Dates: default strategy is Double (seconds since 1970), usually want .iso8601.
+- Keys: use CodingKeys enum for mismatched JSON names.
+- Performance: JSONDecoder is slow for large payloads; consider lazy parsing.
+- Migration: changing types or adding non-optional fields breaks existing data.
+
+========================
+SECTION B — SwiftUI
+========================
+
+B1) Navigation:
+
+- Simplest push: NavigationLink("Label") { DestinationView() } inside NavigationStack.
+- NavigationPath: type-erased stack for programmatic navigation. Use when pushing different types or need deep linking.
+- NavigationLink(value:): data-driven, pairs with .navigationDestination(for:). NavigationLink(destination:): inline view, harder to manage.
+
+B2) State & data flow:
+
+- @State: view-local value storage, triggers re-render on change.
+- @Binding: two-way reference to parent's State.
+- @StateObject: owns ObservableObject, created once per view lifetime.
+- @ObservedObject: observes but doesn't own (parent owns it).
+- @EnvironmentObject: dependency injection via environment.
+- @Observable (iOS 17): macro-based, finer-grained updates, no property wrappers needed.
+
+- Re-render triggers: State change, Binding change, ObservableObject's @Published fires, parent re-renders.
+- Avoid state explosion: lift state up, use shared ViewModel, derive computed values instead of storing duplicates.
+
+B3) Lists, grids, performance:
+
+- List: UIKit-backed, built-in separators, swipe actions, editing. Best for standard table views.
+- LazyVStack: lazy loading, more customizable, inside ScrollView.
+- ScrollView alone: loads all children immediately, no lazy behavior.
+- LazyVGrid: column-based grid, breaks down with complex sizing or heavy cell content.
+- Identifiable pitfall: unstable IDs (using index) cause animation glitches; duplicate IDs cause crashes.
+
+B4) Side effects:
+
+- onAppear: fires when view appears, can fire multiple times (tab switches).
+- task: tied to view lifetime, auto-cancels on disappear, preferred for async work.
+- onChange: reacts to value changes, use for derived updates.
+- Prevent duplicate fetches: track loading state, use task(id:) to refetch only when ID changes.
+- Cancel in-flight: task modifier auto-cancels; or store Task and call cancel() in onDisappear.
+
+B5) Common footguns:
+
+- NavigationLink not firing: usually missing NavigationStack, or button inside button.
+- Async fetch runs multiple times: onAppear fires multiple times; use task or guard with state.
+- ViewModel deinit not called: retained by closure, stored in environment, or View recreated frequently.
+- Binding not updating: source of truth not changing, or wrong binding level.
+- task(id:): restarts the task when id changes, useful for refetching on parameter change.
+
+========================
+SECTION C — Concurrency
+========================
+
+C1) Structured concurrency
+- Child tasks scoped to parent; parent waits for all children before completing.
+- Benefits: automatic cancellation propagation, no orphaned tasks, clear lifetime, easier reasoning.
+- Contrast with unstructured (Task {}) which escapes the scope.
+
+C2) Task { } vs Task.detached { }
+- Task { }: inherits actor context and priority from caller.
+- Task.detached { }: no inheritance, runs on global executor, use for truly independent work.
+- Prefer Task { }; detached is rare (e.g., background processing that shouldn't block current actor).
+
+C3) Coalescing concurrent requests
+- Use an actor with in-flight task cache: if request exists, await existing; else start new and store.
+- Return same Task to all callers; clear on completion.
+- Key pattern: actor + dictionary of Task by request key.
+
+C4) Async cache with deduping
+- Actor holding [Key: Task<Value, Error>] dictionary.
+- On get: if task exists, await it. Else create task, store it, await, cache result, clear task.
+- Handle errors: decide whether to cache failures or retry.
+
+C5) Testing async code deterministically
+- Inject clock (e.g., TestClock from swift-dependencies or custom).
+- Use immediate schedulers to remove real delays.
+- Await explicit task completion; avoid Task.sleep in tests.
+- Use MainActor in tests or custom executors for determinism.
+
+C6) Combine + async/await pitfalls
+- Bridging: .values gives AsyncSequence from Publisher, but cancellation semantics differ.
+- Mixing models: harder to reason about, prefer one pattern per layer.
+- Memory: publishers can hold refs; async tasks can't always cancel Combine chains cleanly.
+
+C7) AsyncSequence for streaming
+- Protocol: produces values over time asynchronously.
+- Use for: network streams, file reading, notifications, timers.
+- Model updates: yield values from AsyncStream, actors can expose as AsyncSequence.
+- Backpressure: consumer controls pace via for await.
+
+========================
+SECTION D — Unit Testing
+========================
+
+D1) Testing async ViewModel
+- Mark test func as async. Await ViewModel methods. Assert final state.
+- Inject dependencies (network, clock) with mocks/fakes.
+- Use MainActor for UI-bound ViewModels to avoid threading issues.
+
+D2) Deterministic time
+- Inject Clock protocol; production uses ContinuousClock, tests use TestClock.
+- Advance time manually in tests.
+- swift-dependencies or custom Clock conformance.
+
+D3) Testing cancellation
+- Create Task, call cancel(), await completion.
+- Assert expected state (e.g., partial results, cleanup called, error thrown).
+- Use XCTestExpectation or async assertions.
+
+D4) Testing coalescing (only one fetch)
+- Spy/mock the network layer to count calls.
+- Trigger multiple concurrent requests. Await all.
+- Assert call count == 1.
+
+D5) Avoiding flaky tests
+- No real timers; inject clocks.
+- No race conditions; use actors or serial execution.
+- Await completion explicitly; don't use arbitrary sleeps.
+- Deterministic IDs and data.
+
+DI strategy:
+- Protocols: most flexible, verbose.
+- Closures: lightweight for single-function deps.
+- Containers: centralized, good for large apps (e.g., swift-dependencies).
+
+Spying vs mocking:
+- Spy: records calls, lets real code run or returns canned values.
+- Mock: fully replaces behavior, strict expectations.
+- Prefer spies for flexibility; mocks for strict contract verification.
+
+========================
+SECTION E — Architecture
+========================
+
+E1) Clean Architecture (60s)
+- Layers: Presentation (Views, ViewModels) -> Domain (Use Cases, Entities) -> Data (Repositories, DTOs).
+- Dependencies point inward: UI depends on Domain, Data depends on Domain.
+- Domain has no iOS imports, pure Swift. Enables testing and platform independence.
+
+E2) DTOs, Mappers, Domain Models
+- DTOs: Data layer, match API/DB schema, Codable.
+- Domain models: Domain layer, app-centric, validated.
+- Mappers: Data layer boundary, convert DTO <-> Domain. Keep Views unaware of DTOs.
+
+E3) Keeping SwiftUI Views simple
+- Views only render state and dispatch actions. No business logic.
+- Extract logic to ViewModel or domain layer.
+- Use computed properties; avoid inline conditionals.
+- Break into small, focused subviews.
+
+E4) Caching and idempotency
+- Cache: in-memory (actor/dictionary), persist to disk for offline.
+- Idempotency: use idempotency keys for mutations, dedupe on server or client.
+- Stale-while-revalidate: show cached, fetch fresh, update.
+
+E5) Pagination design
+- UI: List with onAppear on last item triggers loadMore.
+- ViewModel: holds items array, cursor/page, loading state. Exposes loadMore().
+- Service: accepts cursor, returns page + next cursor.
+- Handle: loading, empty, error, end-of-list states.
+
+Follow-ups:
+- Error states: show inline error, retry button, don't clear existing data.
+- Retry: exponential backoff, max attempts, user-triggered retry.
+- Offline: cache last-known data, show stale indicator, queue mutations.
+- Telemetry: log latency, errors, cache hit rate; use structured logging.
+
+========================
+SECTION F — DSA
+========================
+
+F1) Hash map counting/lookup
+- DS: Dictionary. O(1) avg insert/lookup. O(n) space.
+- Pattern: frequency count, two-sum, grouping.
+- Edge: empty input, all same, hash collisions (rare in Swift).
+
+F2) BFS/DFS graph traversal
+- BFS: Queue, O(V+E), finds shortest path in unweighted graphs.
+- DFS: Stack/recursion, O(V+E), good for exhaustive search.
+- Path reconstruction: parent dictionary, backtrack from goal.
+- Edge: cycles (use visited set), disconnected components.
+
+F3) Two pointers
+- DS: Array. O(n) time, O(1) space.
+- Pattern: sorted array, find pair with sum, remove duplicates, partition.
+- Edge: empty array, single element, all same.
+
+F4) Sliding window
+- DS: Array + two indices. O(n) time, O(1) or O(k) space.
+- Pattern: max sum subarray, longest substring without repeat.
+- Edge: window larger than array, empty input.
+
+F5) Heap for top-K
+- DS: Min-heap of size K. O(n log k) time, O(k) space.
+- Pattern: Kth largest, merge K sorted lists.
+- Edge: k > n, k = 0, duplicates.
+
+F6) Sorting + interval merge
+- Sort by start. O(n log n) time, O(n) space for result.
+- Merge overlapping: compare current end with next start.
+- Edge: empty, single interval, all overlapping, none overlapping.
+
+F7) LRU cache
+- DS: Doubly-linked list + hash map. O(1) get/put.
+- On access: move to front. On insert when full: evict tail.
+- Edge: capacity 0, duplicate puts, get non-existent.
+
+========================
+SECTION G — First 5 Minutes Scripts
+========================
+
+G1) 30-second intro (template)
+"I'm [Name], iOS engineer with [X] years experience. Recently focused on SwiftUI, Swift concurrency, and testable architecture. At [Company], I [specific achievement: built feature, improved performance, led migration]. I prioritize clean, tested code and enjoy mentoring. Excited about this role because [specific reason]."
+
+G2) 60-second project decision (template)
+"We needed [goal]. Options were [A] and [B]. Chose [A] because [tradeoff reason: performance, maintainability, timeline]. Implementation: [brief how]. Result: [metric or outcome]. Learned: [insight]. Would reconsider [B] if [condition]."
+
+G3) Actors (30s)
+"An actor is a reference type with isolated state. Only one task can access its mutable state at a time, preventing data races. You await when calling actor methods from outside. It's Swift's answer to thread-safe mutable state without manual locks."
+
+G4) SwiftUI Navigation (30s)
+"Use NavigationStack with NavigationLink(value:) for data-driven navigation. Define destinations with .navigationDestination(for:). For programmatic control, use NavigationPath—it's a type-erased stack you can push/pop. Keeps navigation state in ViewModel for testability."
+
+G5) Testing concurrent code (60s)
+"Inject dependencies: clock for time, protocols for async services. Use TestClock to control time deterministically. Mark tests async, await explicitly. Use actors or serial queues to avoid races in test setup. For cancellation, create task, cancel, assert cleanup. Avoid real delays—flaky. Mock network returns immediately. Assert state transitions, not timing."
+
+========================
+SECTION H — Reverse Interview Questions
+========================
+
+H1) "How do you handle data flow—Combine, async sequences, or both?"
+(Assesses: modernity of codebase, migration status, consistency.)
+
+H2) "How do you test async code? Any patterns you've standardized?"
+(Assesses: testing maturity, tooling, code quality culture.)
+
+H3) "What does 'good SwiftUI' mean on this team?"
+(Assesses: design philosophy, code review standards, UI/UX collaboration.)
+
+H4) "Where are you on iOS 17/18 adoption? Any migration pains?"
+(Assesses: tech debt, deployment targets, modernization pace.)
+
+H5) "How do you handle pagination and caching in your app?"
+(Assesses: data layer maturity, performance awareness, offline support.)
