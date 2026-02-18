@@ -16,18 +16,21 @@ import SwiftUI
 @Observable
 class DebounceViewModel {
     var searchText = "" {
-        didSet { continuation?.yield(searchText) }
+        didSet { continuation.yield(searchText) }
     }
     private(set) var debouncedText = ""
     private(set) var searchCount = 0
 
-    private var continuation: AsyncStream<String>.Continuation?
+    private let stream: AsyncStream<String>
+    private let continuation: AsyncStream<String>.Continuation
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(of: String.self)
+    }
+
+    deinit { continuation.finish() }
 
     func startObserving() async {
-        let stream = AsyncStream<String> { continuation in
-            self.continuation = continuation
-        }
-
         for await text in stream.debounce(for: .seconds(0.5)) {
             debouncedText = text
             if !text.isEmpty { searchCount += 1 }
