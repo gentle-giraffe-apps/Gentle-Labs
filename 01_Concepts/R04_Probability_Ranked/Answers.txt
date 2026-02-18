@@ -1,0 +1,925 @@
+Senior iOS Interview Answers — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — Value types vs reference types (struct vs class)
+
+Structs are copied on assignment, classes are shared by reference.
+Structs: stack-allocated (usually), no inheritance, safe to pass across
+threads because each recipient gets an independent copy.
+Classes: heap-allocated, support inheritance, need ARC for memory management.
+A shared mutable struct (var on a class, captured in closures) is NOT
+thread-safe — concurrent mutation is still a data race.
+Use structs for data. Use classes when you need identity or inheritance.
+Follow-up: Copy-on-write defers the actual copy until mutation. Array, String,
+Dictionary, and Set all use it. You only pay for the copy if you mutate.
+
+
+98% — ARC and retain cycles
+
+ARC automatically inserts retain/release at compile time. When an object's
+reference count hits zero, it's deallocated.
+Retain cycle: two objects hold strong references to each other — neither
+can reach zero. Common causes: closures capturing self, delegate properties.
+Fix with weak (optional, nils out on dealloc) or unowned (non-optional,
+crashes if accessed after dealloc). Use weak for delegates and closures
+where self might go away. Use unowned when you're certain self outlives
+the reference. unowned is marginally more efficient — it skips the weak
+side table and optional unwrapping — but choose based on lifetime
+semantics, not performance. unowned(unsafe) skips even the deinitialization
+check — true zero overhead but undefined behavior if wrong. Rarely used.
+
+
+97% — Optionals
+
+An optional is an enum: .some(value) or .none. It represents the possible
+absence of a value.
+Unwrapping: if let (conditional), guard let (early exit), force unwrap !
+(crash if nil), nil coalescing ?? (default value), optional chaining ?.
+(short-circuits to nil).
+Use guard let for preconditions at the top of a function. Use if let for
+branching. Force unwrap only when nil is a programmer error (IBOutlets,
+known-good data).
+
+
+96% — SwiftUI property wrappers and data flow
+
+@State: view-owned value, triggers re-render on change.
+@Binding: two-way reference to someone else's State.
+@StateObject: creates and owns an ObservableObject once.
+@ObservedObject: observes but doesn't own (parent owns it).
+@EnvironmentObject: shared object injected via the environment.
+@Observable (iOS 17+): macro-based, per-property tracking, no wrappers needed.
+Views use @State to hold @Observable objects directly.
+Follow-up: @Observable tracks which properties each view actually reads,
+so only views that read a changed property re-render. With ObservableObject,
+ANY @Published change fires objectWillChange, causing ALL observing views
+to re-evaluate — even views that don't use the changed property.
+
+
+95% — async/await
+
+async marks a function that can suspend. await marks POTENTIAL suspension
+points — the function might return immediately without actually suspending,
+but the compiler treats every await as a point where execution could pause.
+Unlike GCD: no callback nesting, no DispatchQueue hopping, errors use
+try/catch instead of Result in completion handlers.
+At a suspension point the thread is freed to do other work. When the
+async operation completes, execution resumes — possibly on a different
+thread. await does NOT block the thread.
+
+
+94% — Protocols and protocol-oriented programming
+
+A protocol defines a contract: required methods, properties, associated types.
+Protocol-oriented programming: define behavior through protocols and
+extensions rather than class hierarchies. Prefer composition over inheritance.
+Protocol extensions provide default implementations — shared behavior
+without a base class. Unlike inheritance: no single-parent restriction,
+works with structs and enums, no fragile base class problem.
+Prefer protocols for abstraction boundaries. Use generic constraints when
+you need the compiler to specialize for performance.
+
+
+93% — MVVM in SwiftUI
+
+Model: data and business logic. View: UI rendering only.
+ViewModel: transforms model data for the view, handles user actions.
+In SwiftUI: ViewModel is an @Observable class (or ObservableObject).
+View reads ViewModel properties, calls ViewModel methods.
+View should have zero business logic — just read state and dispatch actions.
+Avoid massive ViewModels by splitting into focused ViewModels per feature,
+extracting use cases, or using computed properties instead of stored state.
+
+
+92% — Closures
+
+Closures are self-contained blocks that capture variables from their
+surrounding scope — by reference, not by value. Mutating a captured var
+inside the closure affects the original. Use a capture list [x] to
+capture the current value instead.
+Non-escaping: called before the function returns (default). Compiler can
+optimize, no retain of captured references needed.
+Escaping: stored and called later (network callbacks, async work). Must
+be marked @escaping. Retains captured references strongly by default.
+Retain cycle: closure captures self strongly, self holds the closure.
+Fix with [weak self] or [unowned self] in the capture list.
+The common pattern: [weak self] then guard let self else { return } at
+the top of the closure. This gives you a strong temporary reference (self)
+that keeps the object alive for the duration of the closure body, but
+doesn't prevent deallocation between calls. Before Swift 5.8 you had to
+write guard let strongSelf = self, which is why you still see that in
+older codebases. Use [unowned self] only when you're certain self can
+never be nil at call time — it's a crash if you're wrong.
+
+
+91% — SwiftUI view re-rendering
+
+SwiftUI re-evaluates a view's body when: @State changes, @Binding changes,
+an observed @Published property fires, or the parent re-renders passing
+different values. Re-evaluation doesn't mean the whole UI redraws — SwiftUI
+compares the new body output with the previous and only updates what
+actually changed in the render tree.
+Prevent unnecessary re-renders: extract subviews (each has its own
+identity), use @Observable for per-property tracking, avoid storing
+derived state (use computed properties), conform views to Equatable.
+
+
+90% — Error handling
+
+throws: standard Swift pattern, propagate with try, catch with do/catch.
+Best for recoverable errors in normal control flow.
+Result: explicit success/failure enum. Useful when storing results or
+passing errors across callbacks.
+Optionals: for "no value" cases where you don't care why. Use when the
+absence itself is the information.
+Typed throws (Swift 6): specify exact error type, enables exhaustive
+switch in catch blocks.
+
+
+89% — Behavioral: debugging a challenging bug
+
+Structure your answer: What was the symptom? How did you isolate it?
+What was the root cause? How did you fix it? How did you prevent it?
+Show systematic thinking: reproduce, narrow scope, form hypothesis,
+verify with logging/debugger/instruments, fix, write regression test.
+Good answers mention: Instruments, Memory Graph Debugger, breakpoints,
+git bisect, or unit tests that caught it.
+
+
+88% — Actors and data race prevention
+
+An actor is a reference type that serializes access to its mutable state.
+Only one synchronous section runs at a time on a given actor instance.
+Unlike a class with a lock: the compiler enforces isolation at compile time.
+You can't accidentally forget to lock. Access from outside requires await.
+Important caveat: if an actor method hits an await (suspends), another
+method CAN start running on that actor before the first resumes. This is
+actor reentrancy — state may change across suspension points.
+Different actor instances run concurrently with each other.
+
+
+87% — @MainActor
+
+@MainActor isolates code to the main thread. Use it for anything that
+touches UI: ViewModels, UI-related state, UIKit updates.
+@MainActor: compile-time attribute, enforced by the compiler.
+MainActor.run {}: explicit hop from an async context to the main actor.
+DispatchQueue.main.async: old GCD, no compiler checks, avoid in new code.
+Swift 6.2 (SE-0466): SWIFT_DEFAULT_ACTOR_ISOLATION makes everything
+@MainActor by default in app targets. Opt out with nonisolated.
+
+
+86% — Generics
+
+Generics let you write type-safe code that works with any type meeting
+constraints. Within a module, the compiler specializes at compile time —
+no boxing, no runtime overhead. Cross-module generics require @inlinable
+to specialize; otherwise they use witness tables with some overhead.
+Any erases the type at runtime (existential box). Generics preserve the
+type at compile time.
+Generic constraint: func fetch<T: Decodable>(type: T.Type). The compiler
+knows the exact type, enables optimizations, and catches errors early.
+
+
+85% — Networking end-to-end
+
+async/await: let (data, response) = try await URLSession.shared.data(from: url).
+Decode: let items = try JSONDecoder().decode([Item].self, from: data).
+ViewModel: set isLoading = true, call the service, set result or error,
+set isLoading = false. View shows ProgressView / content / error based
+on state.
+URLSession uses a delegate-based system under the hood with connection
+pooling, HTTP/2 multiplexing, and background session support.
+
+
+84% — Task cancellation
+
+Cancellation is cooperative: calling task.cancel() sets a flag.
+The task must check Task.isCancelled or call try Task.checkCancellation()
+to actually stop.
+In structured concurrency, cancelling a parent automatically cancels all
+child tasks. Children check cancellation and throw CancellationError.
+URLSession.data(from:) and Task.sleep both check cancellation automatically.
+
+
+83% — Sendable
+
+Sendable marks types safe to pass across actor/isolation boundaries.
+Value types are implicitly Sendable IF all their stored properties are
+also Sendable. A struct containing a non-Sendable class reference is NOT
+implicitly Sendable. Classes must be final with only immutable (let)
+Sendable properties, or use @unchecked Sendable with manual synchronization.
+The compiler enforces Sendable at isolation boundaries to prevent data
+races at compile time.
+A Sendable closure can't capture mutable state — only Sendable values.
+
+
+82% — Codable
+
+Codable = Decodable + Encodable. The compiler synthesizes init(from:)
+and encode(to:) for types with all-Codable properties.
+Mismatched keys: add a CodingKeys enum mapping property names to JSON keys.
+Dates: set decoder.dateDecodingStrategy = .iso8601 (default is .deferredToDate
+which uses seconds since January 1, 2001 — NOT Unix epoch).
+Performance: JSONDecoder is slow for large payloads. Consider lazy parsing
+or streaming for big responses.
+
+
+81% — Dependency injection
+
+Pass dependencies in rather than creating them internally.
+Protocols: most flexible, define interface, swap implementations for tests.
+Closures: lightweight for single-function deps (e.g., () async -> [Item]).
+Containers: centralized registration (swift-dependencies, Factory).
+For testing: inject mock/stub that conforms to the same protocol.
+Dependency inversion: high-level modules define the protocol, low-level
+modules implement it. Dependencies point inward.
+
+
+80% — Testing async code
+
+Mark test as async. Await the ViewModel method. Assert final state.
+Inject dependencies: mock network returns canned data, TestClock controls
+time deterministically.
+Mock: fully replaces behavior, returns controlled values.
+Stub: minimal implementation, just enough to not crash.
+Key: no real timers, no real network, no sleep. Everything injected,
+everything deterministic.
+
+
+79% — NavigationStack and programmatic navigation
+
+NavigationStack manages a stack of views. Use NavigationLink(value:) +
+.navigationDestination(for:) for data-driven navigation.
+NavigationPath: type-erased stack for pushing heterogeneous types.
+Push/pop programmatically by appending/removing from the path.
+NavigationLink(destination:) is the old inline API — harder to manage.
+Deep linking: parse URL into navigation state, set the path accordingly.
+
+
+78% — Data races
+
+A data race: two threads access the same memory, at least one writes,
+with no synchronization. Causes undefined behavior.
+Swift prevents them with: actor isolation (serial access), Sendable
+(safe transfer), and strict concurrency checking (compile-time errors).
+Race condition vs data race: a race condition is a logic bug (wrong
+ordering). A data race is memory corruption. You can have race conditions
+without data races (e.g., two actors interleaving operations).
+
+
+77% — Identifiable and SwiftUI diffing
+
+Identifiable requires a stable, unique id property. SwiftUI uses it to
+track which items were added, removed, or moved during diffing.
+Unstable IDs (array index): every insert/delete shifts IDs, causing
+SwiftUI to rebuild all cells, break animations, and lose state.
+Always use a model-owned stable ID (database ID, UUID).
+
+
+76% — SOLID principles in iOS
+
+S: Single Responsibility — each class/struct has one reason to change.
+O: Open-Closed — extend via protocols/composition, don't modify.
+L: Liskov Substitution — subtypes must be usable as their parent type.
+I: Interface Segregation — small, focused protocols over fat ones.
+D: Dependency Inversion — depend on abstractions (protocols), not concretes.
+In iOS: ViewModel handles logic (S), protocols define boundaries (O, D),
+small protocols for testability (I).
+
+
+75% — Data persistence
+
+UserDefaults: small preferences, non-sensitive. Fast, synchronous.
+Keychain: credentials, tokens, certificates. Encrypted, persists across
+reinstalls.
+Core Data / SwiftData: structured models, relationships, queries.
+SwiftData is the modern wrapper with @Model macro.
+File system: large blobs, documents, caches. Use FileManager.
+Choose by: sensitivity (Keychain), complexity (Core Data/SwiftData),
+simplicity (UserDefaults), size (file system).
+
+
+74% — App lifecycle
+
+iOS 14+: App protocol with @main, Scene-based lifecycle.
+Scenes: each window/instance of your app. Use @Environment(\.scenePhase)
+to react to active/inactive/background.
+App delegate: still used for push notifications, background launch events,
+and UIKit lifecycle hooks via @UIApplicationDelegateAdaptor.
+Background tasks: register with BGTaskScheduler, request via submit().
+
+
+73% — Access control
+
+private: same declaration scope only.
+fileprivate: same file.
+internal: same module (default).
+public: visible outside module, but can't subclass/override.
+open: visible outside module AND can subclass/override.
+Key distinction: public lets you use it, open lets you extend it.
+Modules define the boundary. Access control is your API surface.
+
+
+72% — Task {} vs Task.detached {}
+
+Task {}: inherits actor context, priority, and local values from caller.
+If called from @MainActor, runs on main actor.
+Task.detached {}: inherits nothing. Runs on the global concurrent executor.
+Use Task {} almost always. Use detached only for truly independent work
+that should NOT run on the caller's actor (e.g., heavy computation that
+would block the main actor).
+
+
+71% — SwiftUI side effects (.onAppear, .task, .onChange)
+
+.onAppear: fires when view appears. Can fire multiple times (tab switching).
+Not tied to view lifetime. No cancellation.
+.task: tied to view lifetime, auto-cancels on disappear. Preferred for
+async work.
+.onChange: fires when a value changes. Use for reacting to state updates.
+.task(id:): cancels and restarts when the id changes. Replaces both
+flatMap and switchToLatest from Combine.
+
+
+70% — List performance
+
+List: UIKit-backed (UITableView), built-in swipe actions, separators,
+editing mode. Lazy by default.
+LazyVStack in ScrollView: fully customizable, lazy loading, but you build
+everything yourself (no free swipe actions).
+ScrollView + ForEach (no Lazy): loads ALL children immediately. Only for
+small, fixed collections.
+LazyVGrid: column-based grid, breaks down with complex self-sizing cells.
+
+
+69% — Combine
+
+Publisher: emits values over time. Operator: transforms the stream
+(map, filter, debounce). Subscriber: consumes values (.sink, .assign).
+Pipeline is lazy — nothing happens until a subscriber attaches.
+vs async/await: Combine is declarative chains, async/await is imperative
+sequential code. Combine is better for multi-stream composition (merge,
+combineLatest). async/await is simpler for request-response.
+Combine is still preferred for binding @Published to UI in pre-iOS 17 code.
+
+
+68% — Structured vs unstructured concurrency
+
+Structured: child tasks scoped to parent. Parent waits for all children.
+Cancellation propagates automatically. No orphaned tasks.
+Unstructured (Task {}): escapes the scope, you manage lifetime manually.
+TaskGroup: structured. async let: structured. Task {}: unstructured.
+Task.detached {}: unstructured.
+Prefer structured. Use unstructured only when you need to outlive the
+current scope (e.g., fire-and-forget from a button action).
+
+
+67% — async let vs TaskGroup
+
+async let: fixed number of concurrent tasks, bound to named variables.
+async let a = fetch1(); async let b = fetch2(); let (x, y) = await (a, b).
+TaskGroup: dynamic number, iterate results as they complete.
+If one async let throws, all sibling tasks are cancelled automatically.
+Use async let for 2-5 known tasks. Use TaskGroup for collections or
+unknown count.
+
+
+66% — some View vs any View (opaque vs existential)
+
+some View: opaque type. The compiler knows the concrete type, caller
+doesn't. Enables optimizations, preserves type identity.
+any View: existential. Runtime type erasure, boxing overhead, loses
+type information.
+SwiftUI returns some View so the compiler can track the exact view
+hierarchy for efficient diffing.
+AnyView is discouraged because it erases type identity, defeating SwiftUI's
+diffing and causing unnecessary re-renders.
+
+
+65% — Type erasure
+
+Type erasure hides a concrete type behind a simpler interface.
+AnyPublisher wraps any Publisher with matching Output/Failure.
+Used at API boundaries: a repository method returns AnyPublisher so
+callers don't see the internal operator chain.
+Implement: wrapper struct that stores closures from the concrete type.
+Prefer generics (some Protocol) when the concrete type can be preserved.
+Use type erasure only when you must hide the type (public APIs, heterogeneous
+collections).
+
+
+64% — AsyncSequence and AsyncStream
+
+AsyncSequence: protocol for types that produce values asynchronously.
+Consume with for await. Cancelling the Task stops iteration.
+AsyncStream: concrete AsyncSequence you create with a continuation.
+continuation.yield() sends values, continuation.finish() ends the stream.
+Bridge delegates: create AsyncStream, store continuation, yield from
+delegate callbacks, finish on completion.
+AsyncThrowingStream: same but can throw errors.
+
+
+63% — Thread safety
+
+Thread safety: multiple threads can access shared state without corruption.
+Actors: compiler-enforced serial access. Preferred in Swift.
+Locks (NSLock, os_unfair_lock): manual, error-prone, no compiler help.
+Serial DispatchQueue: old GCD pattern, synchronize via queue.sync {}.
+Atomics: low-level, for counters and flags only.
+Deadlock: two locks waiting on each other. Avoid by always acquiring
+locks in the same order. Actors avoid traditional deadlocks (since await
+suspends rather than blocks), but circular actor dependencies (A awaits
+B, B awaits A) can still cause logical hangs.
+
+
+62% — Preventing unnecessary re-renders
+
+Extract subviews: each subview only re-renders when its own inputs change.
+Use @Observable: per-property tracking means only views reading the
+changed property re-render.
+Avoid storing derived state: use computed properties instead.
+Use EquatableView or .equatable() to skip body evaluation when inputs
+haven't changed.
+Avoid AnyView — it defeats the type-based diffing system.
+
+
+61% — @Observable vs ObservableObject
+
+ObservableObject: class protocol, @Published properties, objectWillChange
+fires for ANY property change. All observers re-render.
+@Observable: macro-based, per-property tracking. Only views that read
+the specific changed property re-render.
+@Observable doesn't need @Published, @StateObject, or @ObservedObject.
+Just @State to hold the object in a view.
+Under the hood: the @Observable macro inserts getter/setter tracking
+using the Observation framework.
+
+
+60% — Pagination design
+
+UI: List with .onAppear on last item (or second-to-last) calls loadMore().
+ViewModel: holds items array, cursor/page, isLoading, hasMore.
+loadMore() guards against duplicate calls, fetches next page, appends.
+Service: accepts cursor, returns page + nextCursor (or nil if last page).
+Handle errors: show inline error on the last row, retry button, don't
+clear existing data.
+Cursor-based is more reliable (stable under inserts/deletes). Offset-based
+is simpler but can skip or duplicate items if data changes between pages.
+
+
+59% — Profiling and performance
+
+Instruments: Time Profiler (CPU), Allocations (memory), Leaks (retain
+cycles), Network (HTTP), SwiftUI (view body evaluations).
+Process: identify symptom, profile, find hotspot, optimize, re-measure.
+Cold start: minimize work in app init, defer heavy loading, lazy-load
+resources, reduce binary size, avoid blocking main thread at launch.
+
+
+58% — Copy-on-write (standalone)
+
+Value types normally copy on assignment. Copy-on-write defers the copy
+until mutation. If nobody else references the storage, mutate in place.
+Array, String, Dictionary, Set use COW via internal reference-counted
+storage.
+Custom COW: store data in a reference type, check isKnownUniquelyReferenced
+before mutation, copy only if shared.
+
+
+57% — Offline-first design
+
+Network updates the database. UI reads from the database only.
+Database is the single source of truth. Network syncs in the background.
+Show cached data immediately, fetch fresh data, update when it arrives.
+Conflict resolution: last-writer-wins (simple), operational transforms
+(collaborative), CRDTs (conflict-free by design, complex).
+CRDTs: data structures that merge without coordination (counters, sets,
+LWW-registers). Great for distributed state, overkill for most apps.
+
+
+56% — Property wrappers (custom)
+
+A property wrapper is a struct with a wrappedValue property. Annotate
+with @propertyWrapper.
+@State under the hood: stores value outside the view struct in SwiftUI's
+internal storage, triggers re-render on mutation.
+Projected value ($-prefix): defined via projectedValue property. @State's
+projected value is a Binding. @Published's projected value is a Publisher.
+
+
+55% — Stack vs heap memory layout
+
+Stack: LIFO, fast allocation/deallocation, fixed size, thread-local.
+Value types go here (usually).
+Heap: dynamic allocation, reference counted, slower, shared across threads.
+Classes always go on the heap.
+Structs get heap-allocated when: captured by escaping closures (closure
+context lives on the heap), or stored in existential containers (protocol
+types) and exceed the 3-word inline buffer. A struct containing reference
+type properties is NOT itself heap-allocated — the struct stays on the
+stack holding pointers to heap-allocated objects.
+
+
+54% — Modular app design
+
+Split by feature or layer into separate Swift packages or targets.
+Each module has its own access control boundary (internal is per-module).
+Benefits: faster incremental builds, enforced boundaries, independent
+testing, parallel team development.
+Handle cross-module dependencies via protocols defined in a shared
+"interface" module. Concrete implementations in feature modules.
+
+
+53% — Feature flagging
+
+Feature flags: boolean toggles that enable/disable features at runtime.
+Local flags: compile-time or build-configuration. Simple, no network.
+Remote flags: server-driven (LaunchDarkly, Firebase Remote Config).
+Enable gradual rollout, A/B testing, kill switches.
+Clean up: remove flag checks and dead code paths after full rollout.
+Stale flags are tech debt.
+
+
+52% — Caching strategies
+
+Memory cache: fast, lost on app termination. Use NSCache or a dictionary.
+Disk cache: survives termination, slower. Use FileManager or URLCache.
+Stale-while-revalidate: return cached data immediately, fetch fresh in
+background, update when ready.
+Cache invalidation: TTL (time-to-live), ETags, or server push.
+The hardest part is knowing when to invalidate.
+
+
+51% — Core Data vs SwiftData
+
+Core Data: mature, complex, NSManagedObject subclasses, NSFetchRequest,
+NSPersistentContainer. Full control, steep learning curve.
+SwiftData: Swift-native, @Model macro, simpler API, built on Core Data.
+iOS 17+. Less boilerplate, works naturally with SwiftUI.
+Choose Core Data for: existing projects, pre-iOS 17, advanced migration
+needs. Choose SwiftData for: new projects on iOS 17+, simpler model layer.
+
+
+50% — Shared state management
+
+Singleton: simplest, but hard to test and creates hidden dependencies.
+Environment: SwiftUI's built-in DI, scoped to the view hierarchy.
+Dependency container: centralized registration, injectable, testable.
+Avoid tight coupling: features communicate through protocols or events,
+never import each other directly. Shared state lives in a common module.
+
+
+49% — Priority inversion
+
+A high-priority task waits on a low-priority task that can't run because
+medium-priority tasks keep preempting it.
+Swift's runtime handles it via priority escalation: when a high-priority
+task awaits an actor that's running low-priority work, the runtime
+temporarily boosts the low-priority task.
+Can still cause subtle performance issues when not recognized.
+
+
+48% — Cooperative thread pool
+
+Swift's async runtime uses a fixed-size thread pool (one thread per CPU
+core). Tasks cooperatively yield at suspension points (await).
+Limited to core count to avoid thread explosion and context switching
+overhead.
+If you block a thread (synchronous I/O, sleep, locks), you starve the
+pool. Never block in async code — always use async alternatives.
+
+
+47% — Method dispatch
+
+Static dispatch: compiler knows the exact function at compile time.
+Structs, final classes, private methods. Fastest — can be inlined.
+Table dispatch (vtable): class methods looked up in a table at runtime.
+Supports overriding. Small overhead.
+Message dispatch: Objective-C runtime (objc_msgSend). Slowest, most
+flexible. Required for @objc, dynamic, KVO.
+final prevents override → enables static dispatch. @objc exposes to
+the Objective-C runtime but Swift callers still use vtable dispatch.
+dynamic forces message dispatch from ALL callers — required for KVO.
+
+
+46% — Deep linking
+
+Universal links: HTTPS URLs that open your app. Require Apple-app-site-
+association file on your server. Most secure, no prompt.
+Custom URL schemes: myapp://path. Simple but insecure (any app can claim).
+Handle in SwiftUI: .onOpenURL { url in } modifier, parse URL into
+navigation state, set NavigationPath accordingly.
+Restore state: persist navigation path, reconstruct on launch.
+
+
+45% — Collection protocols
+
+Sequence: produce elements one at a time via makeIterator(). Single-pass.
+Collection: multi-pass, indexed access, count, subscript. Extends Sequence.
+Conforming to Collection gives you: for-in, map, filter, reduce, contains,
+first, last, prefix, suffix, dropFirst, isEmpty — all for free.
+LazySequence: defers computation. Useful for chaining transformations
+on large collections without creating intermediate arrays.
+
+
+44% — Responder chain
+
+UIKit: event travels up from the hit-tested view through superviews to
+the window, then app delegate. First responder handles it, or it passes
+up the chain.
+Hit testing: point(inside:with:) + hitTest(_:with:) walk the view
+hierarchy to find the deepest view containing the touch.
+SwiftUI: gesture system uses preference-based priority. Resolve conflicts
+with .simultaneousGesture, .highPriorityGesture, or .gesture with
+specific GestureMask.
+
+
+43% — Memory graph debugging
+
+Xcode Memory Graph Debugger: pause execution, visualize all live objects
+and their references. Find retain cycles by looking for unexpected
+strong reference loops.
+Instruments Leaks: detects objects that are unreachable but not deallocated.
+In production: monitor memory footprint, use MetricKit for memory reports,
+log deinit to verify objects are released.
+
+
+42% — UIKit interop
+
+UIViewRepresentable: wrap a UIView for use in SwiftUI. Implement
+makeUIView and updateUIView.
+Coordinator: acts as delegate/data source. Created via makeCoordinator().
+Handles callbacks from the UIKit view and communicates back to SwiftUI
+via bindings.
+Fall back to UIKit for: complex text editing, camera, maps (pre-iOS 17),
+collection view layouts, or any feature SwiftUI doesn't support yet.
+
+
+41% — Crash reporting and observability
+
+Use a service: Crashlytics, Sentry, Bugsnag. Captures stack traces,
+device info, breadcrumbs.
+Crash: unhandled exception or signal (SIGSEGV, SIGABRT). Immediate
+termination.
+Hang: main thread blocked > 250ms. UI unresponsive.
+ANR (Application Not Responding): system kills app after extended hang.
+Symbolicate: match memory addresses to function names using dSYM files.
+Xcode Organizer shows crash logs from TestFlight and App Store.
+
+
+40% — Background execution
+
+Background fetch: system wakes app periodically. Short execution time.
+BGProcessingTask: longer tasks (ML training, cleanup). Runs during charging.
+BGAppRefreshTask: brief updates (refreshing content).
+Time limits: background fetch ~30s, processing tasks ~minutes (system
+decides). Always handle expiration gracefully.
+Register in Info.plist, schedule with BGTaskScheduler.
+
+
+39% — Swift module system
+
+Module: unit of code distribution. Every import is a module. Each target
+in Xcode/SPM produces a module.
+Package: SPM concept — a directory with Package.swift containing one or
+more targets.
+Target: a single build unit within a package. Produces a module.
+Access control is per-module: internal is visible within the module only.
+Split into modules for: build speed, enforced boundaries, reusability.
+
+
+38% — SPM vs CocoaPods vs Carthage
+
+SPM: Apple-native, integrated in Xcode, source-based, Package.swift manifest.
+CocoaPods: Ruby-based, Podfile, modifies your Xcode project, large ecosystem.
+Carthage: decentralized, builds frameworks, no project modification.
+SPM is the default choice now. CocoaPods for legacy dependencies that
+don't support SPM. Carthage is largely superseded and minimally maintained.
+Binary dependencies: SPM supports .binaryTarget for XCFrameworks.
+
+
+37% — Result builders
+
+A result builder transforms a series of statements into a single value
+using buildBlock, buildOptional, buildEither, etc.
+ViewBuilder: SwiftUI's result builder that combines views into a single
+TupleView or conditional view.
+Limitation: pre-Swift 5.9 had a ~10-child limit in ViewBuilder (fixed by
+variadic generics). Custom result builder: @resultBuilder struct, implement
+static buildBlock methods.
+
+
+36% — Actor reentrancy
+
+An actor method can suspend (await), allowing another method to run
+on the same actor before the first resumes. State may have changed.
+Danger: you check a condition, await, then act on the assumption —
+but the condition changed while you were suspended.
+Guard: re-check state after every await. Don't assume invariants hold
+across suspension points. Keep critical sections synchronous.
+
+
+35% — KeyPaths
+
+A KeyPath is a reference to a property, not its value. Type-safe, can
+be passed around and composed.
+Unlike a closure: KeyPaths are data (can be compared, hashed), closures
+are code.
+SwiftUI uses KeyPaths extensively: ForEach(items, id: \.id), List
+sorting, @dynamicMemberLookup on Binding.
+WritableKeyPath: allows both reading and writing the property.
+
+
+34% — Main queue vs main thread
+
+Main queue: a serial GCD queue. Code dispatched here runs on the main
+thread, but in queue order.
+Main thread: the actual OS thread. Code can run on the main thread
+without being dispatched to the main queue (e.g., synchronous calls
+from code already on main thread, or other queues that happen to
+execute on the main thread).
+This matters for URLSession delegate callbacks which run on a specific
+queue, not necessarily the main queue even if on the main thread.
+
+
+33% — PATs (protocols with associated types)
+
+Associated type: a placeholder type defined inside a protocol. The
+conforming type fills it in. Example: Collection has associatedtype Element.
+Self requirement: the protocol references its conforming type (Self).
+Historically, PATs couldn't be used as existentials (any). Swift 5.7+
+allows it when associated types appear only in return position (covariant).
+You still can't use any Protocol when the associated type is in parameter
+position. Use some Protocol or generics when existentials don't work.
+The some keyword: tells the compiler "there's one specific type here,
+I just don't want to spell it out."
+
+
+32% — Back-deployment and availability
+
+@available(iOS 17, *): marks API as available from iOS 17+.
+if #available(iOS 17, *) { } else { }: runtime check, branch by OS.
+Deployment target: minimum OS your app supports.
+API availability: which OS version introduced the API.
+Back-deployment: some Swift features are back-deployed to older OS
+versions (e.g., Swift concurrency to iOS 13 via a back-deployment library).
+Structure code: extract version-specific code into separate functions
+or use conditional compilation (#if).
+
+
+31% — Global actors
+
+A global actor is a singleton actor that can be used as an attribute.
+@MainActor is the built-in one.
+Create custom: @globalActor actor MyActor { static let shared = MyActor() }.
+Annotate types/functions with @MyActor to isolate them.
+Use when: multiple types need to share the same serial execution context
+but it's not the main thread (e.g., a database actor, a networking actor).
+
+
+30% — Custom SwiftUI Layout
+
+Layout protocol (iOS 16+): implement sizeThatFits and placeSubviews.
+Full control over child positioning and sizing.
+GeometryReader: reads available space but doesn't control layout.
+Awkward, triggers extra layout passes, often used as a workaround.
+Custom Layout is more performant and composable. Use it for: custom
+flow layouts, circular layouts, masonry grids.
+
+
+29% — Compile-time vs runtime tradeoffs
+
+More compile-time work (generics, static dispatch, whole-module optimization)
+= faster runtime, slower builds.
+More runtime flexibility (existentials, dynamic dispatch) = slower runtime,
+faster builds.
+Whole module optimization: compiler sees all files at once, enables
+cross-file inlining and specialization. Slower builds, faster binary.
+Type specialization: compiler generates a version of generic code for
+each concrete type used. Eliminates boxing and dynamic dispatch.
+
+
+28% — Existential containers
+
+When you use a protocol type (any Protocol), Swift stores it in an
+existential container: a fixed-size box with metadata.
+3-word inline buffer: small values stored directly. Larger values
+heap-allocated with a pointer in the buffer.
+Value witness table: tells the runtime how to copy, move, and destroy
+the value.
+Protocol witness table: maps protocol requirements to the concrete
+type's implementations.
+
+
+27% — Witness tables
+
+Protocol witness table: a lookup table mapping each protocol requirement
+to the conforming type's implementation. Used for dynamic dispatch on
+protocol types.
+Virtual witness table (vtable): used for class method dispatch. Maps
+each overridable method to the actual implementation for that subclass.
+Performance: witness table dispatch is slightly slower than static dispatch
+but faster than Objective-C message dispatch.
+
+
+26% — ABI stability and library evolution
+
+ABI stability (Swift 5): a compiled Swift binary works with future Swift
+runtime versions. No need to bundle the runtime with your app.
+Library evolution: libraries can add new API without breaking binary
+compatibility with existing clients.
+@frozen: promises the enum/struct layout won't change. Enables compiler
+optimizations but prevents future additions.
+
+
+25% — Swift macros
+
+Freestanding: #macroName(...). Generate code inline (e.g., #stringify,
+#Preview).
+Attached: @MacroName. Modify/extend declarations (e.g., @Observable,
+@Model, @CodableKey).
+@Observable uses an attached macro to: add property tracking, insert
+getter/setter observers, conform to the Observable protocol.
+Debug: right-click macro in Xcode → "Expand Macro" to see generated code.
+
+
+24% — Move semantics
+
+consuming: caller gives up ownership. No copy, value is moved.
+borrowing: caller lends read-only access. No copy.
+Default is implicit (compiler chooses).
+~Copyable: a type that cannot be copied, only moved. Enables unique
+ownership (like Rust's ownership model). Useful for file handles, locks,
+non-duplicable resources.
+Most Swift code doesn't need explicit annotations — the compiler optimizes.
+
+
+23% — Custom executors
+
+An executor controls where an actor's code runs. Default: Swift's
+cooperative thread pool.
+Custom: conform to SerialExecutor. Useful for: running actor code on a
+specific thread (e.g., a database thread), integrating with existing
+threading models, or performance isolation.
+Rare in practice. Most apps use the default executor or @MainActor.
+
+
+22% — Distributed actors
+
+Extend the actor model across process/network boundaries. Same syntax
+as regular actors, but calls may be remote.
+Location transparency: calling code doesn't know if the actor is local
+or remote. The distributed actor system handles serialization and transport.
+Use cases: multi-device sync, server-client communication, distributed
+computing. Currently niche in iOS — more relevant for server-side Swift.
+
+
+21% — Pointer safety
+
+UnsafePointer: read-only typed pointer. UnsafeMutablePointer: read-write.
+UnsafeRawPointer: untyped.
+withUnsafeBytes: scoped access to raw memory. Pointer only valid within
+the closure.
+Invariants: don't escape the pointer beyond its scope, don't violate
+type aliasing rules, don't access deallocated memory.
+Justified when: interoperating with C, performance-critical parsing,
+hardware access.
+
+
+20% — Swift concurrency runtime internals
+
+Cooperative thread pool: one thread per CPU core. Tasks suspend at await
+points, freeing threads for other work.
+Thread hopping: when a task resumes, it may run on a different thread
+than where it suspended.
+Pool is core-limited to prevent thread explosion and excessive context
+switching. If you need more parallelism, you're doing it wrong — use
+more suspension points instead.
+Priority escalation: runtime boosts priority of tasks blocking higher-
+priority work.
+
+
+19% — Generic specialization
+
+Unspecialized: generic code uses witness tables for type operations.
+Runtime overhead from boxing and indirect calls.
+Specialized: compiler generates concrete versions for each type used.
+No boxing, enables inlining. Much faster.
+Specialization happens within a module by default. Cross-module requires
+@inlinable annotation on the generic function.
+
+
+18% — Sync engine design
+
+Components: change tracking, conflict detection, resolution strategy,
+queue of pending syncs, retry logic.
+CRDTs: mathematically guaranteed merge without conflicts. Good for
+counters, sets, text. Complex to implement.
+Last-writer-wins: simplest. Timestamp-based. Loses data silently.
+Manual merge: present conflicts to the user (like git). Most control,
+worst UX.
+Schema migration: version your sync protocol, handle old-format data
+gracefully, never break backward compatibility.
