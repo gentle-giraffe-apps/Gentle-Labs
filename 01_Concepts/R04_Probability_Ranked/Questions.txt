@@ -1,0 +1,596 @@
+Senior iOS Interview Questions — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level Swift + SwiftUI + Concurrency interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — Value types vs reference types (struct vs class)
+
+Explain the difference between a struct and a class in Swift.
+When would you choose one over the other?
+Follow-up: What is copy-on-write and which standard library types use it?
+
+
+98% — ARC and retain cycles
+
+How does ARC work? What causes a retain cycle, and how do you fix it?
+Follow-up: What's the difference between weak and unowned?
+Follow-up: Show a retain cycle caused by a closure capturing self.
+
+
+97% — Optionals
+
+Explain optionals. What are the different ways to unwrap them?
+Follow-up: When would you use guard let vs if let vs force unwrap?
+Follow-up: What is optional chaining and when does it short-circuit?
+
+
+96% — SwiftUI property wrappers and data flow
+
+Walk me through @State, @Binding, @StateObject, @ObservedObject,
+@EnvironmentObject, and @Observable.
+Follow-up: How does @Observable change the picture vs ObservableObject?
+Follow-up: When would you use @State vs @StateObject?
+
+
+95% — async/await
+
+Explain async/await. How is it different from GCD or completion handlers?
+Follow-up: What happens at a suspension point?
+Follow-up: Does await block the thread?
+
+
+94% — Protocols and protocol-oriented programming
+
+What is a protocol in Swift? How do you use protocol-oriented programming?
+Follow-up: How do protocol extensions differ from class inheritance?
+Follow-up: When would you prefer a protocol over a generic constraint?
+
+
+93% — MVVM in SwiftUI
+
+What is MVVM and how do you implement it cleanly in SwiftUI?
+Follow-up: Where do you draw the line between View and ViewModel logic?
+Follow-up: How do you avoid "massive ViewModel" syndrome?
+
+
+92% — Closures
+
+Explain closures, escaping vs non-escaping, and capture lists.
+Follow-up: How do closures cause retain cycles, and how do you prevent them?
+Follow-up: Why is @escaping required for stored closures?
+
+
+91% — SwiftUI view re-rendering
+
+How does SwiftUI determine when to re-render a view? What triggers
+invalidation?
+Follow-up: How do you prevent unnecessary re-renders?
+Follow-up: What's the role of Equatable conformance on views?
+
+
+90% — Error handling
+
+How do you handle errors in Swift? Compare throws, Result, and optionals.
+Follow-up: When would you use each approach?
+Follow-up: What are typed throws in Swift 6?
+
+
+89% — Behavioral: debugging a challenging bug
+
+Tell me about a challenging bug you debugged recently. Walk me through
+your process.
+(Behavioral — but asked in nearly every technical interview.)
+Follow-up: How did you verify the fix? How did you prevent regression?
+
+
+88% — Actors and data race prevention
+
+What is an actor? What problem does it solve?
+Follow-up: What's the difference between an actor and a class with a lock?
+Follow-up: Can two actor methods run concurrently?
+
+
+87% — @MainActor
+
+What is @MainActor and when do you use it?
+Follow-up: What's the difference between @MainActor, MainActor.run {},
+and DispatchQueue.main.async {}?
+Follow-up: What changed with SWIFT_DEFAULT_ACTOR_ISOLATION in Swift 6.2?
+
+
+86% — Generics
+
+Explain generics and generic constraints. Why use them instead of Any?
+Follow-up: What's the difference between a generic parameter and a
+protocol existential (any)?
+Follow-up: What is type erasure and when do you need it?
+
+
+85% — Networking end-to-end
+
+How do you make a network request in Swift? Walk me through the full flow.
+Follow-up: How do you handle loading, success, and error states in the UI?
+Follow-up: How does URLSession work under the hood?
+
+
+84% — Task cancellation
+
+How do you cancel an async task? How does cancellation propagate?
+Follow-up: Why is cancellation "cooperative" — what does that mean?
+Follow-up: What happens to child tasks when the parent is cancelled?
+
+
+83% — Sendable
+
+What is Sendable? Why does the compiler enforce it?
+Follow-up: How do you make a class Sendable?
+Follow-up: What is a Sendable closure?
+
+
+82% — Codable
+
+How does Codable work? What happens when JSON keys don't match your
+property names?
+Follow-up: How do you handle date formats? Nested containers?
+Follow-up: What are the performance pitfalls with large payloads?
+
+
+81% — Dependency injection
+
+What is dependency injection and how do you implement it in Swift?
+Compare protocols, closures, and containers.
+Follow-up: How do you inject dependencies for unit testing?
+Follow-up: What is dependency inversion and how does it relate?
+
+
+80% — Testing async code
+
+How do you write unit tests for a ViewModel that uses async/await?
+Follow-up: How do you make time deterministic in tests?
+Follow-up: What's the difference between mocking and stubbing?
+
+
+79% — NavigationStack and programmatic navigation
+
+Explain NavigationStack and NavigationPath in SwiftUI.
+Follow-up: What's the difference between NavigationLink(value:) and
+NavigationLink(destination:)?
+Follow-up: How do you handle deep linking?
+
+
+78% — Data races
+
+What is a data race? How does Swift's concurrency model prevent them?
+Follow-up: Give me an example of a data race in pre-async/await code.
+Follow-up: What's the difference between a data race and a race condition?
+
+
+77% — Identifiable and SwiftUI diffing
+
+What is the Identifiable protocol and why does SwiftUI need it?
+Follow-up: What goes wrong with unstable IDs?
+Follow-up: How does SwiftUI's diffing algorithm use identity?
+
+
+76% — SOLID principles in iOS
+
+Explain SOLID principles in the context of iOS architecture.
+Follow-up: Give a concrete example of the Single Responsibility Principle
+in a SwiftUI app.
+Follow-up: How does protocol-oriented programming support the
+Open-Closed Principle?
+
+
+75% — Data persistence
+
+How do you persist data on iOS? Compare UserDefaults, Keychain,
+Core Data, SwiftData, and file system.
+Follow-up: When would you reach for each one?
+Follow-up: How do you secure sensitive data (certificates, tokens)?
+
+
+74% — App lifecycle
+
+Explain the app lifecycle. What's the difference between scenes and
+the app delegate?
+Follow-up: How do you handle background tasks?
+Follow-up: What are the different background execution modes?
+
+
+73% — Access control
+
+Explain access control in Swift: open, public, internal, fileprivate,
+private.
+Follow-up: What's the difference between open and public?
+Follow-up: How does access control interact with modules?
+
+
+72% — Task {} vs Task.detached {}
+
+What's the difference between Task {} and Task.detached {}?
+Follow-up: When would you actually need detached?
+Follow-up: What context does Task {} inherit from the caller?
+
+
+71% — SwiftUI side effects (.onAppear, .task, .onChange)
+
+Explain the difference between .onAppear, .task, and .onChange in SwiftUI.
+Follow-up: Why does .task auto-cancel but .onAppear doesn't?
+Follow-up: What is .task(id:) and when would you use it?
+
+
+70% — List performance
+
+Explain List vs LazyVStack vs ScrollView+ForEach. When do you use each?
+Follow-up: What are the performance implications of each?
+Follow-up: When does LazyVGrid break down?
+
+
+69% — Combine
+
+What is Combine? Explain Publishers, Operators, and Subscribers.
+Follow-up: How does Combine compare to async/await?
+Follow-up: When would you still choose Combine over async/await?
+
+
+68% — Structured vs unstructured concurrency
+
+What is structured concurrency? What does it buy you over unstructured?
+Follow-up: What guarantees does a TaskGroup give you that Task {} doesn't?
+
+
+67% — async let vs TaskGroup
+
+Explain async let vs TaskGroup. When do you use each?
+Follow-up: What happens if one of the async let tasks throws?
+Follow-up: How do you collect results from a TaskGroup?
+
+
+66% — some View vs any View (opaque vs existential)
+
+What's the difference between some View (opaque type) and any View
+(existential type)?
+Follow-up: Why does SwiftUI return some View instead of a concrete type?
+Follow-up: Why is AnyView discouraged?
+
+
+65% — Type erasure
+
+What is type erasure? Why do we need AnyPublisher, AnySequence, etc.?
+Follow-up: How would you implement a simple type-erased wrapper?
+Follow-up: When is type erasure the right tool vs generics?
+
+
+64% — AsyncSequence and AsyncStream
+
+What is an AsyncSequence? How does AsyncStream work?
+Follow-up: How do you bridge a delegate-based API into an AsyncStream?
+Follow-up: What's the difference between AsyncStream and AsyncThrowingStream?
+
+
+63% — Thread safety
+
+What is thread safety? How do you achieve it in Swift?
+Follow-up: Compare actors, locks, serial queues, and atomics.
+Follow-up: What is a deadlock and how do you avoid one?
+
+
+62% — Preventing unnecessary re-renders
+
+How do you avoid unnecessary SwiftUI re-renders in practice?
+Follow-up: When do you extract subviews? When do you use EquatableView?
+Follow-up: How does @Observable's per-property tracking help?
+
+
+61% — @Observable vs ObservableObject
+
+Explain the Observation framework (@Observable). How does it differ
+from ObservableObject + @Published?
+Follow-up: How does it achieve per-property tracking?
+Follow-up: What role do macros play under the hood?
+
+
+60% — Pagination design
+
+How do you handle pagination in a list? Walk me through the pattern
+end-to-end (UI + ViewModel + service).
+Follow-up: How do you handle errors mid-page-load without losing data?
+Follow-up: Cursor-based vs offset-based — tradeoffs?
+
+
+59% — Profiling and performance
+
+How do you profile and fix performance issues in an iOS app?
+Follow-up: Walk me through using Instruments.
+Follow-up: What is cold start optimization?
+
+
+58% — Copy-on-write (standalone)
+
+Explain copy-on-write in detail. Which types use it?
+Follow-up: When would you implement your own COW type?
+Follow-up: How do you detect unexpected copies (isKnownUniquelyReferenced)?
+
+
+57% — Offline-first design
+
+How would you design an offline-first feature?
+Follow-up: How do you handle conflict resolution?
+Follow-up: What are CRDTs and when would you reach for them?
+
+
+56% — Property wrappers (custom)
+
+What is a property wrapper? How would you write a custom one?
+Follow-up: How does @State work under the hood?
+Follow-up: What are projected values ($-prefix)?
+
+
+55% — Stack vs heap memory layout
+
+How does memory layout differ between stack and heap allocation?
+Follow-up: When does a struct get heap-allocated?
+Follow-up: How do closures affect allocation?
+
+
+54% — Modular app design
+
+How do you design a modular iOS app?
+Follow-up: When would you split code into separate modules/packages?
+Follow-up: How do you handle dependencies between modules?
+
+
+53% — Feature flagging
+
+What is feature flagging and how do you implement it?
+Follow-up: Remote vs local flags — tradeoffs?
+Follow-up: How do you clean up stale flags?
+
+
+52% — Caching strategies
+
+How do you implement caching (memory vs disk)?
+Follow-up: What is stale-while-revalidate?
+Follow-up: How do you handle cache invalidation?
+
+
+51% — Core Data vs SwiftData
+
+Compare Core Data and SwiftData.
+Follow-up: When would you choose one over the other?
+Follow-up: How does SwiftData's @Model macro work?
+
+
+50% — Shared state management
+
+How do you manage shared state across features in a large app?
+Follow-up: Compare singleton, environment, and dependency container approaches.
+Follow-up: How do you avoid tight coupling between features?
+
+
+49% — Priority inversion
+
+What is priority inversion in concurrency?
+Follow-up: How does Swift's runtime handle it?
+Follow-up: How can it cause subtle performance bugs?
+
+
+48% — Cooperative thread pool
+
+How does Swift's cooperative thread pool work?
+Follow-up: Why is the pool limited to the number of CPU cores?
+Follow-up: What happens if you block a thread in the pool?
+
+
+47% — Method dispatch
+
+What is method dispatch in Swift? Compare static, table, and message
+dispatch.
+Follow-up: When does Swift use dynamic dispatch?
+Follow-up: How do final, @objc, and dynamic affect dispatch?
+
+
+46% — Deep linking
+
+How do you handle deep linking in a SwiftUI app?
+Follow-up: How do you restore navigation state?
+Follow-up: Universal links vs custom URL schemes?
+
+
+45% — Collection protocols
+
+What are Swift's collection protocols? Explain Sequence, Collection,
+and their differences.
+Follow-up: What does conforming to Collection buy you for free?
+Follow-up: What is LazySequence and when is it useful?
+
+
+44% — Responder chain
+
+Explain the responder chain and hit testing in UIKit.
+Follow-up: How does SwiftUI handle gesture conflicts?
+
+
+43% — Memory graph debugging
+
+How do you debug memory issues in an iOS app?
+Follow-up: Walk me through using the Memory Graph Debugger.
+Follow-up: How do you find a retain cycle in production?
+
+
+42% — UIKit interop
+
+How does UIKit interop work in SwiftUI? Explain UIViewRepresentable.
+Follow-up: How do you handle Coordinator and delegate callbacks?
+Follow-up: When do you fall back to UIKit from SwiftUI?
+
+
+41% — Crash reporting and observability
+
+How do you handle crash reporting and monitoring in production?
+Follow-up: What's the difference between a crash, a hang, and an ANR?
+Follow-up: How do you symbolicate crash logs?
+
+
+40% — Background execution
+
+What are the different background execution modes on iOS?
+Follow-up: How do you handle background fetch vs BGProcessingTask?
+Follow-up: What are the time limits?
+
+
+39% — Swift module system
+
+Explain Swift's module system. What is a module vs a package vs a target?
+Follow-up: How does access control interact with module boundaries?
+
+
+38% — SPM vs CocoaPods vs Carthage
+
+What is the Swift Package Manager? How does it differ from CocoaPods
+and Carthage?
+Follow-up: How do you handle binary dependencies?
+Follow-up: When would you vendor a dependency?
+
+
+37% — Result builders
+
+What are result builders? How does SwiftUI's ViewBuilder work?
+Follow-up: Write a simple result builder that concatenates strings.
+Follow-up: What are the limitations?
+
+
+36% — Actor reentrancy
+
+Explain actor reentrancy. Why is it dangerous?
+Follow-up: How do you guard against assumptions being invalidated
+across await points?
+Follow-up: Give a concrete example of a reentrancy bug.
+
+
+35% — KeyPaths
+
+What is a KeyPath? How is it different from a closure?
+Follow-up: Where are KeyPaths used in SwiftUI and Combine?
+Follow-up: What is a WritableKeyPath?
+
+
+34% — Main queue vs main thread
+
+What is the difference between the main queue and the main thread?
+Follow-up: Can code run on the main thread but not the main queue?
+Follow-up: Why does this distinction matter for URLSession delegates?
+
+
+33% — PATs (protocols with associated types)
+
+Explain associated types, Self requirements, and PATs.
+Follow-up: Why can't you use some PATs as existentials (any)?
+Follow-up: How does the some keyword help?
+
+
+32% — Back-deployment and availability
+
+Explain back-deployment and availability checking (@available).
+Follow-up: How do you structure code that supports multiple OS versions?
+Follow-up: What is API availability vs deployment target?
+
+
+31% — Global actors
+
+What are global actors? How would you create a custom one?
+Follow-up: When would you need a global actor besides @MainActor?
+
+
+30% — Custom SwiftUI Layout
+
+How do you implement a custom Layout in SwiftUI (iOS 16+)?
+Follow-up: Compare it to GeometryReader-based layout.
+
+
+29% — Compile-time vs runtime tradeoffs
+
+Explain compile-time vs runtime performance tradeoffs in Swift.
+Follow-up: What's whole module optimization? When does it help?
+Follow-up: What is type specialization in generics?
+
+
+28% — Existential containers
+
+What is an existential container? How does Swift store protocol types
+in memory?
+Follow-up: What's the 3-word-buffer / value witness table?
+
+
+27% — Witness tables
+
+Explain witness tables (protocol witness table vs virtual witness table).
+Follow-up: How does this affect the performance of protocol dispatch?
+
+
+26% — ABI stability and library evolution
+
+What is ABI stability and library evolution? Why do they matter?
+Follow-up: What's the @frozen attribute?
+Follow-up: Why did ABI stability take so long to ship?
+
+
+25% — Swift macros
+
+Explain Swift macros. What's the difference between freestanding and
+attached macros?
+Follow-up: How does @Observable use macros under the hood?
+Follow-up: How do you debug macro expansion?
+
+
+24% — Move semantics
+
+What is move semantics in Swift (consuming, borrowing)?
+Follow-up: When would you annotate a function parameter as consuming?
+Follow-up: What is the ~Copyable protocol?
+
+
+23% — Custom executors
+
+Explain custom executors in Swift concurrency.
+Follow-up: When would you need a custom executor instead of actors?
+
+
+22% — Distributed actors
+
+What are distributed actors? How do they extend the actor model?
+Follow-up: How does location transparency work?
+
+
+21% — Pointer safety
+
+What is pointer safety in Swift? Explain UnsafePointer, withUnsafeBytes,
+and when you'd use them.
+Follow-up: What invariants must you maintain?
+Follow-up: When is unsafe code justified?
+
+
+20% — Swift concurrency runtime internals
+
+Explain Swift's concurrency runtime. How does the cooperative thread pool
+work internally? What is thread hopping?
+Follow-up: Why is the pool limited to the number of CPU cores?
+Follow-up: How does the runtime handle priority escalation?
+
+
+19% — Generic specialization
+
+How does the Swift compiler handle generics — specialization vs
+unspecialized code?
+Follow-up: What's the performance difference?
+Follow-up: When does cross-module specialization happen?
+
+
+18% — Sync engine design
+
+How would you build a sync engine for offline-first with conflict
+resolution?
+Follow-up: Compare CRDTs, last-writer-wins, and manual merge strategies.
+Follow-up: How do you handle schema migration in a sync system?
