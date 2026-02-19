@@ -461,8 +461,14 @@ using the Observation framework.
 60% — Pagination design
 
 UI: List with .onAppear on last item (or second-to-last) calls loadMore().
+Use .onAppear + Task { }, not .task — you want the fetch to survive if
+the user scrolls the trigger row off screen.
+Gotcha: .onAppear fires EVERY time a row scrolls into view (not just once),
+and re-fires on tab switches and navigation returns. Always guard in the VM.
 ViewModel: holds items array, cursor/page, isLoading, hasMore.
-loadMore() guards against duplicate calls, fetches next page, appends.
+loadMore() must guard !isLoading && hasMore to block duplicate calls.
+Set isLoading = false after BOTH success and error — otherwise one failed
+fetch permanently blocks pagination.
 Service: accepts cursor, returns page + nextCursor (or nil if last page).
 Handle errors: show inline error on the last row, retry button, don't
 clear existing data.
@@ -496,8 +502,15 @@ Database is the single source of truth. Network syncs in the background.
 Show cached data immediately, fetch fresh data, update when it arrives.
 Conflict resolution: last-writer-wins (simple), operational transforms
 (collaborative), CRDTs (conflict-free by design, complex).
-CRDTs: data structures that merge without coordination (counters, sets,
-LWW-registers). Great for distributed state, overkill for most apps.
+LWW (Last-Writer-Wins): each field carries a timestamp. When merging,
+the newest timestamp per field wins. Per-field timestamps preserve more
+data — device A changes name, device B changes email, both survive.
+Per-record timestamps are simpler but one device's changes overwrite
+the other entirely.
+CRDTs (Conflict-free Replicated Data Types): data structures mathematically
+designed to merge without conflicts regardless of sync order. Types include
+counters, grow-only sets, OR-sets, and LWW-registers. Great for distributed
+state, overkill for most apps where server-authority is sufficient.
 
 
 56% — Property wrappers (custom)
@@ -545,7 +558,9 @@ Stale flags are tech debt.
 
 52% — Caching strategies
 
-Memory cache: fast, lost on app termination. Use NSCache or a dictionary.
+Memory cache: fast, lost on app termination. Use NSCache (thread-safe,
+auto-evicts under memory pressure) or a dictionary wrapped in an actor
+for concurrent access — a plain dictionary is NOT thread-safe.
 Disk cache: survives termination, slower. Use FileManager or URLCache.
 Stale-while-revalidate: return cached data immediately, fetch fresh in
 background, update when ready.
