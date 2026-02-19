@@ -1,0 +1,311 @@
+Senior iOS Interview Questions — Swift Language — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level Swift language-focused interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — Value types vs reference types (deep)
+
+Beyond the basics: when does a struct get heap-allocated?
+How does copy-on-write actually work at the implementation level?
+Follow-up: How would you implement custom COW using isKnownUniquelyReferenced?
+Follow-up: What is an existential container and when does a struct get boxed into one?
+
+
+98% — Protocol design (associated types, Self, composition)
+
+What are associated types? How do they differ from generic parameters on a protocol?
+When does adding a Self or associated type requirement make a protocol non-existential?
+Follow-up: Explain protocol composition (P1 & P2) and where you'd use it over a combined protocol.
+Follow-up: What changed with any/some in Swift 5.7+ for protocols with associated types?
+
+
+97% — Closures (capture semantics and memory)
+
+Explain exactly what a closure captures and how capture lists change that behavior.
+What is the difference between [weak self] and [self] in a capture list?
+Follow-up: When is a closure @escaping vs non-escaping, and what does the compiler enforce?
+Follow-up: What is a closure's "context" physically — where does it live in memory?
+
+
+96% — Generics (constraints, where clauses, type erasure)
+
+Explain generic constraints, where clauses, and when you need type erasure.
+When would you use a generic function vs a function taking an existential (any)?
+Follow-up: What is the performance difference between generics and existentials?
+Follow-up: Explain AnyHashable — why does it exist and how does it work?
+
+
+95% — ARC deep dive (side tables, weak/unowned internals)
+
+Go deeper than the basics: how does the runtime implement weak references?
+What is a side table and when is one created?
+Follow-up: Explain the three flavors — weak, unowned, unowned(unsafe) — at the runtime level.
+Follow-up: What happens to weak references when an object starts deinit but hasn't freed memory yet?
+
+
+94% — Optionals (implementation, IUO, internals)
+
+Optionals are syntactic sugar for what? Walk through the full enum definition.
+What is ImplicitlyUnwrappedOptional and when is it appropriate?
+Follow-up: How does optional chaining compile down — what does the compiler actually emit?
+Follow-up: Why can Optional conform to ExpressibleByNilLiteral but you shouldn't conform your own types?
+
+
+93% — Method dispatch (static, vtable, message)
+
+What are the three dispatch mechanisms in Swift and when does each apply?
+Follow-up: What effect do final, @objc, and dynamic have on dispatch?
+Follow-up: A protocol extension method is called on a variable typed as the protocol — which implementation runs and why?
+
+
+92% — Opaque types (some) vs existentials (any)
+
+Explain the difference between some Protocol and any Protocol.
+When would you use each? Why did Swift add the any keyword?
+Follow-up: Why can some return types preserve generic identity but any cannot?
+Follow-up: What is the performance cost of any vs some?
+
+
+91% — Access control (open vs public, module boundaries)
+
+Walk through all five access levels. What is the difference between open and public?
+Follow-up: What does @testable import do and what does it make visible?
+Follow-up: When would you use internal vs fileprivate vs private?
+
+
+90% — Enums (associated values, indirect, pattern matching)
+
+What can Swift enums do that enums in most other languages cannot?
+Explain associated values, raw values, and the indirect keyword.
+Follow-up: How does CaseIterable work and when does it fail to auto-synthesize?
+Follow-up: Show pattern matching with if case let and for case let.
+
+
+89% — Memory layout (stack, heap, existential containers)
+
+Explain when values live on the stack vs the heap in Swift.
+What is an existential container and how big is it?
+Follow-up: What is the inline value buffer and what happens when a value type exceeds it?
+Follow-up: How does the compiler decide whether to heap-allocate a closure's captures?
+
+
+88% — Property wrappers (wrappedValue, projectedValue)
+
+How do property wrappers work? What are wrappedValue and projectedValue?
+Follow-up: How does @State use projectedValue to provide a Binding?
+Follow-up: What are the initialization rules for property wrappers — when can you pass arguments?
+
+
+87% — Protocol extensions and the static dispatch gotcha
+
+Explain the dispatch behavior difference between protocol requirements and extension-only methods.
+Follow-up: A struct conforms to a protocol and provides its own implementation of an extension method. When does each version run?
+Follow-up: How do you avoid bugs caused by this behavior?
+
+
+86% — throws, rethrows, typed throws
+
+Explain the difference between throws and rethrows. When do you use rethrows?
+Follow-up: What are typed throws (throws(SomeError)) and when are they useful?
+Follow-up: How does try? transform a throwing call?
+
+
+85% — Conditional conformance
+
+What is conditional conformance? Give an example.
+Follow-up: How does Array conditionally conform to Equatable?
+Follow-up: Can you retroactively add conditional conformance to types you don't own?
+
+
+84% — String internals (small string, UTF-8, Character)
+
+Why is String indexing O(n) in Swift? What is a Character vs a Unicode.Scalar?
+Follow-up: What is the small string optimization and when does it apply?
+Follow-up: Why did Swift switch to native UTF-8 backing and what performance impact does it have?
+
+
+83% — Copy-on-write implementation
+
+How does COW work under the hood? What role does isKnownUniquelyReferenced play?
+Follow-up: Write pseudocode for a custom COW wrapper type.
+Follow-up: What happens if you call isKnownUniquelyReferenced on an Objective-C object?
+
+
+82% — Result builders (@resultBuilder)
+
+What is a result builder? How does the compiler transform the code inside one?
+Follow-up: Name the key buildBlock, buildOptional, and buildEither methods and what triggers each.
+Follow-up: How does SwiftUI's ViewBuilder use result builders?
+
+
+81% — Collection protocol hierarchy
+
+Walk through Sequence, Collection, BidirectionalCollection, and RandomAccessCollection.
+What does each level add?
+Follow-up: What is the difference between a Sequence and a Collection — can you iterate a Sequence twice?
+Follow-up: Why does conforming to RandomAccessCollection change the complexity of operations like count and index(_:offsetBy:)?
+
+
+80% — KeyPaths (typed, writable, reference-writable)
+
+What are KeyPaths in Swift? Explain the type hierarchy.
+Follow-up: What is the difference between KeyPath, WritableKeyPath, and ReferenceWritableKeyPath?
+Follow-up: How are KeyPaths used in SwiftUI and Combine?
+
+
+79% — Lazy sequences and lazy properties
+
+What does the lazy keyword do on a collection operation vs a stored property?
+Follow-up: What are the gotchas with lazy var — is it thread-safe?
+Follow-up: When would you chain multiple lazy operations vs materializing into an Array?
+
+
+78% — Equatable, Hashable, Comparable synthesis
+
+When does the compiler auto-synthesize Equatable and Hashable?
+What are the rules for synthesis to work?
+Follow-up: What must you implement for Comparable — does the compiler ever synthesize it?
+Follow-up: What happens if you conform to Hashable but your hash(into:) is inconsistent with ==?
+
+
+77% — Type metadata and metatypes (.self, .Type, type(of:))
+
+What is a metatype? Explain .self, .Type, and type(of:).
+Follow-up: What is the difference between T.self and type(of: instance) when T is a protocol?
+Follow-up: How do you pass a metatype as a function parameter?
+
+
+76% — Memberwise initializers (rules, limitations)
+
+When does Swift generate a memberwise initializer for a struct?
+Follow-up: What causes the memberwise init to not be generated?
+Follow-up: How do you keep the memberwise init while adding a custom init?
+
+
+75% — Pattern matching (switch, case let, ~= operator)
+
+How does Swift's pattern matching work beyond simple switch statements?
+Follow-up: What is the ~= operator and how can you customize it?
+Follow-up: Show usage of switch with tuple patterns and value bindings.
+
+
+74% — @autoclosure
+
+What is @autoclosure and when would you use it?
+Follow-up: How does the standard library use @autoclosure in assert() and ?? (nil coalescing)?
+Follow-up: What are the pitfalls of overusing @autoclosure?
+
+
+73% — Macros (freestanding, attached, roles)
+
+What are Swift macros and what problem do they solve?
+Explain freestanding vs attached macros.
+Follow-up: Name the macro roles (expression, declaration, accessor, member, peer, extension, conformance).
+Follow-up: At what stage of compilation do macros expand?
+
+
+72% — ~Copyable (noncopyable types)
+
+What are noncopyable types in Swift? What problem do they solve?
+Follow-up: Explain consuming and borrowing parameter conventions.
+Follow-up: What is a discard operator (discard self) and when do you use it?
+
+
+71% — Deinit behavior and ordering
+
+When exactly does deinit run? What ordering guarantees exist?
+Follow-up: Can you access properties in deinit? What state are they in?
+Follow-up: What happens with deinit in class hierarchies — child vs parent order?
+
+
+70% — Global and static variable initialization
+
+When are global variables and static let/var properties initialized in Swift?
+Follow-up: Is static initialization thread-safe? How does Swift achieve that?
+Follow-up: What is the difference between static let and class var?
+
+
+69% — where clauses in extensions and protocols
+
+How do where clauses work in protocol extensions vs generic type extensions?
+Follow-up: Give an example of extending Array where Element: Equatable.
+Follow-up: Can you use where clauses on individual methods inside an extension?
+
+
+68% — Recursive enums (indirect)
+
+What does the indirect keyword do and why is it needed?
+Follow-up: What is the memory layout difference between indirect and non-indirect enum cases?
+Follow-up: Can you mark individual cases as indirect vs the whole enum?
+
+
+67% — @dynamicMemberLookup and @dynamicCallable
+
+What is @dynamicMemberLookup and when would you use it?
+Follow-up: How does @dynamicCallable work?
+Follow-up: How do Combine's publisher property chains use @dynamicMemberLookup?
+
+
+66% — @frozen and library evolution
+
+What does @frozen mean and when do you use it?
+Follow-up: What is library evolution mode and how does @frozen affect ABI?
+Follow-up: What is the @unknown default pattern and when is it required?
+
+
+65% — Never type
+
+What is the Never type and what makes it special?
+Follow-up: How does Never conform to every protocol via the bottom type concept?
+Follow-up: How is Never used in Result<Value, Never>?
+
+
+64% — Phantom types and type-level programming
+
+What are phantom types and how do they provide compile-time safety?
+Follow-up: Give an example of a phantom type preventing an invalid state.
+Follow-up: What is the performance cost of phantom types?
+
+
+63% — @inlinable and cross-module optimization
+
+What does @inlinable do and when should you use it?
+Follow-up: What is @usableFromInline and how does it relate to @inlinable?
+Follow-up: What are the ABI stability implications of marking something @inlinable?
+
+
+62% — Subscripts (static, generic, variadic)
+
+What are the capabilities of Swift subscripts beyond simple getters?
+Follow-up: Can subscripts be generic? Can they be static?
+Follow-up: What is the difference between a subscript with get/set vs a function call?
+
+
+61% — Retroactive conformance
+
+What is retroactive conformance and what are the risks?
+Follow-up: What is the orphan rule problem and how does Swift handle it?
+Follow-up: How might retroactive conformance cause ambiguity or runtime issues?
+
+
+60% — Tuples and their limitations
+
+What can tuples do in Swift and what can they not do?
+Follow-up: Can tuples conform to protocols like Equatable or Hashable?
+Follow-up: What is the difference between a labeled tuple and a struct in practice?
+
+
+59% — Lazy collections deep dive
+
+How does LazySequence differ from a regular Sequence? Walk through the chain.
+Follow-up: When does lazy evaluation actually hurt performance?
+Follow-up: What happens when you call .lazy on an already-lazy sequence?
+
+
+58% — Typed throws (Swift 6)
+
+How do typed throws differ from untyped throws?
+Follow-up: When does the compiler infer the thrown error type?
+Follow-up: What happens when you combine functions with different typed throws?

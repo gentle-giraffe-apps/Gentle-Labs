@@ -1,0 +1,319 @@
+Senior iOS Interview Questions — UIKit & Legacy — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level interview at a company with a mature iOS codebase.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — UIViewController lifecycle
+
+Walk me through the full UIViewController lifecycle from creation to
+dismissal. When does each method get called?
+Follow-up: What's the difference between viewDidLoad and viewWillAppear?
+Follow-up: When would you put logic in viewDidLayoutSubviews vs viewWillAppear?
+
+
+98% — UITableView and UICollectionView fundamentals
+
+Explain how UITableView's data source and delegate protocols work.
+How does cell reuse work and why does it matter?
+Follow-up: What's the difference between dequeueReusableCell(withIdentifier:for:) and the version without indexPath?
+Follow-up: How do you handle dynamic cell heights with Auto Layout?
+
+
+97% — Auto Layout constraints
+
+Explain how Auto Layout works. What is an ambiguous layout and an
+unsatisfiable constraint?
+Follow-up: What are content hugging and compression resistance priorities?
+Follow-up: What is intrinsicContentSize and which views provide it?
+
+
+96% — GCD: DispatchQueue, sync/async, serial/concurrent
+
+Explain the difference between sync/async dispatch and serial/concurrent
+queues. What are the four combinations and what does each do?
+Follow-up: Why should you never call DispatchQueue.main.sync from the main thread?
+Follow-up: What's the difference between the main queue and a global queue?
+
+
+95% — Delegation pattern
+
+Explain the delegate pattern in UIKit. Why is the delegate property
+typically weak?
+Follow-up: Compare delegation to closures and NotificationCenter — when do you pick each?
+Follow-up: How do you implement optional delegate methods in Swift?
+
+
+94% — UINavigationController
+
+How does UINavigationController manage its view controller stack?
+Explain push, pop, and the navigation bar.
+Follow-up: How do you customize the navigation bar appearance per screen?
+Follow-up: How do you intercept the back button or swipe-back gesture?
+
+
+93% — Storyboards vs XIBs vs programmatic UI
+
+Compare storyboards, XIBs, and programmatic UI. What are the tradeoffs?
+Follow-up: Why do large teams often avoid storyboards?
+Follow-up: How does a storyboard segue work under the hood?
+
+
+92% — Responder chain and hit testing
+
+Explain the responder chain. How does iOS determine which view handles
+a touch event?
+Follow-up: Walk me through hitTest(_:with:) and point(inside:with:event:).
+Follow-up: How would you make a parent view's tap pass through to a view underneath?
+
+
+91% — UICollectionViewCompositionalLayout
+
+Explain the item-group-section model in CompositionalLayout.
+Follow-up: How do you create a horizontally scrolling section inside a vertical collection view?
+Follow-up: What are NSCollectionLayoutBoundarySupplementaryItem and decoration items?
+
+
+90% — Diffable data sources
+
+What are diffable data sources and how do they replace traditional
+UITableView/UICollectionView reloading?
+Follow-up: How does NSDiffableDataSourceSnapshot work?
+Follow-up: What are the gotchas around Hashable identifiers and item equality?
+
+
+89% — NSOperationQueue and Operation
+
+How do NSOperationQueue and Operation relate to GCD? When would you
+use operations over plain dispatch?
+Follow-up: How do you set up dependencies between operations?
+Follow-up: How does cancellation work with Operation?
+
+
+88% — Objective-C interop
+
+How do Swift and Objective-C interoperate? What is a bridging header
+and what is the generated Swift header?
+Follow-up: When do you need the @objc attribute?
+Follow-up: What is NS_SWIFT_NAME and how do nullability annotations affect Swift imports?
+
+
+87% — KVO (Key-Value Observing)
+
+How does KVO work under the hood? How do you use it in Swift?
+Follow-up: What is isa-swizzling and why does KVO require NSObject?
+Follow-up: How does the Swift 4+ block-based KVO API improve over the old observe method?
+
+
+86% — NSNotificationCenter
+
+Explain NSNotificationCenter. How do you post, observe, and remove
+notifications?
+Follow-up: On which thread are notifications delivered?
+Follow-up: How did the removal behavior change in iOS 9+ regarding deallocation?
+
+
+85% — Target-action pattern
+
+Explain the target-action pattern as used in UIControl.
+Follow-up: How does target-action use the responder chain when target is nil?
+Follow-up: Compare target-action to delegation and closures for UIButton handling.
+
+
+84% — UIView animation
+
+Explain UIView.animate(withDuration:...) and its variants (spring,
+keyframe, transitions).
+Follow-up: What's the difference between UIView animation and Core Animation?
+Follow-up: How do you animate Auto Layout constraint changes?
+
+
+83% — Core Animation (CALayer)
+
+What is the relationship between UIView and CALayer? Explain implicit
+vs explicit animations.
+Follow-up: What is CATransaction and how do you batch or suppress animations?
+Follow-up: How does the presentation layer differ from the model layer?
+
+
+82% — UIGestureRecognizer
+
+Explain how gesture recognizers work. What is the state machine for a
+gesture recognizer?
+Follow-up: How do you handle simultaneous gesture recognition?
+Follow-up: What does require(toFail:) do?
+
+
+81% — UIScrollView
+
+Explain contentSize, contentOffset, and contentInset in UIScrollView.
+Follow-up: How does UIScrollView work with Auto Layout for content sizing?
+Follow-up: How do you implement zooming with UIScrollView?
+
+
+80% — Size classes and trait collections
+
+What are size classes and UITraitCollection? How do you build adaptive
+layouts?
+Follow-up: How do you respond to trait collection changes at runtime?
+Follow-up: What changed with UITraitCollection in iOS 17?
+
+
+79% — Child view controllers (containment)
+
+How do you add a child view controller? What is the containment API?
+Follow-up: Why must you call willMove(toParent:) and didMove(toParent:)?
+Follow-up: What happens if you skip the containment calls?
+
+
+78% — UIAppearance
+
+How does UIAppearance proxy work for global styling?
+Follow-up: What are the limitations of UIAppearance?
+Follow-up: How does UIAppearance interact with instances already on screen?
+
+
+77% — NSCache
+
+What is NSCache and how does it differ from a plain dictionary?
+Follow-up: Is NSCache thread-safe?
+Follow-up: How does NSCache decide when to evict entries?
+
+
+76% — Objective-C runtime basics
+
+Explain objc_msgSend and how Objective-C method dispatch works.
+Follow-up: What is method swizzling and when is it justified?
+Follow-up: What are associated objects and when would you use them?
+
+
+75% — Categories and extensions (ObjC vs Swift)
+
+Compare Objective-C categories with Swift extensions. What can each do
+that the other cannot?
+Follow-up: Can you add stored properties in an ObjC category? How do you work around it?
+Follow-up: What is a class extension (anonymous category) in ObjC?
+
+
+74% — Toll-free bridging
+
+What is toll-free bridging between Core Foundation and Foundation types?
+Follow-up: What do __bridge, __bridge_retained, and __bridge_transfer do?
+Follow-up: When do you encounter toll-free bridging in modern Swift code?
+
+
+73% — UIKit rendering pipeline
+
+Explain the UIKit layout and rendering cycle: setNeedsLayout,
+layoutIfNeeded, setNeedsDisplay, and draw(_:).
+Follow-up: What is the difference between layout and display passes?
+Follow-up: When would you call layoutIfNeeded inside an animation block?
+
+
+72% — Coordinator pattern in UIKit
+
+What is the Coordinator pattern and what problem does it solve?
+Follow-up: How do you implement a basic coordinator with UINavigationController?
+Follow-up: How do coordinators handle child flows and completion?
+
+
+71% — Memory management in Objective-C
+
+Explain retain/release, autorelease, and @autoreleasepool.
+Follow-up: When do you still need @autoreleasepool in modern Swift?
+Follow-up: What was the retain count model before ARC?
+
+
+70% — RunLoop
+
+What is a RunLoop and what does it do?
+Follow-up: What are RunLoop modes and why does a timer stop firing during scrolling?
+Follow-up: How do you schedule a timer to fire during scrolling?
+
+
+69% — XIB/Storyboard loading process
+
+What happens when a view controller is loaded from a storyboard or XIB?
+Walk through initWithCoder and awakeFromNib.
+Follow-up: What is the difference between init(coder:) and awakeFromNib timing?
+Follow-up: When are IBOutlet connections established?
+
+
+68% — GCD barriers (reader-writer pattern)
+
+How do you implement a thread-safe reader-writer lock using GCD?
+Follow-up: How does a barrier flag on a concurrent queue work?
+Follow-up: Compare this to os_unfair_lock or NSLock.
+
+
+67% — Migrating UIKit to SwiftUI
+
+How do you incrementally adopt SwiftUI in an existing UIKit app?
+Follow-up: How does UIHostingController work?
+Follow-up: How do you wrap a UIKit view in SwiftUI with UIViewRepresentable?
+
+
+66% — DispatchWorkItem and cancellation
+
+What is DispatchWorkItem and how does cancellation work?
+Follow-up: Does cancelling a DispatchWorkItem actually stop running code?
+Follow-up: How does this compare to Task cancellation in Swift concurrency?
+
+
+65% — Thread-safe singleton pattern
+
+Show the thread-safe singleton pattern in both Objective-C and Swift.
+Follow-up: How does dispatch_once work in ObjC?
+Follow-up: Why does Swift's static let automatically give you thread safety?
+
+
+64% — Objective-C blocks vs Swift closures
+
+Compare Objective-C blocks to Swift closures.
+Follow-up: What are __block and __weak in ObjC blocks?
+Follow-up: Where are blocks stored — stack vs heap — and when does the copy happen?
+
+
+63% — Protocol conformance in Objective-C
+
+How do you declare and conform to protocols in Objective-C?
+Explain @optional and @required.
+Follow-up: How does respondsToSelector: relate to optional protocol methods?
+Follow-up: How does ObjC protocol conformance differ from Swift protocol conformance?
+
+
+62% — UIAlertController patterns
+
+How do you present alerts and action sheets using UIAlertController?
+Follow-up: Why was UIAlertView deprecated and what was wrong with its delegate pattern?
+Follow-up: How do you add text fields to an alert?
+
+
+61% — UIPageViewController
+
+How does UIPageViewController work? What are its data source requirements?
+Follow-up: What are the two transition styles and when would you pick each?
+Follow-up: What are common pitfalls with UIPageViewController?
+
+
+60% — UISplitViewController
+
+How does UISplitViewController work and how does it adapt between
+compact and regular size classes?
+Follow-up: How do you handle collapse and separate delegate methods?
+Follow-up: What changed with UISplitViewController in iOS 14?
+
+
+59% — DispatchGroup
+
+How does DispatchGroup work to synchronize multiple async tasks?
+Follow-up: Walk through enter(), leave(), and notify().
+Follow-up: What happens if enter/leave calls are unbalanced?
+
+
+58% — DispatchSemaphore
+
+What is DispatchSemaphore and when would you use it?
+Follow-up: Why is blocking a thread with semaphore.wait() generally discouraged?
+Follow-up: How does DispatchSemaphore compare to async/await for limiting concurrency?

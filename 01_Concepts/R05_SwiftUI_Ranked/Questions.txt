@@ -1,0 +1,452 @@
+Senior iOS Interview Questions — SwiftUI — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level SwiftUI-focused interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — View identity and structural identity
+
+How does SwiftUI identify views? Explain the difference between
+structural identity and explicit identity.
+Follow-up: What breaks when SwiftUI loses track of a view's identity?
+Follow-up: How does _printChanges() help debug identity issues?
+
+
+98% — Navigation (NavigationStack, NavigationSplitView, deep linking)
+
+Compare NavigationStack and NavigationSplitView. How do you implement
+programmatic navigation with NavigationPath?
+Follow-up: How do you handle deep linking that needs to push multiple
+screens onto the stack?
+Follow-up: How do you persist and restore navigation state across
+app launches?
+
+
+97% — Environment and custom EnvironmentKey
+
+Explain SwiftUI's Environment system. How do you create a custom
+EnvironmentKey and inject it into the hierarchy?
+Follow-up: What is the difference between @Environment and
+@EnvironmentObject?
+Follow-up: When would you use environment vs passing data through
+init parameters?
+
+
+96% — View modifiers (custom ViewModifier vs view extensions)
+
+How do you create a custom ViewModifier? When would you use
+.modifier() vs a View extension method?
+Follow-up: Why do most SwiftUI teams prefer extension methods
+over .modifier()?
+Follow-up: How do modifiers compose and what is their order of
+application?
+
+
+95% — SwiftUI lifecycle (.onAppear, .task, .onChange, .onDisappear)
+
+Walk me through the SwiftUI view lifecycle hooks and when each fires.
+Follow-up: Why is .task preferred over .onAppear for async work?
+Follow-up: Explain the difference between the old onChange(of:perform:)
+and the new onChange(of:initial:_:) API.
+
+
+94% — @ViewBuilder parameter patterns
+
+What is @ViewBuilder and how do you use it to accept view content
+as a function parameter?
+Follow-up: How does @ViewBuilder handle conditionals (if/else, switch)?
+Follow-up: What are the performance implications of conditional
+views inside a ViewBuilder closure?
+
+
+93% — View composition patterns
+
+What patterns do you use to compose complex SwiftUI views without
+creating massive body properties?
+Follow-up: When do you extract into a subview struct vs a computed
+property vs a helper method?
+Follow-up: How does extracting subviews affect re-render performance?
+
+
+92% — SwiftUI + UIKit interop (UIViewRepresentable)
+
+Walk me through implementing UIViewRepresentable. What are the
+lifecycle methods and what is the Coordinator for?
+Follow-up: How do you handle sizing — intrinsic content size vs
+SwiftUI-proposed size?
+Follow-up: What are common pitfalls when wrapping UIKit views
+(update loops, layout conflicts)?
+
+
+91% — Sheets, alerts, fullScreenCover presentation
+
+How does SwiftUI's presentation model work with sheets, alerts,
+confirmationDialog, and fullScreenCover?
+Follow-up: How do you present different sheet types from the same
+view without conflicting boolean bindings?
+Follow-up: What changed with the item-based presentation APIs?
+
+
+90% — Conditional views and AnyView performance
+
+What happens when you use if/else in a SwiftUI body? Why is AnyView
+discouraged?
+Follow-up: How does SwiftUI's structural identity differ for
+if/else branches vs a ternary on a modifier?
+Follow-up: When is AnyView acceptable?
+
+
+89% — Preferences and PreferenceKey
+
+What is the preference system in SwiftUI? How does data flow upward
+from child to parent using PreferenceKey?
+Follow-up: Give a concrete example where PreferenceKey solves a
+problem that environment cannot.
+Follow-up: How does .onPreferenceChange work and what thread does
+it fire on?
+
+
+88% — GeometryReader (use cases and pitfalls)
+
+When would you use GeometryReader? What are its pitfalls?
+Follow-up: Why does GeometryReader expand to fill all available space?
+Follow-up: What are better alternatives to GeometryReader in iOS 16+?
+
+
+87% — Animation system (withAnimation, transitions, matchedGeometryEffect)
+
+Explain SwiftUI's animation model. How do withAnimation, .animation,
+transition, and matchedGeometryEffect work together?
+Follow-up: What is the difference between .animation(.default, value:)
+and withAnimation { }?
+Follow-up: How do you create a custom Transition?
+
+
+86% — .task(id:) patterns
+
+Explain .task(id:) and how it differs from plain .task. What patterns
+does it enable?
+Follow-up: How does .task(id:) replace Combine's switchToLatest
+or debounce patterns?
+Follow-up: What happens to the previous task when the id changes?
+
+
+85% — List, LazyVStack, LazyVGrid performance
+
+What are the performance characteristics of List vs LazyVStack vs
+LazyVGrid? When do you choose each?
+Follow-up: What causes performance problems with LazyVGrid and
+self-sizing cells?
+Follow-up: How does List's prefetch behavior differ from LazyVStack?
+
+
+84% — Accessibility in SwiftUI
+
+How do you make SwiftUI views accessible? What are the key modifiers?
+Follow-up: How do you test accessibility — VoiceOver, Accessibility
+Inspector, automated audits?
+Follow-up: What is the difference between .accessibilityLabel,
+.accessibilityValue, and .accessibilityHint?
+
+
+83% — Custom Layout protocol
+
+How does the Layout protocol work (iOS 16+)? Walk me through
+sizeThatFits and placeSubviews.
+Follow-up: How does a custom Layout compare to using GeometryReader
+for complex layouts?
+Follow-up: How do you animate between two different Layout types?
+
+
+82% — @Bindable (iOS 17)
+
+What is @Bindable and why was it introduced alongside @Observable?
+Follow-up: How does @Bindable differ from @Binding?
+Follow-up: When do you need @Bindable vs just accessing properties
+on an @Observable object?
+
+
+81% — ScrollView + ScrollViewReader + ScrollPosition (iOS 17+)
+
+How do you programmatically control scroll position in SwiftUI?
+Compare ScrollViewReader and the new ScrollPosition API.
+Follow-up: How does .scrollTargetLayout and .scrollTargetBehavior
+work for paging?
+Follow-up: What are the limitations of ScrollViewReader vs
+ScrollPosition?
+
+
+80% — Toolbar and ToolbarItem patterns
+
+How do you configure toolbars in SwiftUI? Explain ToolbarItem,
+ToolbarItemGroup, and toolbar placements.
+Follow-up: How do you handle dynamic toolbar content that changes
+based on state?
+Follow-up: What is .toolbarRole and when do you use it?
+
+
+79% — SwiftUI previews and #Preview macro
+
+How do you use SwiftUI previews effectively? What changed with the
+#Preview macro?
+Follow-up: How do you preview views that depend on environment
+values or complex state?
+Follow-up: What are common reasons previews crash or fail to render?
+
+
+78% — Focus system (@FocusState, FocusedValue)
+
+Explain SwiftUI's focus system. How do @FocusState and FocusedValue
+work?
+Follow-up: How do you dismiss the keyboard programmatically?
+Follow-up: What is FocusedValue vs FocusedObject and when would
+you use each?
+
+
+77% — onChange(of:) old vs new API
+
+Explain the deprecation of onChange(of:perform:) and how the new
+onChange(of:initial:_:) works.
+Follow-up: How do you access both old and new values in the
+new API?
+Follow-up: What does the initial parameter control?
+
+
+76% — Searchable modifier
+
+How does the .searchable modifier work? How do you implement
+search with suggestions and scopes?
+Follow-up: How do you debounce search input in SwiftUI?
+Follow-up: How does .searchable interact with NavigationStack?
+
+
+75% — Alert and error presentation patterns
+
+What patterns do you use to present errors and alerts cleanly
+in SwiftUI?
+Follow-up: How do you avoid a proliferation of boolean @State
+variables for different alert types?
+Follow-up: How do you present an alert from a ViewModel error?
+
+
+74% — Charts framework
+
+How does the Swift Charts framework work? What are the basic
+building blocks (Mark types, data, encodings)?
+Follow-up: How do you handle large datasets without performance
+issues?
+Follow-up: How do you add interactivity (selection, scrolling)
+to charts?
+
+
+73% — .sensoryFeedback and .contentTransition
+
+What are .sensoryFeedback and .contentTransition? When would
+you use them?
+Follow-up: How does .contentTransition(.numericText()) work?
+Follow-up: What feedback types are available and how do you
+choose between them?
+
+
+72% — safeAreaInset
+
+What is .safeAreaInset and how does it differ from .overlay or
+ZStack-based approaches?
+Follow-up: Give a practical example where safeAreaInset is the
+correct solution.
+Follow-up: How does safeAreaInset interact with keyboard avoidance?
+
+
+71% — ContainerRelativeFrame
+
+What is .containerRelativeFrame and what problem does it solve?
+Follow-up: How does it compare to GeometryReader for relative sizing?
+Follow-up: What counts as the "container" in different contexts?
+
+
+70% — TimelineView
+
+What is TimelineView and when would you use it?
+Follow-up: What are the different timeline schedules (animation,
+periodic, explicit)?
+Follow-up: How do you avoid excessive view updates with TimelineView?
+
+
+69% — Canvas view for drawing
+
+When would you use Canvas instead of Shape or Path for drawing?
+Follow-up: What are the performance advantages of Canvas?
+Follow-up: How does Canvas handle accessibility?
+
+
+68% — SwiftUI testing strategies
+
+How do you test SwiftUI views? Compare XCUITest, ViewInspector,
+snapshot testing, and unit testing the ViewModel.
+Follow-up: Why is direct SwiftUI view testing still limited?
+Follow-up: What does testing the ViewModel give you vs testing
+the actual rendered view?
+
+
+67% — PhaseAnimator and keyframe animations
+
+Explain PhaseAnimator and KeyframeAnimator (iOS 17+). How do they
+differ from withAnimation?
+Follow-up: When would you use PhaseAnimator vs a state machine
+driving withAnimation?
+Follow-up: How does KeyframeAnimator allow multi-property animation
+with different timings?
+
+
+66% — TipKit integration
+
+How does TipKit work in SwiftUI? What are Tips, rules, and
+invalidation?
+Follow-up: How do you control when a tip appears using
+parameters and events?
+Follow-up: How do you present tips inline vs as a popover?
+
+
+65% — PhotosPicker and ShareLink
+
+How do you use PhotosPicker and ShareLink in SwiftUI?
+Follow-up: How does PhotosPicker handle Transferable types?
+Follow-up: What are the privacy implications and how does the
+photo picker avoid requiring full photo library access?
+
+
+64% — ContentUnavailableView
+
+What is ContentUnavailableView and when do you use it?
+Follow-up: How do you customize it for different empty states
+(no results, no network, first launch)?
+Follow-up: What is ContentUnavailableView.search and when does
+SwiftUI show it automatically?
+
+
+63% — WidgetKit basics
+
+What are the key concepts in WidgetKit — TimelineProvider,
+TimelineEntry, widget configuration?
+Follow-up: How does the widget timeline system determine when
+to refresh?
+Follow-up: What SwiftUI features are NOT available in widgets?
+
+
+62% — Confirmation before destructive actions
+
+How do you implement confirmation dialogs for destructive actions
+in SwiftUI?
+Follow-up: How does .confirmationDialog differ from .alert for
+destructive actions?
+Follow-up: What is the .destructive button role and how does
+it affect presentation?
+
+
+61% — matchedGeometryEffect deep dive
+
+How does matchedGeometryEffect work internally? What does it
+actually match (frame, position, size)?
+Follow-up: What are common pitfalls — why do shared element
+transitions sometimes jump or glitch?
+Follow-up: How do you use matchedGeometryEffect with
+NavigationStack transitions?
+
+
+60% — Passing data through the view hierarchy
+
+Compare the tradeoffs of init injection, @Environment,
+@EnvironmentObject, and PreferenceKey for passing data.
+Follow-up: At what depth of nesting does init injection become
+impractical?
+Follow-up: How do you avoid environment misuse — passing
+everything through environment?
+
+
+59% — TypeSafeID patterns with Identifiable
+
+How do you design type-safe identifiers that prevent mixing IDs
+from different models?
+Follow-up: How does this interact with ForEach and List identity?
+Follow-up: What is Tagged or phantom type pattern?
+
+
+58% — Lazy containers and identity stability
+
+How do lazy containers (LazyVStack, LazyVGrid, List) manage the
+lifecycle of off-screen views?
+Follow-up: What happens to @State when a lazy view is scrolled
+off-screen and recycled?
+Follow-up: How do you ensure stable identity in a lazy container
+to avoid state loss?
+
+
+57% — ViewThatFits
+
+What is ViewThatFits and when would you use it?
+Follow-up: How does it decide which view fits?
+Follow-up: How does ViewThatFits compare to using GeometryReader
+for adaptive layouts?
+
+
+56% — Custom Shape and Path
+
+How do you create a custom Shape in SwiftUI? What is the
+relationship between Shape, Path, and InsettableShape?
+Follow-up: How does .trim work for shape animation?
+Follow-up: When would you use Shape vs Canvas?
+
+
+55% — Redaction and privacy
+
+How does .redacted(reason:) work? What is the privacy redaction
+reason?
+Follow-up: How do you create custom redaction-aware views?
+Follow-up: How is redaction used in widgets and Lock Screen?
+
+
+54% — Grid layout (iOS 16+)
+
+How does the Grid container differ from LazyVGrid? When would
+you use Grid instead?
+Follow-up: How do GridRow, .gridCellColumns, and .gridCellAnchor
+work?
+Follow-up: When does Grid outperform or underperform vs LazyVGrid?
+
+
+53% — Multiple windows and scenes (iPad/Mac)
+
+How does SwiftUI handle multiple windows and scenes on iPad
+and Mac?
+Follow-up: How do you open a new window with OpenWindowAction?
+Follow-up: How does @Environment(\.openWindow) work?
+
+
+52% — Transaction and AnimationContext
+
+What is a Transaction in SwiftUI? How do you use it to control
+animation propagation?
+Follow-up: How do you disable animation for a specific state change?
+Follow-up: What is the relationship between Transaction and
+withAnimation?
+
+
+51% — Custom ButtonStyle and other Style protocols
+
+How do you create a custom ButtonStyle? What other Style protocols
+exist (ToggleStyle, LabelStyle, etc.)?
+Follow-up: How does the configuration parameter work inside
+a custom style?
+Follow-up: When would you use ButtonStyle vs
+PrimitiveButtonStyle?
+
+
+50% — Observable in collections and nested objects
+
+How does @Observable work with collections and nested observable
+objects?
+Follow-up: What are the gotchas with arrays of @Observable objects
+and view invalidation?
+Follow-up: How do you observe a property deep inside a nested
+@Observable graph?

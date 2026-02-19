@@ -1,0 +1,328 @@
+Senior iOS Interview Answers — iOS Platform — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — App lifecycle (scenes, @main, scenePhase)
+
+@main marks the entry point. App protocol's body returns a Scene (typically WindowGroup).
+UIApplicationDelegate handles app-level events (push tokens, background launches).
+SceneDelegate (UIKit) or scenePhase (SwiftUI) handles per-window lifecycle: active, inactive, background.
+Multi-window iPad uses multiple scenes — each has its own lifecycle independent of others.
+In SwiftUI: use @Environment(\.scenePhase) and .onChange(of: scenePhase) to react to transitions.
+Follow-up: scenePhase gives you .active, .inactive, .background. Use .onChange to save state or pause work.
+Follow-up: Scene disconnect releases the scene's resources but the app process may continue. App termination kills everything — no callback guaranteed if already suspended.
+
+
+98% — Data persistence strategies
+
+UserDefaults: small key-value pairs (settings, flags). Not encrypted, synced via plist.
+Keychain: secure credential storage (tokens, passwords). Encrypted at rest, survives app reinstall.
+Core Data: complex object graphs, relationships, undo. Mature but verbose.
+SwiftData: Swift-native ORM over Core Data. Uses @Model macro. iOS 17+.
+File system: documents, images, large blobs. Use FileManager for read/write.
+Follow-up: UserDefaults for preferences, Keychain for secrets, Core Data/SwiftData for structured relational data, file system for media/large files.
+Follow-up: UserDefaults backs to a plist — keep it under ~1 MB. Large data degrades launch time because the entire plist is loaded into memory at startup.
+
+
+97% — URLSession and networking
+
+URLSession is the foundation for HTTP networking. You create a session with a URLSessionConfiguration, then create tasks (data, upload, download).
+URLSessionConfiguration.default uses persistent disk cache and cookies. .ephemeral stores nothing to disk. .background supports downloads/uploads while the app is suspended.
+Tasks are created suspended — call resume() to start.
+Follow-up: Default persists cache/cookies to disk. Ephemeral is in-memory only (private browsing). Background runs in a separate system process — survives app termination.
+Follow-up: URLCache stores responses keyed by request. Respects Cache-Control headers. You can set memoryCapacity and diskCapacity. Use .requestCachePolicy on URLRequest to override (e.g., .reloadIgnoringLocalCacheData).
+
+
+96% — Push notifications (APNs)
+
+1) Register: call UNUserNotificationCenter.requestAuthorization, then UIApplication.shared.registerForRemoteNotifications. 2) System returns a device token via application(_:didRegisterForRemoteNotificationsWithDeviceToken:). 3) Send token to your server. 4) Server sends payload to APNs. 5) iOS delivers to UNUserNotificationCenterDelegate.
+Follow-up: Silent push: content-available:1, no alert/badge/sound. Wakes the app in background for up to 30 seconds. Used for data sync. Throttled by the system — not guaranteed.
+Follow-up: Notification Service Extension: modify payload before display (decrypt, download attachment). Notification Content Extension: custom UI for expanded notification. Service extension gets ~30 seconds to process.
+
+
+95% — Memory management in practice
+
+iOS has no swap. When total system memory is low, jetsam (the kernel's memory pressure handler) kills processes by priority — suspended background apps first, then foreground if needed.
+Handle UIApplication.didReceiveMemoryWarningNotification: drop caches, image buffers, optional data.
+Monitor with os_proc_available_memory() or task_vm_info for footprint.
+Follow-up: Use task_vm_info.phys_footprint for your actual memory usage. os_proc_available_memory() tells you how much headroom you have before jetsam kills you.
+Follow-up: Typical budget is ~1-1.4 GB on modern phones. Jetsam uses a per-device memory limit table. Exceeding your limit = immediate SIGKILL. No warning, no callback.
+
+
+94% — Background execution
+
+Finite-length tasks: beginBackgroundTask gives ~30 seconds after backgrounding. BGAppRefreshTask: brief periodic background refresh (30 seconds). BGProcessingTask: longer work (minutes) when plugged in / idle. Background modes: audio, location, VoIP, BLE, push — each has specific entitlements.
+Follow-up: BGAppRefreshTask: short, frequent updates (refresh a feed). BGProcessingTask: heavy work (ML training, database maintenance). Processing tasks get more time but only run when the device is charging/idle.
+Follow-up: beginBackgroundTask ~30 seconds (was 3 minutes pre-iOS 13). BGAppRefreshTask ~30 seconds. BGProcessingTask several minutes but system-managed — no hard guarantee.
+
+
+93% — Keychain and security
+
+Keychain is an encrypted system database protected by device hardware keys and the user's passcode. Data can persist across reinstalls (unlike UserDefaults), though behavior varies by access group configuration. Use SecItemAdd/SecItemCopyMatching/SecItemUpdate/SecItemDelete or a wrapper like KeychainAccess.
+Items have access classes that control availability (e.g., kSecAttrAccessibleWhenUnlocked, kSecAttrAccessibleAfterFirstUnlock).
+Follow-up: Keychain access groups (keychain-access-groups entitlement) let apps with the same team ID share items. Set kSecAttrAccessGroup to the shared group identifier.
+Follow-up: kSecAttrAccessibleWhenUnlockedThisDeviceOnly — available only while device unlocked, never migrated to new device. kSecAttrAccessibleAfterFirstUnlock — available after first unlock (good for background tasks). CompleteProtection — only while unlocked.
+
+
+92% — Core Data stack and concurrency
+
+Stack: NSPersistentContainer sets up the model, store coordinator, and contexts. viewContext is the main-queue context for UI reads. Use newBackgroundContext() or performBackgroundTask for writes.
+NSManagedObjectContext is NOT thread-safe. Always access objects on the context's queue.
+Follow-up: mainQueueConcurrencyType runs on the main thread (for UI). privateQueueConcurrencyType runs on a private serial queue (for background work). Always use perform {} or performAndWait {} on private contexts.
+Follow-up: Never pass NSManagedObject across threads. Pass NSManagedObjectID instead, then re-fetch on the target context using context.object(with: objectID).
+
+
+91% — Code signing and provisioning
+
+Certificate = your identity (private key + Apple-signed public key). Provisioning profile = bundle of: certificate, app ID, device list (dev only), and entitlements. Entitlements = capabilities (push, Keychain groups, iCloud, etc.).
+At build: Xcode signs the binary with your certificate. At launch: iOS verifies the signature + profile.
+Follow-up: Development cert: for debug builds on registered devices. Distribution cert: for App Store/TestFlight/Ad Hoc. You can have one active distribution cert per team member.
+Follow-up: Check Xcode > Signing & Capabilities. Ensure bundle ID matches profile. Ensure cert isn't expired or revoked. "Automatic signing" usually fixes it — if not, delete derived data and re-download profiles from the developer portal.
+
+
+90% — Instruments profiling
+
+Instruments is Xcode's performance analysis tool. Profile with Product > Profile (Cmd+I). Choose a template (Time Profiler, Allocations, Leaks, Network, etc.), record, then analyze the timeline.
+Follow-up: Time Profiler samples the call stack at intervals. Sort by "Self Weight" to find the hottest functions. Expand the heaviest call stack to find the bottleneck. Focus on the main thread for UI jank.
+Follow-up: Allocations: track heap growth and transient allocations. Leaks: detect retain cycles at runtime. Network: inspect HTTP traffic, payload sizes, latency. Use Allocations when memory climbs over time; Leaks when objects never deallocate.
+
+
+89% — XCTest and UI testing
+
+XCTest: unit tests run in-process. XCTestCase subclass, test methods prefixed with test. Use XCTAssert*, XCTExpectation for async. XCUITest: launches the app in a separate process, drives UI via accessibility identifiers.
+Follow-up: Unit tests: fast, test logic in isolation, mock dependencies. UI tests: slow, test real user flows, catch integration issues. UI tests run as a separate app that communicates with yours via accessibility.
+Follow-up: Use accessibility identifiers (not labels) for stable queries. Minimize animations. Use launch arguments to set up known state. Keep UI tests focused on critical paths — they're expensive.
+
+
+88% — Permissions (camera, location, photos)
+
+1) Add usage description to Info.plist (NSCameraUsageDescription, etc.). 2) Request at point of use, not at launch. 3) Check status with API (AVCaptureDevice.authorizationStatus, CLLocationManager.authorizationStatus). 4) Handle .denied gracefully — show explanation, link to Settings.
+Follow-up: If denied, you cannot re-prompt. Guide user to Settings > Privacy. Use UIApplication.openSettingsURLString. Always design for the "denied" path.
+Follow-up: Missing the Info.plist string = immediate crash at runtime on the permission request. App Store review will also reject.
+
+
+87% — App Transport Security
+
+ATS requires HTTPS for all network connections by default. Enforces TLS 1.2+, forward secrecy, and valid certificates.
+Follow-up: Add exceptions per-domain in Info.plist under NSAppTransportSecurity > NSExceptionDomains. Set NSAllowsArbitraryLoads only for debugging — never ship it.
+Follow-up: Yes, globally disabling ATS (NSAllowsArbitraryLoads = YES) will likely be rejected unless you provide justification. Per-domain exceptions with a good reason are generally accepted.
+
+
+86% — SwiftData (@Model, ModelContainer, ModelContext)
+
+@Model macro makes a class persistable. It auto-generates schema from properties. ModelContainer holds the schema and storage. ModelContext is the scratchpad for CRUD — similar to NSManagedObjectContext.
+Use @Query in SwiftUI views to fetch and observe. modelContext from environment for inserts/deletes.
+Follow-up: Create ModelContainer with schema and configuration (in-memory, URL). Inject via .modelContainer() modifier. Use @Query with predicates, sort descriptors, and fetch limits.
+Follow-up: SwiftData is less boilerplate, Swift-native, macro-driven. Choose SwiftData for new iOS 17+ projects. Core Data for backward compatibility or complex migration needs.
+
+
+85% — File system and sandboxing
+
+Each app has a sandbox: Documents (user data, backed up), Library (app support, caches, preferences), tmp (ephemeral). Apps cannot access each other's sandboxes.
+Follow-up: Documents: user-visible, backed up to iCloud. Library/Caches: purgeable by system, not backed up. Library/Application Support: app data, backed up. tmp: deleted on reboot.
+Follow-up: App groups (group.com.yourteam.shared): shared container accessible by apps and extensions with the same group entitlement. Use FileManager.containerURL(forSecurityApplicationGroupIdentifier:).
+
+
+84% — Privacy manifests and required reason APIs
+
+Privacy manifests (PrivacyInfo.xcprivacy) declare what data your app and SDKs collect, and why you use certain APIs. Required since Spring 2024. Apple checks them during review.
+Follow-up: Required reason APIs include UserDefaults, file timestamp, disk space, and system boot time. You must declare the specific reason code (e.g., CA92.1) in your privacy manifest.
+Follow-up: Missing manifests generate warnings, then rejections. SDKs must include their own manifests. Third-party SDK fingerprinting without consent is blocked.
+
+
+83% — Accessibility (VoiceOver, Dynamic Type)
+
+Support VoiceOver by providing good accessibility labels, hints, and traits. Support Dynamic Type by using system fonts or scaled custom fonts. Test with the Accessibility Inspector.
+Follow-up: In SwiftUI: use .font(.body) (auto-scales). In UIKit: UIFontMetrics.default.scaledFont(for:). Enable "Larger Accessibility Sizes" in Settings to test extremes.
+Follow-up: .accessibilityLabel(), .accessibilityHint(), .accessibilityValue(), .accessibilityElement(children:), .accessibilityAddTraits(). Group related elements with .accessibilityElement(children: .combine).
+
+
+82% — URL schemes and universal links
+
+Custom URL schemes (myapp://path): any app can claim any scheme, no verification. Universal links (https://yourdomain.com/path): verified via apple-app-site-association file on your server, open your app instead of Safari.
+Follow-up: Host apple-app-site-association at https://yourdomain.com/.well-known/. File contains JSON mapping paths to app IDs. Apple's CDN caches it. Must be valid JSON, served over HTTPS, no redirects.
+Follow-up: In SwiftUI: .onOpenURL { url in ... }. In UIKit: application(_:continue:restorationHandler:) for universal links. Parse the URL and route to the correct view.
+
+
+81% — Certificate pinning
+
+Certificate pinning validates that the server's cert matches an expected cert or public key, preventing MITM attacks even if a rogue CA issues a valid cert.
+Follow-up: Implement in URLSessionDelegate's urlSession(_:didReceive:completionHandler:). Compare server's SecTrust against your pinned certificate's public key. Or use Info.plist's NSPinnedDomains (iOS 14+) for declarative pinning.
+Follow-up: Risks: if the cert expires and you pinned the leaf, your app breaks. Pin the public key instead, or pin an intermediate CA. Always have a rotation plan and a kill switch.
+
+
+80% — App Tracking Transparency
+
+ATT requires permission before tracking users across apps/websites. Use ATTrackingManager.requestTrackingAuthorization. Must be called before accessing IDFA.
+Follow-up: Show the prompt if you use IDFA, third-party analytics that links user identity, or any cross-app/cross-site tracking. Not needed for first-party analytics that stays on-device.
+Follow-up: If denied, ATTrackingManager.trackingAuthorizationStatus == .denied and IDFA returns all zeros. Use SKAdNetwork for aggregated attribution. Adapt analytics to work without user-level tracking.
+
+
+79% — Location services (CLLocationManager)
+
+Create CLLocationManager, set delegate, request authorization. requestWhenInUseAuthorization for foreground-only. requestAlwaysAuthorization for background access (two-step: WhenInUse first, then upgrade prompt).
+Follow-up: WhenInUse: location only while app is in foreground (blue bar if backgrounded temporarily). Always: background location updates, geofencing, significant change. Always requires stronger justification and shows recurring location-use reminders.
+Follow-up: Significant-change: wakes app for cell-tower-level location changes (~500m), very low power. Geofencing: monitor entry/exit of up to 20 circular regions. Both work when app is suspended.
+
+
+78% — Core Data migrations
+
+When you change the model, Core Data needs to migrate the persistent store. Lightweight migration handles simple changes automatically (add attribute, rename with renaming ID, add/remove relationships).
+Follow-up: Lightweight: no code needed, just set NSMigratePersistentStoresAutomaticallyOption and NSInferMappingModelAutomaticallyOption. Heavy: requires a mapping model (.xcmappingmodel) with custom migration policies.
+Follow-up: Lightweight fails when: changing attribute types without compatibility, complex relationship changes, or splitting/merging entities. Then you need a custom mapping model or staged migration (Core Data in iOS 17).
+
+
+77% — WidgetKit
+
+Widgets are SwiftUI views driven by a TimelineProvider. The provider returns a Timeline of entries (data + date). The system renders and caches the views — widgets are NOT live views.
+Follow-up: TimelineProvider returns a Timeline with entries and a reload policy (.atEnd, .after(date), .never). Each TimelineEntry has a date and your custom data. The system calls getTimeline periodically.
+Follow-up: Use app groups + shared UserDefaults or a shared file container. Widget cannot access the main app's storage directly. Call WidgetCenter.shared.reloadAllTimelines() from the app when data changes.
+
+
+76% — StoreKit 2 (in-app purchases, subscriptions)
+
+StoreKit 2 uses async/await and Swift-native types. Fetch products with Product.products(for:). Purchase with product.purchase(). Verify with Transaction.currentEntitlements.
+Transactions are automatically verified using JWS signed by Apple.
+Follow-up: Check Transaction.currentEntitlements on launch for active subscriptions. Use Product.SubscriptionInfo.status for subscription state. Handle Transaction.updates for real-time changes. Server-side verification via App Store Server API.
+Follow-up: StoreKit 2: async/await, automatic JWS verification, Transaction listener, no receipt parsing. Original StoreKit: SKPaymentQueue, delegate callbacks, receipt validation on server, much more boilerplate.
+
+
+75% — App extensions (share, notification, etc.)
+
+Extensions are separate binaries that run in a host process (not your app). They have their own Info.plist, entitlements, and memory limits (~120 MB for widgets, varies by type).
+Follow-up: Share data via app groups: shared UserDefaults or shared container. Extensions cannot access the main app's sandbox directly.
+Follow-up: Extensions are constrained: notification service ~30 seconds, ~24 MB. Widgets ~30 MB. Share extensions ~120 MB. Exceeding limits = immediate termination by the system.
+
+
+74% — Live Activities and Dynamic Island
+
+Live Activities display real-time info on the Lock Screen and Dynamic Island (iPhone 14 Pro+). Use ActivityKit to start, update, and end activities. Updates via push (ActivityKit push notifications) or local.
+Follow-up: Local: Activity.update(content). Push: send to the push token from Activity.pushToken. Push updates are preferred for server-driven data. Local updates work only when the app is running.
+Follow-up: Compact/minimal for Dynamic Island, expanded for Lock Screen. Max 4 hours for activities (system ends stale ones). Updates throttled — system may coalesce frequent updates.
+
+
+73% — Thread Sanitizer and Address Sanitizer
+
+TSan (Thread Sanitizer): detects data races at runtime — concurrent unsynchronized access to shared memory. ASan (Address Sanitizer): detects memory corruption — use-after-free, buffer overflows, stack overflows.
+Follow-up: TSan catches races you'd never find by inspection — intermittent crashes, corrupted state. It instruments all memory accesses and checks for concurrent unprotected writes. Run your test suite with TSan enabled regularly.
+Follow-up: They use incompatible instrumentation — both rewrite memory accesses differently. Enable one at a time. TSan for concurrency bugs, ASan for memory corruption.
+
+
+72% — App Store review common rejections
+
+Top rejections: 2.1 (crashes/bugs), 4.3 (spam/duplicate), 2.3 (inaccurate metadata), 5.1.1 (data collection without consent), guideline 3.1.1 (in-app purchase required for digital goods).
+Follow-up: 2.1: fix the crash, test thoroughly, resubmit with notes. 4.3: differentiate your app, explain unique value in review notes. Always include a demo account if login is required.
+Follow-up: Reply to the rejection in Resolution Center. If rejected unfairly, submit an appeal via the App Review Board. Be specific and reference exact guidelines.
+
+
+71% — MetricKit and performance monitoring
+
+MetricKit delivers daily diagnostic and performance payloads: launch time, hang rate, memory, battery, disk writes. Implement MXMetricManagerSubscriber to receive MXMetricPayload.
+Follow-up: MXMetricPayload includes: histogrammed launch durations, hang duration, cellular/WiFi transfer, CPU time, memory peak, disk logical writes. MXDiagnosticPayload includes crash and hang diagnostics with call stacks.
+Follow-up: MetricKit is free, first-party, privacy-preserving. Third-party SDKs (Sentry, Firebase) offer real-time alerting, symbolication, and richer dashboards. Many teams use both.
+
+
+70% — Localization (String Catalogs, bundle, RTL)
+
+Use NSLocalizedString or String(localized:) to mark strings. Add translations in .strings files or String Catalogs.
+Follow-up: String Catalogs (.xcstrings, Xcode 15+): single file replaces .strings/.stringsdict. Visual editor in Xcode. Auto-extracts strings from code. Supports pluralization, device variations.
+Follow-up: Pluralization: String Catalogs handle it natively (one, few, many, other). RTL: SwiftUI auto-flips leading/trailing. Use .environment(\.layoutDirection, .rightToLeft) to test. Avoid hardcoded left/right — use leading/trailing.
+
+
+69% — App Intents and Shortcuts
+
+App Intents (iOS 16+) expose app actions to Siri, Shortcuts, and Spotlight. Define an AppIntent struct with perform() method. Parameters are typed and discoverable.
+Follow-up: Intents appear automatically in Shortcuts and Spotlight. Add AppShortcutsProvider to suggest shortcuts. Siri can invoke them by voice if you provide phrases.
+Follow-up: SiriKit (iOS 10+) used predefined domains (messaging, payments). App Intents is the modern replacement — fully custom, no domain restriction, Swift-native.
+
+
+68% — Background URLSession
+
+Background sessions use a system daemon to manage transfers. Downloads/uploads continue even if the app is suspended or terminated.
+Follow-up: System wakes the app (or relaunches it) and calls application(_:handleEventsForBackgroundURLSession:completionHandler:). You recreate the session with the same identifier, and pending delegate callbacks fire.
+Follow-up: Store the completionHandler. Recreate the URLSession with the same identifier in the AppDelegate. The session's delegate receives urlSessionDidFinishEvents(forBackgroundURLSession:) — call the stored completionHandler there.
+
+
+67% — Energy efficiency and battery
+
+Minimize background work, reduce location accuracy when possible, batch network requests, use URLSession background sessions for large transfers, avoid polling — use push notifications or server-sent events instead.
+Follow-up: Xcode's Energy Gauge in Debug Navigator. Instruments > Energy Log. Xcode Organizer shows field data. MetricKit provides battery usage metrics from real users.
+Follow-up: Continuous location (especially GPS), persistent network connections, heavy CPU in background, frequent wake-ups, and excessive disk I/O.
+
+
+66% — TestFlight distribution
+
+Build and upload via Xcode, xcodebuild + Transporter, or Xcode Cloud. TestFlight distributes beta builds to testers. Supports up to 10,000 external testers per app.
+Follow-up: Internal: up to 100 App Store Connect users, no review needed, available immediately. External: up to 10,000 testers, requires initial Beta App Review, subsequent builds often auto-approve.
+Follow-up: Use test groups to segment testers by feature. Each group can get different builds. Builds expire after 90 days. Testers get automatic update notifications.
+
+
+65% — CloudKit basics
+
+CloudKit is Apple's iCloud backend. No server to manage. Supports structured records (CKRecord), assets, subscriptions, and sharing.
+Follow-up: Public database: accessible to all users, quota from your app's pool. Private database: per-user iCloud storage, counts against user's iCloud quota. Shared database: records from one user's private DB shared with others.
+Follow-up: CKOperations handle offline queueing. Use CKServerChangeToken to fetch only changes since last sync. Conflicts: server returns .serverRecordChanged error — merge manually using server record.
+
+
+64% — Network Link Conditioner
+
+A developer tool (macOS System Preferences and iOS Settings > Developer) that simulates network conditions: 3G, Edge, packet loss, high latency, 100% loss.
+Follow-up: On iOS: Settings > Developer > Network Link Conditioner (requires enabling developer mode). On Mac: install "Additional Tools for Xcode" package. Choose a profile or create custom (bandwidth, latency, packet loss).
+Follow-up: Timeout handling bugs, retry logic failures, UI that assumes instant responses, missing loading states, and race conditions that only appear under latency.
+
+
+63% — Xcode Cloud / CI-CD for iOS
+
+Xcode Cloud is Apple's CI/CD. Runs in Apple's infrastructure. Triggers on push, PR, schedule, or manual. Workflows define build, test, analyze, archive, and distribute steps.
+Follow-up: Create workflows in Xcode or App Store Connect. Define start conditions (branch, PR), actions (build, test, archive), post-actions (distribute to TestFlight, notify). Uses clean environments each run.
+Follow-up: Xcode Cloud: tight Apple integration, easy TestFlight deployment, limited customization. GitHub Actions/Fastlane: more flexible, self-hosted runners, broader ecosystem, better for complex pipelines.
+
+
+62% — App thinning (slicing, on-demand resources)
+
+App thinning reduces download size. Slicing: App Store delivers only the assets for the user's device (1x/2x/3x, arm64). On-demand resources: tagged assets downloaded as needed.
+Follow-up: Bitcode was removed in Xcode 14. It's no longer used or accepted. Slicing is automatic when you use asset catalogs.
+Follow-up: Tag resources in Xcode with on-demand resource tags. Request with NSBundleResourceRequest. System manages download and purging. Useful for game levels, large media, or rarely-used features.
+
+
+61% — Keychain sharing between apps
+
+Apps with the same development team can share Keychain items via access groups. Add keychain-access-groups entitlement with a shared group ID.
+Follow-up: Access group format: $(AppIdentifierPrefix)com.yourcompany.shared. Set kSecAttrAccessGroup when adding items. Both apps must list the same group in their entitlements.
+Follow-up: Items are scoped by team ID prefix. Only apps signed with the same team can share. Different teams cannot share Keychain items — the system enforces this cryptographically.
+
+
+60% — Multipeer Connectivity
+
+Framework for discovering and communicating with nearby devices over WiFi, peer-to-peer WiFi, and Bluetooth. Used for local multiplayer, file sharing, collaborative features.
+Follow-up: MCNearbyServiceAdvertiser advertises availability. MCNearbyServiceBrowser discovers peers. MCSession manages connected peers. Use MCBrowserViewController for built-in UI or build custom discovery.
+Follow-up: Limited to nearby devices (~30 feet BLE, same WiFi network). Max ~8 peers per session. Bandwidth varies — not suitable for high-throughput streaming. Latency can spike.
+
+
+59% — Core Location vs MapKit
+
+Core Location: raw location data — coordinates, heading, altitude, geofencing, beacons. MapKit: visual map display, annotations, overlays, directions, search.
+Follow-up: Background location tracking, geofencing, significant change monitoring, beacon ranging — all Core Location, no map needed.
+Follow-up: Map (SwiftUI, iOS 17+): declarative, uses Annotation and MapContent. MKMapView (UIKit): delegate-based, more control. SwiftUI Map supports camera control, markers, polylines, but complex overlays still need UIKit.
+
+
+58% — Core Spotlight (search indexing)
+
+Core Spotlight lets you index app content so it appears in system search. Create CSSearchableItem with CSSearchableItemAttributeSet, then index via CSSearchableIndex.
+Follow-up: Implement application(_:continue:restorationHandler:) with NSUserActivity. The activity's contentAttributeSet identifies the tapped result. Parse and navigate to the content.
+Follow-up: Core Spotlight: index arbitrary app content with rich metadata. NSUserActivity: index content the user has viewed (also enables Handoff). Use both — Spotlight for browse-able content, NSUserActivity for recently viewed items.
+
+
+57% — NFC and Core NFC
+
+Core NFC reads NFC tags (NDEF, ISO 7816, ISO 15693, FeliCa). Requires NFCReaderSession. NDEF reading on iPhone 7+ (iOS 11+). Full tag-type support (ISO 7816, ISO 15693, FeliCa) requires iPhone XS/XR or later. Background tag reading (iOS 12+, iPhone XS and later) for NDEF.
+Follow-up: Read-only for most use cases. Writing NDEF is supported. Cannot emulate tags (no host card emulation except for Apple Pay). Requires Near Field Communication Tag Reading entitlement and Info.plist entry.
+Follow-up: NDEF: universal cross-platform tag format. ISO 7816: smart cards (transit, ID). ISO 15693: inventory/logistics tags. FeliCa: transit cards in Japan.
+
+
+56% — Handoff and Universal Clipboard
+
+Handoff lets users continue an activity from one device to another. Implement via NSUserActivity: set activityType, title, userInfo. Register as current activity. Other devices show the activity in the dock/app switcher.
+Follow-up: Create NSUserActivity with a registered type. Set needsSave = true and implement updateUserActivityState. Call becomeCurrent(). Receiving device: application(_:continue:restorationHandler:).
+Follow-up: Universal Clipboard: copy on one device, paste on another. Automatic via Handoff infrastructure — same iCloud account, Bluetooth and WiFi on. Content is encrypted end-to-end. Expires after ~2 minutes for security.

@@ -1,0 +1,562 @@
+Senior iOS Interview Answers — UIKit & Legacy — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — UIViewController lifecycle
+
+init (or init(coder:)) -> loadView -> viewDidLoad -> viewWillAppear ->
+viewWillLayoutSubviews -> viewDidLayoutSubviews -> viewDidAppear.
+Dismissal: viewWillDisappear -> viewDidDisappear. Under memory pressure:
+didReceiveMemoryWarning (pre-iOS 13 could unload view).
+viewDidLoad: called once after the view is loaded into memory. Setup here.
+viewWillAppear: called every time the view is about to be shown. Refresh data here.
+Follow-up: viewDidLoad is one-time setup (add subviews, configure). viewWillAppear
+fires every appearance (update data, start animations). Don't do heavy layout
+in viewWillAppear — use viewDidLayoutSubviews for geometry-dependent work.
+Follow-up: viewDidLayoutSubviews fires after Auto Layout resolves frames — use it
+for frame-dependent code. viewWillAppear fires before layout, so frames may be wrong.
+
+
+98% — UITableView and UICollectionView fundamentals
+
+UITableViewDataSource provides data: numberOfSections, numberOfRowsInSection,
+cellForRowAt. UITableViewDelegate handles interaction: didSelectRowAt, row
+heights, headers/footers. Cell reuse: cells are recycled from a reuse queue
+via dequeueReusableCell. This avoids allocating thousands of cells — you
+only need enough to fill the visible area plus a buffer.
+Follow-up: The indexPath version (iOS 6+) always returns a cell (registers via
+class or nib). The older version returns nil if no cell is available, requiring
+you to allocate manually. Always use the indexPath version.
+Follow-up: Use UITableViewAutomaticDimension for rowHeight, set estimatedRowHeight,
+and ensure constraints pin top-to-bottom inside the cell's contentView.
+
+
+97% — Auto Layout constraints
+
+Auto Layout is a constraint-based system that calculates frames from linear
+equations (view.attr = multiplier * other.attr + constant). Ambiguous layout:
+not enough constraints to determine a unique solution. Unsatisfiable: conflicting
+constraints — the system breaks the lowest-priority constraint and logs a warning.
+Follow-up: Content hugging: resistance to growing beyond intrinsic size (default 250).
+Compression resistance: resistance to shrinking below intrinsic size (default 750).
+When two labels compete for space, the one with lower hugging/resistance loses.
+Follow-up: intrinsicContentSize is the natural size a view wants based on content.
+UILabel, UIButton, UIImageView provide it. Custom views can override it.
+
+
+96% — GCD: DispatchQueue, sync/async, serial/concurrent
+
+Serial queue + async: work is enqueued and executes one at a time, caller returns
+immediately. Serial + sync: caller blocks until the work finishes. Concurrent +
+async: work is enqueued, may run in parallel, caller returns immediately.
+Concurrent + sync: caller blocks until that specific block finishes, but other
+blocks on the queue may run concurrently.
+Follow-up: Deadlock. The main queue is serial. sync puts a block on the queue and
+waits. But the current block is on the queue, so the new block can't start.
+Both wait forever.
+Follow-up: Main queue is serial, runs on the main thread, for UI work. Global
+queues are concurrent, system-managed, come in QoS tiers (.userInteractive,
+.userInitiated, .utility, .background).
+
+
+95% — Delegation pattern
+
+A delegate is an object that another object calls back to for decisions and events.
+Defined via a protocol. UITableViewDelegate, UITextFieldDelegate, etc. The delegate
+property is weak to avoid retain cycles — the delegating object (child) should not
+own its delegate (parent).
+Follow-up: Delegation: one-to-one, strongly typed, good for rich interaction.
+Closures: one-to-one, inline, good for simple callbacks. NotificationCenter:
+one-to-many, loosely coupled, good for broadcasting.
+Follow-up: In Swift, mark protocol as @objc and methods as @objc optional. Or
+provide empty default implementations in a protocol extension (pure Swift approach).
+
+
+94% — UINavigationController
+
+UINavigationController manages a stack of view controllers via pushViewController
+and popViewController. It owns the navigation bar and toolbar. The stack is LIFO —
+push adds to the top, pop removes from the top. viewControllers array gives full
+access.
+Follow-up: Set navigationItem.title, navigationItem.rightBarButtonItem per VC.
+For appearance: use UINavigationBarAppearance (iOS 13+) configured on
+navigationBar.standardAppearance, scrollEdgeAppearance, compactAppearance.
+Follow-up: Override navigationController(_:willShow:) in the delegate, or replace
+the back button with a custom UIBarButtonItem. For swipe-back: set
+interactivePopGestureRecognizer.delegate or disable it.
+
+
+93% — Storyboards vs XIBs vs programmatic UI
+
+Storyboards: visual overview of flow, segues, good for small teams and prototyping.
+Merge conflicts are painful — XML diffs are unreadable. XIBs: one view/VC per file,
+fewer merge conflicts, still visual. Programmatic: full control, easy to review,
+easy to merge, no magic, but more verbose.
+Follow-up: Storyboards are monolithic XML files. Two devs editing the same storyboard
+create unresolvable merge conflicts. Large teams split into many storyboards or go
+fully programmatic.
+Follow-up: A segue calls prepare(for:sender:), instantiates the destination VC from
+the storyboard, and pushes/presents it. Under the hood it's
+storyboard.instantiateViewController(withIdentifier:) plus the transition.
+
+
+92% — Responder chain and hit testing
+
+Touch handling has two phases. Hit testing (front-to-back): starts at the window,
+calls hitTest(_:with:) which recursively calls point(inside:with:event:) to find
+the deepest view containing the touch. Event handling (back-to-front): the hit
+view gets the event. If it doesn't handle it, it passes up the responder chain
+(superview -> VC -> parent VC -> window -> application).
+Follow-up: hitTest walks subviews in reverse order (front-most first). For each,
+it calls point(inside:...) to check if the point is within bounds. It recurses
+into the first match. Returns the deepest eligible view.
+Follow-up: Override hitTest or point(inside:...) on the parent to return nil
+for the blocked area, or override hitTest to forward to the underlying view.
+
+
+91% — UICollectionViewCompositionalLayout
+
+Three levels: NSCollectionLayoutItem (cell size), NSCollectionLayoutGroup (horizontal,
+vertical, or custom arrangement of items), NSCollectionLayoutSection (contains a group,
+defines scrolling behavior). You provide a section provider closure that returns a
+section for each section index.
+Follow-up: Set section.orthogonalScrollingBehavior to .continuous, .paging, etc.
+The section scrolls horizontally while the overall collection scrolls vertically.
+Follow-up: BoundarySupplementaryItems are headers/footers pinned to section boundaries.
+DecorationItems are background views behind sections — registered on the layout config.
+
+
+90% — Diffable data sources
+
+Diffable data sources replace reloadData / beginUpdates-endUpdates with snapshot-based
+updates. You build an NSDiffableDataSourceSnapshot with sections and items, then call
+apply(). The framework diffs the old and new snapshots and animates inserts, deletes,
+moves automatically. No more IndexPath math or assertion crashes.
+Follow-up: Create a snapshot, call appendSections, appendItems (into a section).
+apply() computes the diff. You can apply with or without animation.
+Follow-up: Items must be Hashable. Two items with the same hash/equality but different
+content won't trigger a cell update — use reconfigureItems or snapshot reloading
+to force content refreshes.
+
+
+89% — NSOperationQueue and Operation
+
+NSOperationQueue is a higher-level abstraction built on GCD. Advantages over raw GCD:
+dependencies between operations, cancellation with isFinished/isCancelled/isExecuting
+KVO, maxConcurrentOperationCount, and operation priorities.
+Follow-up: op2.addDependency(op1) ensures op1 completes before op2 starts. Dependencies
+work across queues.
+Follow-up: Setting cancel() sets isCancelled = true. Your operation subclass must
+check isCancelled periodically and bail out. The queue does not forcibly stop execution.
+
+
+88% — Objective-C interop
+
+A bridging header imports ObjC headers into Swift. The compiler generates a
+-Swift.h header exposing Swift classes (that subclass NSObject or use @objc)
+to ObjC code. The two compilers alternate during the build to resolve cross-references.
+Follow-up: @objc exposes Swift declarations to the ObjC runtime. Required for
+selectors (#selector), KVO, Interface Builder, and any ObjC-callable API.
+Since Swift 4, @objc inference is limited — only overrides of @objc methods
+and @IBAction/@IBOutlet/dynamic declarations are implicitly @objc. Other
+members on NSObject subclasses require explicit @objc.
+Follow-up: NS_SWIFT_NAME renames ObjC APIs for idiomatic Swift (e.g., factory methods).
+Nullability annotations (_Nullable, _Nonnull, NS_ASSUME_NONNULL_BEGIN) map to
+Swift optionals vs non-optionals. Without them, everything imports as implicitly
+unwrapped optionals.
+
+
+87% — KVO (Key-Value Observing)
+
+KVO lets you observe changes to a property. Under the hood, the runtime creates a
+hidden subclass (isa-swizzling) that overrides the setter to call
+willChangeValue/didChangeValue, which notify observers. Requires NSObject subclass
+and properties must be @objc dynamic in Swift.
+Follow-up: When you add an observer, the runtime creates a private subclass
+(NSKVONotifying_ClassName), replaces the object's isa pointer to point to it, and
+overrides the observed property's setter. This is why KVO only works on NSObject.
+Follow-up: The block-based API (observe(_:options:changeHandler:)) returns a token.
+Observation is automatically removed when the token is deallocated. No more manual
+removeObserver in deinit. Much safer.
+
+
+86% — NSNotificationCenter
+
+NotificationCenter is a publish-subscribe hub. Post with post(name:object:userInfo:).
+Observe with addObserver(_:selector:name:object:) or the closure-based
+addObserver(forName:object:queue:using:). The closure version returns a token you
+must store and later remove.
+Follow-up: Notifications are delivered on the thread they're posted from. If you post
+from a background thread, the observer callback runs on that background thread.
+Use OperationQueue.main in the closure variant to force main-thread delivery.
+Follow-up: Since iOS 9, selector-based observers are auto-removed on dealloc.
+Token-based (closure) observers still require explicit removal.
+
+
+85% — Target-action pattern
+
+Target-action: a control sends a selector message to a target object when an event
+occurs (e.g., button.addTarget(self, action: #selector(tapped), for: .touchUpInside)).
+Clean separation — the control doesn't know the target's type, just that it responds
+to the selector.
+Follow-up: If target is nil, UIKit walks the responder chain starting from the first
+responder until it finds an object that responds to the selector. This is how menu
+items and keyboard shortcuts work.
+Follow-up: Target-action is simple and decoupled but limited to UIControl events.
+Delegation allows richer multi-method contracts. Closures (UIAction in iOS 14+) are
+more flexible and avoid the selector string coupling.
+
+
+84% — UIView animation
+
+UIView.animate captures changes to animatable properties (frame, alpha, transform,
+backgroundColor) inside the animation block and interpolates over duration.
+Spring: UIView.animate(withDuration:delay:usingSpringWithDamping:...) for physics-based.
+Keyframe: UIView.animateKeyframes lets you chain segments with relative start/duration.
+Follow-up: UIView.animate is a convenience wrapper around Core Animation. It creates
+CABasicAnimation objects and adds them to layers. Core Animation gives you finer
+control: custom timing, CAKeyframeAnimation paths, CAAnimationGroup.
+Follow-up: Change the constraint's constant, then inside the animation block call
+view.layoutIfNeeded(). The layout pass inside the animation is captured by CA.
+
+
+83% — Core Animation (CALayer)
+
+Every UIView is backed by a CALayer that handles rendering, compositing, and animation.
+UIView provides touch handling and Auto Layout; CALayer handles drawing, shadows,
+corner radius, borders, transforms. Implicit animations: changing a standalone layer's
+properties auto-animates. UIView layers suppress implicit animations by default.
+Follow-up: CATransaction.begin() / commit() batches animations. Use
+CATransaction.setDisableActions(true) to suppress implicit animations.
+setAnimationDuration, setCompletionBlock also available.
+Follow-up: The model layer holds the final values. The presentation layer holds the
+in-flight animation values (what's on screen). Query presentationLayer for hit-testing
+during animations.
+
+
+82% — UIGestureRecognizer
+
+Gesture recognizers are state machines: .possible -> .began -> .changed -> .ended
+(continuous) or .possible -> .recognized (discrete). Attached to views. They
+intercept touches before the view's touchesBegan/Moved/Ended.
+Follow-up: Implement gestureRecognizer(_:shouldRecognizeSimultaneouslyWith:) returning
+true in the delegate. Both recognizers can be active at the same time.
+Follow-up: require(toFail:) means "don't recognize me until this other gesture fails."
+Used for single-tap vs double-tap: single requires double-tap to fail first,
+adding a small delay.
+
+
+81% — UIScrollView
+
+contentSize: the total scrollable content area. contentOffset: the current scroll
+position (top-left corner of visible rect). contentInset: padding around the content
+(used for under-navigation-bar scrolling, pull-to-refresh). adjustedContentInset
+accounts for safe area automatically.
+Follow-up: Pin content subview edges to the scroll view's contentLayoutGuide for
+content size, and use frameLayoutGuide for non-scrolling constraints. The content
+subview's constraints define contentSize automatically.
+Follow-up: Set minimumZoomScale and maximumZoomScale. Return the view to zoom in
+viewForZooming(in:). The delegate's scrollViewDidZoom handles updates.
+
+
+80% — Size classes and trait collections
+
+Size classes: .compact or .regular for horizontal and vertical axes. iPhones in
+portrait: compact width, regular height. iPads: regular/regular. UITraitCollection
+bundles size class, display scale, user interface style (dark mode), content size
+category, etc.
+Follow-up: Override traitCollectionDidChange(_:) (pre-iOS 17) to detect changes.
+Check trait values and update layout. iOS 17+ use registerForTraitChanges with
+a handler block.
+Follow-up: iOS 17 introduced trait registration (registerForTraitChanges(_:handler:))
+replacing traitCollectionDidChange. Also supports custom trait definitions via
+UITraitDefinition protocol.
+
+
+79% — Child view controllers (containment)
+
+addChild(childVC), add childVC.view to your view hierarchy, then call
+childVC.didMove(toParent: self). To remove: childVC.willMove(toParent: nil),
+remove childVC.view from superview, childVC.removeFromParent().
+Follow-up: These calls trigger appearance callbacks (viewWillAppear, etc.) and ensure
+the child participates in the parent's trait collection, rotation events, and
+memory warnings. willMove is called before the transition, didMove after.
+Follow-up: Appearance callbacks may not fire correctly. The child won't participate
+in trait collection changes. Layout and rotation behavior becomes unreliable.
+
+
+78% — UIAppearance
+
+UIAppearance returns a proxy object. Setting properties on it (e.g.,
+UINavigationBar.appearance().tintColor = .red) applies to all future instances
+of that class. You can scope it with appearance(whenContainedInInstancesOf:).
+Follow-up: Only properties marked UI_APPEARANCE_SELECTOR work. Cannot animate
+or change all properties. Custom views need to explicitly support appearance
+by re-applying proxy values in their property setters.
+Follow-up: Already-visible instances are NOT updated. Appearance changes only affect
+views when they're added to a window. Remove and re-add views to force updates.
+
+
+77% — NSCache
+
+NSCache is a mutable collection that automatically evicts objects under memory
+pressure. Unlike Dictionary, it doesn't copy keys, it's thread-safe, and it
+responds to memory warnings by purging entries.
+Follow-up: Yes. NSCache is fully thread-safe. You can read and write from multiple
+threads without external synchronization.
+Follow-up: Eviction is based on countLimit, totalCostLimit, and system memory pressure.
+Exact eviction order is not guaranteed — treat it as a hint-based cache, not LRU.
+
+
+76% — Objective-C runtime basics
+
+In ObjC, method calls are message sends. objc_msgSend looks up the selector in the
+class's method table (method list -> superclass chain -> message forwarding).
+This dynamic dispatch enables runtime flexibility: swizzling, KVO, dynamic proxies.
+Follow-up: Method swizzling exchanges implementations of two selectors at runtime
+(method_exchangeImplementations). Used for analytics injection, debugging, or
+patching framework behavior. Justified only when no other option exists — it's
+fragile and order-dependent.
+Follow-up: Associated objects (objc_setAssociatedObject/objc_getAssociatedObject) let
+you attach stored data to existing objects at runtime. Used in categories to
+simulate stored properties. Specify retention policy (RETAIN, COPY, ASSIGN).
+
+
+75% — Categories and extensions (ObjC vs Swift)
+
+ObjC categories: add methods to existing classes (even system classes) at runtime.
+Cannot add stored properties (use associated objects). Swift extensions: similar
+but compile-time, can add computed properties, methods, protocol conformance.
+Swift extensions on value types can add mutating methods.
+Follow-up: No. Categories can only add methods. Use associated objects
+(objc_setAssociatedObject) to attach data to instances at runtime.
+Follow-up: A class extension (declared in the .m file) can add private properties,
+ivars, and method declarations. Unlike categories, class extensions CAN add
+stored properties because they're compiled with the main class.
+
+
+74% — Toll-free bridging
+
+Certain Core Foundation types (CFString, CFArray, CFDictionary, CFURL) are
+interchangeable with their Foundation counterparts (NSString, NSArray, etc.)
+at zero cost — same memory layout, just different type system perspectives.
+Follow-up: __bridge: cast only, no ownership transfer. __bridge_retained (CFBridgingRetain):
+ARC releases ownership, CF side now responsible. __bridge_transfer (CFBridgingRelease):
+CF gives ownership to ARC. Mismatch causes leaks or crashes.
+Follow-up: Rarely needed directly in Swift. Swift bridges String/Array/Dictionary
+automatically. You encounter it when using low-level Core Foundation or Security
+framework APIs (SecKey, CFData, etc.).
+
+
+73% — UIKit rendering pipeline
+
+Three-phase cycle each run loop iteration: 1) Constraints pass (updateConstraints,
+bottom-up). 2) Layout pass (layoutSubviews, top-down — resolves frames from
+constraints). 3) Display pass (draw(_:), top-down — rasterizes content).
+setNeedsLayout marks a view for the layout pass. setNeedsDisplay marks for redraw.
+Follow-up: Layout calculates frames from constraints. Display renders pixels from
+those frames. Most views never override draw(_:) — only for custom Core Graphics
+rendering. Layout is far more common to customize.
+Follow-up: layoutIfNeeded forces immediate layout resolution. Inside an animation
+block, this means the new constraint values are animated from current to final.
+Without layoutIfNeeded, the constraint change would jump instantly.
+
+
+72% — Coordinator pattern in UIKit
+
+Coordinators extract navigation logic out of view controllers. Each coordinator
+owns a navigation controller, creates and pushes VCs, and handles the flow between
+screens. VCs delegate user actions back to the coordinator. VCs become reusable
+and unaware of navigation context.
+Follow-up: A coordinator holds a UINavigationController reference. It has a start()
+method that creates the first VC, sets itself as delegate, and pushes the VC.
+When the VC signals completion, the coordinator pushes the next screen.
+Follow-up: A parent coordinator holds an array of child coordinators. Child coordinators
+own their sub-flows and call a completion closure or delegate method when done.
+Parent removes the child from the array when the flow completes.
+
+
+71% — Memory management in Objective-C
+
+Before ARC: manual retain/release. alloc, new, copy, mutableCopy return +1 objects.
+retain increments, release decrements. When count hits 0, dealloc is called.
+autorelease defers release to the end of the current autorelease pool drain.
+ARC automates retain/release at compile time — same model, compiler-inserted calls.
+Follow-up: In tight loops creating many temporary objects (e.g., image processing),
+the autorelease pool can grow huge. Wrapping the loop body in @autoreleasepool
+drains temporaries each iteration, keeping memory flat.
+Follow-up: Manual reference counting: developer writes retain/release. Rules: you own
+what you create (alloc/new/copy) or explicitly retain. You must release what you own.
+Over-release = crash, under-release = leak. ARC eliminated this entire class of bugs.
+
+
+70% — RunLoop
+
+A RunLoop is an event-processing loop that keeps a thread alive and dispatches
+events (touches, timers, port-based input sources). The main thread's RunLoop
+is always running. Background threads need manual RunLoop.run() if they need
+ongoing event sources.
+Follow-up: Default mode handles normal events. Tracking mode handles scroll tracking.
+During scrolling, the RunLoop switches to tracking mode, and default-mode timers
+stop firing.
+Follow-up: Schedule the timer in .common mode: RunLoop.current.add(timer, forMode: .common).
+Common is a pseudo-mode that includes both default and tracking.
+
+
+69% — XIB/Storyboard loading process
+
+Storyboard instantiation: alloc -> init(coder:) decodes the archived objects.
+IBOutlets are NOT yet connected during init(coder:). After all objects are decoded,
+awakeFromNib is called — outlets are connected and you can safely reference them.
+Follow-up: init(coder:) is called during unarchiving — views exist but outlets are nil.
+awakeFromNib is called after the entire nib graph is decoded and all outlet
+connections are established.
+Follow-up: After init(coder:) completes for all objects in the nib, outlets are wired
+up, then awakeFromNib is called. So outlets are connected at awakeFromNib time,
+not at init(coder:) time.
+
+
+68% — GCD barriers (reader-writer pattern)
+
+Create a concurrent queue. Reads dispatch async normally (concurrent). Writes
+dispatch async with .barrier flag. The barrier waits for all in-flight reads to
+finish, executes the write exclusively, then resumes concurrent reads. This gives
+you concurrent reads with serialized writes — lock-free reader-writer pattern.
+Follow-up: A barrier block waits until all previously submitted blocks on that
+concurrent queue finish. It then runs alone. After it completes, normal concurrent
+execution resumes. Only works on custom concurrent queues, NOT global queues.
+Follow-up: GCD barriers are higher-level and harder to misuse than locks. os_unfair_lock
+is the fastest primitive lock but easy to misuse (must not be moved in memory).
+NSLock is simpler but slower. For most cases, barriers or actors are preferred.
+
+
+67% — Migrating UIKit to SwiftUI
+
+Use UIHostingController to wrap a SwiftUI view and push/present it in UIKit
+navigation. Use UIViewRepresentable/UIViewControllerRepresentable to embed UIKit
+in SwiftUI. Migrate leaf screens first, work inward. Both can coexist indefinitely.
+Follow-up: UIHostingController<Content: View> is a UIViewController whose view is a
+SwiftUI view hierarchy. Add it as a child VC or push it onto a navigation stack.
+Pass data via the root SwiftUI view's initializer.
+Follow-up: Conform to UIViewRepresentable, implement makeUIView and updateUIView.
+makeUIView creates the UIKit view once. updateUIView is called when SwiftUI state
+changes. Use Coordinator for delegates.
+
+
+66% — DispatchWorkItem and cancellation
+
+DispatchWorkItem wraps a closure for dispatch. You can cancel it via item.cancel(),
+check isCancelled, and add notify(queue:execute:) for completion. Cancellation is
+cooperative — it sets a flag but doesn't preempt the running block.
+Follow-up: No. If the block is already executing, cancel() only sets the isCancelled
+flag. Your code must check isCancelled periodically and return early. If the item
+hasn't started yet, GCD will skip executing it.
+Follow-up: Task cancellation is also cooperative but more integrated — Task.checkCancellation()
+throws, and many async APIs automatically check cancellation. DispatchWorkItem
+cancellation is manual and lacks propagation through a call tree.
+
+
+65% — Thread-safe singleton pattern
+
+Swift: static let shared = MyClass() — the static let is initialized lazily, once,
+with dispatch_once semantics built into the language. Thread-safe by definition.
+ObjC: dispatch_once with a static instance variable inside sharedInstance class method.
+Follow-up: dispatch_once takes a dispatch_once_t token and a block. The block executes
+exactly once for the lifetime of the app, and all concurrent callers block until the
+first execution completes. Thread-safe.
+Follow-up: Swift uses dispatch_once internally for static let initialization. The
+language guarantees one-time, thread-safe initialization. No boilerplate needed.
+
+
+64% — Objective-C blocks vs Swift closures
+
+Blocks and closures are both anonymous functions that capture surrounding variables.
+Blocks use ^ syntax, closures use { }. Both capture variables by reference by
+default. Both can cause retain cycles. Memory model: blocks start on the stack
+and must be copied to the heap if stored; Swift escaping closures are
+heap-allocated, though the compiler may optimize non-escaping closures
+to avoid heap allocation.
+Follow-up: __block allows mutation of a captured variable from inside the block.
+__weak creates a weak reference to avoid retain cycles (similar to [weak self]).
+__strong inside the block re-captures __weak as strong for safe access (strongSelf
+pattern).
+Follow-up: Blocks are initially stack-allocated for performance. If you store a block
+(assign to a property, pass to async API), it must be copied to the heap. ARC
+handles this automatically in most cases; pre-ARC required explicit Block_copy.
+
+
+63% — Protocol conformance in Objective-C
+
+@protocol declares a contract. Adopt in the class interface: @interface MyClass : NSObject <MyProtocol>.
+@required is the default — must implement. @optional — can skip.
+Before calling an optional method, check with [delegate respondsToSelector:@selector(method)].
+Follow-up: Because optional methods might not be implemented, the caller must check at
+runtime with respondsToSelector:. This is inherently unsafe — a typo in the selector
+won't cause a compile error. Swift's type system eliminates this for required methods.
+Follow-up: ObjC uses runtime checking for optional methods and allows partial conformance.
+Swift requires all non-default methods to be implemented at compile time. Swift
+protocols support associated types, value type conformance, and protocol extensions —
+none of which exist in ObjC.
+
+
+62% — UIAlertController patterns
+
+Create with UIAlertController(title:message:preferredStyle:) — .alert or .actionSheet.
+Add UIAlertActions for each button. Present with present(_:animated:completion:).
+Each action has a style (.default, .cancel, .destructive) and a closure handler.
+Follow-up: UIAlertView used a delegate with indexed button callbacks — fragile,
+hard to read, couldn't easily add/remove buttons dynamically. UIAlertController
+uses a modern API with action closures that are explicit and self-contained.
+Follow-up: alert.addTextField { textField in textField.placeholder = "Name" }.
+Access via alert.textFields array in the action handler.
+
+
+61% — UIPageViewController
+
+UIPageViewController manages paging between view controllers using a data source
+(viewControllerBefore/After). You supply one VC at a time and the container
+handles transitions.
+Follow-up: .pageCurl (iBooks-like) and .scroll (smooth horizontal scroll). .scroll
+is standard for onboarding and tab-like interfaces. .pageCurl is rarely used now.
+Follow-up: The data source is called unpredictably (prefetching). Don't assume a
+linear progression. Index management is your responsibility — UIPageViewController
+doesn't track current page. Use delegate's didFinishAnimating to confirm transitions.
+
+
+60% — UISplitViewController
+
+UISplitViewController shows primary (sidebar) and secondary (detail) view controllers.
+On regular width, both are visible. On compact, it collapses to a single navigation
+stack. The delegate controls collapse/separate behavior.
+Follow-up: collapseSecondary(_:onto:) decides what to show when transitioning to compact.
+separateSecondary(from:) reverses it when expanding. Default behavior may show a
+blank detail — override to show meaningful content.
+Follow-up: iOS 14 introduced column-style UISplitViewController with .doubleColumn
+and .tripleColumn styles, and a cleaner API with setViewController(_:for:) replacing
+the older viewControllers array.
+
+
+59% — DispatchGroup
+
+DispatchGroup tracks multiple async tasks. Call enter() before each task starts,
+leave() when each finishes. group.notify(queue:) fires a block when all pairs have
+balanced. Alternatively, group.wait() blocks the current thread.
+Follow-up: enter() increments an internal counter. leave() decrements it. When it
+reaches zero, the notify block fires. You can also pass the group directly to
+DispatchQueue.async(group:execute:) which auto-enters and auto-leaves.
+Follow-up: If enter() calls exceed leave() calls, notify never fires — silent hang.
+If leave() exceeds enter(), it's a crash (EXC_BAD_INSTRUCTION). Always balance them.
+
+
+58% — DispatchSemaphore
+
+DispatchSemaphore is a counting semaphore. wait() decrements the count; if it reaches
+zero, the thread blocks. signal() increments the count, unblocking one waiter.
+Initialize with a value: 0 for signaling, 1 for mutex, N for limiting concurrency.
+Follow-up: Blocking threads is expensive. It wastes a thread from the GCD thread pool,
+which is limited (~64 threads). Blocking many threads causes thread starvation and
+potential deadlocks. Prefer async patterns (DispatchGroup.notify, async/await).
+Follow-up: async/await with TaskGroup and cooperative task cancellation is non-blocking
+and composes better. Semaphores block real threads. For limiting concurrency, use
+maxConcurrentOperationCount on OperationQueue or custom AsyncStream-based patterns.

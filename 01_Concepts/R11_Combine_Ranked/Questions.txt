@@ -1,0 +1,272 @@
+Senior iOS Interview Questions — Combine — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level interview that touches Combine.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — Combine vs async/await
+
+When would you use Combine vs async/await? Has async/await replaced Combine?
+Follow-up: How do you bridge Combine into async/await code?
+Follow-up: Where does Combine still have a clear advantage over async/await?
+
+
+98% — Publisher, Subscriber, Subscription lifecycle
+
+Explain the Combine data flow: Publisher, Subscriber, and Subscription.
+What is the lifecycle of a subscription?
+Follow-up: What happens when a publisher sends a completion event?
+Follow-up: What are the Output and Failure associated types on Publisher?
+
+
+97% — @Published property wrapper
+
+What does @Published do and how does it work with Combine?
+Follow-up: Can you use @Published outside of an ObservableObject?
+Follow-up: Does @Published fire willSet or didSet — and why does that matter?
+
+
+96% — Subjects (PassthroughSubject and CurrentValueSubject)
+
+What is a Subject in Combine? Explain the two built-in subjects.
+Follow-up: When would you choose CurrentValueSubject over PassthroughSubject?
+Follow-up: Are Subjects thread-safe?
+
+
+95% — sink and assign subscribers
+
+How do sink and assign work? When do you use each?
+Follow-up: What is the retain cycle risk with assign(to:on:)?
+Follow-up: What does assign(to:) (the single-parameter version) solve?
+
+
+94% — Cancellable and AnyCancellable (memory management)
+
+How do you manage Combine subscription lifetimes? What is AnyCancellable?
+Follow-up: What happens if you don't store the AnyCancellable?
+Follow-up: What is the store(in:) pattern and why is it used?
+
+
+93% — Common operators: map, compactMap, filter
+
+Explain map, compactMap, and filter in Combine. How do they compare to
+their Swift collection counterparts?
+Follow-up: When would you use compactMap over map?
+
+
+92% — Combine in MVVM (ViewModel patterns)
+
+How do you use Combine in an MVVM architecture? Show a typical ViewModel pattern.
+Follow-up: How does @Observable / Observation framework change this?
+Follow-up: How do you avoid leaking subscriptions in a ViewModel?
+
+
+91% — Error handling (tryMap, catch, replaceError, mapError)
+
+How does error handling work in Combine pipelines?
+Follow-up: What is the difference between catch and replaceError?
+Follow-up: How do you use mapError to unify error types?
+
+
+90% — Schedulers (receive(on:), subscribe(on:))
+
+What are schedulers in Combine? Explain receive(on:) vs subscribe(on:).
+Follow-up: Why do you typically call receive(on: DispatchQueue.main)?
+Follow-up: What types conform to Scheduler?
+
+
+89% — Type erasure with AnyPublisher
+
+Why do you use eraseToAnyPublisher()? What problem does it solve?
+Follow-up: When should you expose AnyPublisher vs a concrete publisher type?
+Follow-up: How does type erasure affect performance?
+
+
+88% — combineLatest, merge, zip
+
+Explain the differences between combineLatest, merge, and zip.
+Follow-up: Give a real-world use case for combineLatest.
+Follow-up: What happens if one publisher in a zip completes before the other?
+
+
+87% — Memory leaks in Combine (common mistakes)
+
+What are the most common causes of memory leaks in Combine code?
+Follow-up: How do you capture self weakly in a sink closure?
+Follow-up: How do you debug a Combine memory leak?
+
+
+86% — flatMap
+
+Explain flatMap in Combine. How is it different from map?
+Follow-up: What does maxPublishers do in flatMap?
+Follow-up: Why is flatMap commonly used for network requests?
+
+
+85% — debounce and throttle
+
+Explain debounce and throttle. When do you use each?
+Follow-up: What is the scheduler parameter for?
+Follow-up: Give a concrete example where debounce is better than throttle.
+
+
+84% — Combine with URLSession (dataTaskPublisher)
+
+How do you make network requests using Combine?
+Follow-up: How do you decode JSON in a Combine pipeline?
+Follow-up: Is dataTaskPublisher deprecated in favor of async/await?
+
+
+83% — switchToLatest
+
+What does switchToLatest do and when do you use it?
+Follow-up: How does switchToLatest help with search-as-you-type?
+Follow-up: How is switchToLatest different from flatMap(maxPublishers: .max(1))?
+
+
+82% — Just, Empty, Fail publishers
+
+What are Just, Empty, and Fail? When do you use each?
+Follow-up: What is the Failure type of Just?
+Follow-up: When would you use Empty(completeImmediately: false)?
+
+
+81% — share() and multicast
+
+What is the difference between a cold and hot publisher? Explain share().
+Follow-up: When would you use multicast over share?
+Follow-up: What happens if a new subscriber attaches to a shared publisher late?
+
+
+80% — Future and Deferred
+
+What is a Future in Combine? How does it differ from Deferred?
+Follow-up: Does a Future execute eagerly or lazily?
+Follow-up: How do you wrap a completion handler API in a Future?
+
+
+79% — removeDuplicates
+
+What does removeDuplicates do and when is it useful?
+Follow-up: How does it determine equality?
+Follow-up: Can you provide a custom comparator?
+
+
+78% — Backpressure and demand (Subscribers.Demand)
+
+What is backpressure in Combine? How does Demand work?
+Follow-up: What are .unlimited, .max(n), and .none demands?
+Follow-up: Why is backpressure important in production apps?
+
+
+77% — Combine with NotificationCenter
+
+How do you use Combine with NotificationCenter?
+Follow-up: What does the publisher return and how do you extract the value?
+Follow-up: How does this compare to the traditional addObserver approach?
+
+
+76% — Testing Combine pipelines
+
+How do you test Combine code?
+Follow-up: How do you test asynchronous Combine pipelines?
+Follow-up: How do you use a Subject to inject test values?
+
+
+75% — retry operator
+
+What does retry do and when should you use it?
+Follow-up: What are the risks of using retry?
+Follow-up: How do you combine retry with a delay?
+
+
+74% — handleEvents and print() for debugging
+
+How do you debug a Combine pipeline?
+Follow-up: What events can handleEvents observe?
+Follow-up: When would you use print() over handleEvents?
+
+
+73% — Combine with KVO
+
+How do you observe KVO-compliant properties using Combine?
+Follow-up: What is the publisher(for:) method?
+Follow-up: Why is this useful for UIKit interop?
+
+
+72% — scan and reduce
+
+Explain scan and reduce. How are they different?
+Follow-up: Give a use case for scan.
+Follow-up: When does reduce emit its value?
+
+
+71% — Timer.publish
+
+How do you create a repeating timer with Combine?
+Follow-up: What does autoconnect() do?
+Follow-up: How does this compare to Timer.scheduledTimer?
+
+
+70% — Custom Publisher creation
+
+When and how do you create a custom publisher?
+Follow-up: What protocol methods must you implement?
+Follow-up: Is creating a custom publisher common in practice?
+
+
+69% — prepend and append
+
+What do prepend and append do in Combine?
+Follow-up: Can you prepend a sequence of values?
+Follow-up: When is prepend useful in real-world code?
+
+
+68% — collect
+
+What does collect do? What variants exist?
+Follow-up: What is the difference between collect() and collect(.byCount(n))?
+Follow-up: When would you use collect(.byTime)?
+
+
+67% — first, last, prefix, drop operators
+
+Explain first, last, prefix, and drop. How do they affect the stream?
+Follow-up: Does first cancel the upstream after receiving one value?
+Follow-up: When would you use drop(while:)?
+
+
+66% — encode and decode operators
+
+How do you use encode(encoder:) and decode(type:decoder:) in Combine?
+Follow-up: What upstream Output type does decode expect?
+Follow-up: How do these compare to using map with JSONDecoder manually?
+
+
+65% — Bridging Combine to async/await (.values)
+
+How do you convert a Combine publisher to an AsyncSequence?
+Follow-up: What is the .values property?
+Follow-up: What are the limitations of this bridge?
+
+
+64% — Custom Subscriber
+
+When would you implement a custom Subscriber?
+Follow-up: What methods does the Subscriber protocol require?
+Follow-up: How does a custom subscriber control demand?
+
+
+63% — Record publisher
+
+What is Record and when would you use it?
+Follow-up: How is Record useful for testing?
+Follow-up: Can Record replay errors?
+
+
+55% — Output and Failure associated types (deep dive)
+
+Explain how Output and Failure types flow through a Combine pipeline.
+Follow-up: What does it mean for a publisher to have Failure == Never?
+Follow-up: How do you convert a failing publisher to a non-failing one?

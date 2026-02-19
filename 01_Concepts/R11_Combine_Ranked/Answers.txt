@@ -1,0 +1,434 @@
+Senior iOS Interview Answers — Combine — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — Combine vs async/await
+
+async/await has NOT fully replaced Combine. Use async/await for one-shot
+async work (network calls, file I/O). Use Combine for reactive streams:
+observing values over time, UI bindings, multi-publisher coordination.
+Combine excels at debounce/throttle, combineLatest, and binding state to
+UI. In practice many codebases use both: Combine for reactive plumbing
+in ViewModels, async/await for service-layer calls.
+Follow-up: Use publisher.values to get an AsyncSequence from any publisher.
+Follow-up: Combine still wins for multi-stream merging, time-based operators
+(debounce, throttle), and SwiftUI bindings via @Published.
+
+
+98% — Publisher, Subscriber, Subscription lifecycle
+
+A Publisher declares it can emit values of type Output and complete with
+Failure. A Subscriber subscribes to a publisher. The publisher gives back
+a Subscription. The subscriber requests demand through the subscription.
+The publisher sends values (up to the demand) and eventually sends a
+completion (.finished or .failure). After completion, no more values flow.
+Follow-up: On completion or failure the subscription is cancelled and all
+references are released. No further events are sent.
+Follow-up: Output is the value type emitted. Failure is the error type
+(must conform to Error, or be Never for infallible publishers).
+
+
+97% — @Published property wrapper
+
+@Published creates a publisher on a property. When the value changes, it
+emits the new value through its projected value ($property). Typically
+used inside ObservableObject classes so SwiftUI views re-render on change.
+The publisher is accessed via $viewModel.propertyName.
+Follow-up: Yes, @Published works on any class, but only triggers
+objectWillChange automatically on ObservableObject.
+Follow-up: @Published fires on willSet, meaning subscribers receive the
+NEW value but self.property still has the OLD value at the time of firing.
+This trips people up in sink closures that also read the property.
+
+
+96% — Subjects (PassthroughSubject and CurrentValueSubject)
+
+A Subject is both a Publisher and a place you can imperatively send values.
+PassthroughSubject has no initial value, just forwards events as they come.
+CurrentValueSubject holds the last value (has a .value property) and
+replays it to new subscribers.
+Follow-up: Use CurrentValueSubject when subscribers need the current state
+immediately on subscription. Use PassthroughSubject for pure events.
+Follow-up: Subjects are NOT thread-safe by default. Sending values from
+multiple threads simultaneously is a data race. Protect with a lock or
+serialize through a queue.
+
+
+95% — sink and assign subscribers
+
+sink receives values in a closure — you handle them manually. assign
+writes values directly to a KVO-compliant property (assign(to:on:)).
+Use sink for side effects. Use assign for direct property binding.
+Follow-up: assign(to:on:) holds a strong reference to the object, causing
+a retain cycle if the object owns the subscription.
+Follow-up: assign(to: &$property) uses an inout reference to a @Published
+property and does NOT create a strong reference, avoiding the retain cycle.
+
+
+94% — Cancellable and AnyCancellable (memory management)
+
+Subscriptions return AnyCancellable. When it deinits, the subscription
+cancels automatically. Store it in a property or a Set<AnyCancellable>
+to keep the subscription alive. AnyCancellable is the type-erased wrapper
+around any Cancellable.
+Follow-up: If you don't store it, it deinits immediately at the end of
+the scope and the subscription is cancelled — you receive no values.
+Follow-up: store(in: &cancellables) appends the AnyCancellable to a
+Set<AnyCancellable>. The set keeps all subscriptions alive and cancels
+them when the owning object deinits.
+
+
+93% — Common operators: map, compactMap, filter
+
+map transforms each value. compactMap transforms and unwraps optionals,
+dropping nils. filter passes through only values matching a predicate.
+Identical semantics to their Array versions but applied to a stream of
+values over time.
+Follow-up: Use compactMap when the transformation can fail or return nil
+and you want to silently skip those values.
+
+
+92% — Combine in MVVM (ViewModel patterns)
+
+ViewModel is an ObservableObject with @Published properties. Views observe
+via @ObservedObject or @StateObject. The ViewModel subscribes to services
+using Combine, transforms data with operators, and assigns to @Published
+properties. Store subscriptions in a private var cancellables Set.
+Follow-up: With @Observable (iOS 17+) you don't need @Published or
+ObservableObject. Combine is still useful for reactive pipelines inside
+the ViewModel but the observation layer is replaced by the macro.
+Follow-up: Store all AnyCancellables in a Set on the ViewModel. They
+cancel on deinit. Avoid capturing self strongly in sink closures.
+
+
+91% — Error handling (tryMap, catch, replaceError, mapError)
+
+tryMap is map that can throw — a thrown error becomes a pipeline failure.
+catch intercepts a failure and replaces the upstream with a new publisher.
+replaceError replaces any failure with a single value and completes.
+mapError transforms the error type without changing values.
+Follow-up: catch replaces the entire upstream with a recovery publisher
+(can emit more values). replaceError emits one fallback value and finishes.
+Follow-up: mapError lets you convert a specific error type to a unified
+error type so you can merge publishers with different Failure types.
+
+
+90% — Schedulers (receive(on:), subscribe(on:))
+
+A Scheduler defines where and when work runs. receive(on:) switches
+downstream delivery to the specified scheduler. subscribe(on:) determines
+where the upstream subscription and request happen.
+Follow-up: Network responses come on background threads. receive(on:
+DispatchQueue.main) ensures UI updates happen on the main thread.
+Follow-up: DispatchQueue, RunLoop, OperationQueue, and ImmediateScheduler
+all conform to Scheduler.
+
+
+89% — Type erasure with AnyPublisher
+
+eraseToAnyPublisher() wraps a complex generic publisher chain into
+AnyPublisher<Output, Failure>. This hides internal operator types from
+the API consumer and avoids leaking implementation details in return types.
+Follow-up: Expose AnyPublisher in public APIs. Use concrete types internally
+where the compiler can optimize. With Swift 5.7+ some publishers can use
+opaque return types (some Publisher) instead.
+Follow-up: Negligible — one extra heap allocation for the type-erased box.
+Not a concern in practice.
+
+
+88% — combineLatest, merge, zip
+
+combineLatest emits a tuple of the latest values from each publisher
+whenever ANY publisher emits (requires each to have emitted at least once).
+merge interleaves values from publishers of the SAME type into one stream.
+zip pairs values one-to-one in order, waiting for both to emit.
+Follow-up: Form validation — combineLatest($email, $password) to enable
+a submit button whenever either field changes.
+Follow-up: zip waits. If one publisher completes, the remaining unpaired
+values from the other are never delivered.
+
+
+87% — Memory leaks in Combine (common mistakes)
+
+1) Capturing self strongly in sink closures on a long-lived subscription.
+2) Using assign(to:on: self) where self owns the subscription — retain
+cycle. 3) Forgetting to store AnyCancellable, causing silent cancellation.
+4) Creating subscriptions in frequently-called methods without cancelling
+previous ones.
+Follow-up: Use [weak self] in sink, then guard let self else { return }.
+Follow-up: Use handleEvents(receiveCancel:) to verify cancellation. Check
+deinit is called. Use Instruments Leaks or Allocations.
+
+
+86% — flatMap
+
+flatMap transforms each upstream value into a new publisher and flattens
+the results into one stream. map would give you a Publisher of Publishers.
+flatMap subscribes to the inner publisher and forwards its values.
+Follow-up: maxPublishers limits concurrency — .max(1) means subscribe to
+only one inner publisher at a time, queuing the rest until the current
+one completes.
+Follow-up: Each network response is a publisher. flatMap lets you chain
+dependent requests: first request's output triggers the second.
+
+
+85% — debounce and throttle
+
+debounce waits until a pause in values (no new value for the specified
+interval), then emits the last value. throttle emits at regular intervals
+regardless of input frequency (either first or latest value in the window).
+Follow-up: The scheduler parameter specifies where the timer runs —
+typically DispatchQueue.main for UI or a background queue.
+Follow-up: Search-as-you-type: debounce(for: 0.3) waits for the user to
+stop typing. Throttle is better for scroll position updates at fixed rate.
+
+
+84% — Combine with URLSession (dataTaskPublisher)
+
+URLSession.shared.dataTaskPublisher(for: url) returns a publisher of
+(data: Data, response: URLResponse). Chain with tryMap to validate the
+response, then decode(type:decoder:) to parse JSON.
+Follow-up: .tryMap to check HTTP status, then .decode(type: T.self,
+decoder: JSONDecoder()), then .receive(on: DispatchQueue.main).
+Follow-up: Not formally deprecated, but Apple recommends URLSession.data
+(for:) with async/await for new code. dataTaskPublisher remains available.
+
+
+83% — switchToLatest
+
+switchToLatest subscribes to the most recent inner publisher, cancelling
+the previous one. It operates on a publisher of publishers.
+Follow-up: map the search text to a network request publisher, then
+switchToLatest. Each new keystroke cancels the in-flight request and
+starts a new one — no stale results.
+Follow-up: flatMap(maxPublishers: .max(1)) queues new inner publishers until the
+current one completes; switchToLatest always cancels the previous inner
+publisher immediately and subscribes to the new one.
+
+
+82% — Just, Empty, Fail publishers
+
+Just emits a single value and completes. Empty completes immediately with
+no values (or never completes). Fail emits a single error immediately.
+Useful for testing, default values, and error injection.
+Follow-up: Just's Failure type is Never — it can never fail.
+Follow-up: Empty(completeImmediately: false) creates a publisher that
+never emits and never completes — useful as a placeholder or for
+keeping a subscription alive indefinitely.
+
+
+81% — share() and multicast
+
+Cold publishers do work on each subscription. Hot publishers share one
+execution. share() returns a publisher that subscribes upstream once and
+multicasts to all downstream subscribers. It is a convenience wrapper
+around multicast + autoconnect.
+Follow-up: multicast gives you a ConnectablePublisher with explicit
+connect() control. Use it when you need all subscribers to attach before
+values start flowing.
+Follow-up: Late subscribers miss values already emitted — share does not
+replay. Use shareReplay (custom) or CurrentValueSubject if replay needed.
+
+
+80% — Future and Deferred
+
+Future wraps a single async result into a publisher. It emits one value
+or one error, then completes. Deferred creates a new publisher for each
+subscriber — the closure runs lazily on subscription.
+Follow-up: Future executes eagerly — the closure runs immediately upon
+creation, not upon subscription. Wrap in Deferred to make it lazy.
+Follow-up: Future { promise in someAPI { result in promise(result) } }
+
+
+79% — removeDuplicates
+
+removeDuplicates suppresses consecutive duplicate values. Only emits when
+the new value differs from the previous one. Useful for avoiding redundant
+UI updates.
+Follow-up: Uses == by default (requires Equatable conformance).
+Follow-up: Yes — removeDuplicates(by:) takes a closure for custom
+comparison logic.
+
+
+78% — Backpressure and demand (Subscribers.Demand)
+
+Backpressure is the subscriber's ability to control how many values it
+receives. A subscriber sends a Demand when requesting values. The
+publisher must not send more than the total requested demand.
+Follow-up: .unlimited means send everything. .max(n) means send n more.
+.none means don't send any additional (the total demand is unchanged).
+Follow-up: Without backpressure, a fast producer overwhelms a slow consumer,
+causing memory growth or dropped data.
+
+
+77% — Combine with NotificationCenter
+
+NotificationCenter.default.publisher(for: .someName, object: nil) returns
+a publisher of Notification objects.
+Follow-up: It emits Notification. Use map or compactMap to extract
+userInfo or the notification's object.
+Follow-up: No manual removeObserver needed — cancelling the AnyCancellable
+handles cleanup automatically.
+
+
+76% — Testing Combine pipelines
+
+Use XCTestExpectation or the expectation(description:) pattern. Subscribe
+with sink, collect values, fulfill expectation on completion.
+wait(for:timeout:). Alternatively, use the .values async sequence bridge
+with async tests.
+Follow-up: Use expectation + waitForExpectations, or use async test
+methods with publisher.values to iterate results.
+Follow-up: Inject a PassthroughSubject, send controlled values in the
+test, and assert the ViewModel's output after each send.
+
+
+75% — retry operator
+
+retry(n) resubscribes to the upstream publisher up to n times after a
+failure. The upstream work re-executes from scratch each time.
+Follow-up: Retry on idempotent requests only. Retrying non-idempotent
+calls (POST) can cause duplicate side effects.
+Follow-up: Use .catch to return a delayed publisher (e.g.,
+Fail().delay(for:scheduler:)) that re-errors after a delay, combined
+with .retry. Alternatively, implement custom retry logic with
+increasing delays.
+
+
+74% — handleEvents and print() for debugging
+
+handleEvents lets you tap into lifecycle events without altering the
+stream. print() logs all events with a prefix string to the console.
+Follow-up: receiveSubscription, receiveOutput, receiveCompletion,
+receiveCancel, receiveRequest.
+Follow-up: print() is quick and dirty. handleEvents gives you programmatic
+access (e.g., toggle a loading flag on receiveOutput, stop on cancel).
+
+
+73% — Combine with KVO
+
+Use object.publisher(for: \.keyPath) to observe any KVO-compliant
+property as a Combine publisher. Commonly used with UIKit components.
+Follow-up: publisher(for:options:) returns a publisher that emits the
+property's value on each KVO change.
+Follow-up: UIKit controls expose KVO properties (e.g., UIScrollView
+contentOffset). Combine replaces manual KVO observation blocks.
+
+
+72% — scan and reduce
+
+scan emits an accumulated value after each upstream value (running total).
+reduce waits until upstream completes, then emits one final accumulated value.
+Follow-up: scan tracks running state — e.g., accumulating a count of
+events, building a running average, toggling a boolean.
+Follow-up: reduce emits only on upstream completion. If the upstream never
+completes, reduce never emits.
+
+
+71% — Timer.publish
+
+Timer.publish(every: 1.0, on: .main, in: .common) creates a
+ConnectablePublisher that emits the current Date at the given interval.
+Follow-up: autoconnect() makes it start emitting on first subscription
+without manually calling connect().
+Follow-up: Timer.publish integrates with Combine pipelines natively.
+scheduledTimer uses a closure callback. Combine version is easier to
+compose with other publishers.
+
+
+70% — Custom Publisher creation
+
+Create a custom publisher when no built-in operator or publisher fits.
+Conform to Publisher, implement receive(subscriber:), and provide a
+custom Subscription that manages demand and cancellation.
+Follow-up: Publisher requires receive<S: Subscriber>(subscriber: S).
+Your Subscription must implement request(_ demand:) and cancel().
+Follow-up: Rare. Most needs are met by composing existing operators or
+wrapping in a Future/Subject. Custom publishers are for library authors.
+
+
+69% — prepend and append
+
+prepend injects values before the upstream starts emitting. append adds
+values after the upstream completes. Both accept a variadic list, a
+sequence, or another publisher.
+Follow-up: Yes — prepend(sequence) or prepend(anotherPublisher).
+Follow-up: Prepend a cached/default value before a network publisher so
+the UI shows something immediately.
+
+
+68% — collect
+
+collect gathers upstream values into arrays. collect() waits for
+completion and emits one array. collect(.byCount(n)) emits arrays of n
+values. collect(.byTime(scheduler, interval)) emits arrays at time windows.
+Follow-up: collect() buffers everything until completion — one emission.
+collect(.byCount(5)) emits every 5 values.
+Follow-up: Batch processing — collect(.byTime) to group rapid events into
+periodic batches for bulk UI updates.
+
+
+67% — first, last, prefix, drop operators
+
+first emits the first value and cancels. last waits for completion and
+emits the final value. prefix(n) takes the first n values. drop(n) skips
+the first n values. All have predicate variants.
+Follow-up: Yes — first cancels upstream immediately after one value,
+which is efficient for one-shot queries.
+Follow-up: drop(while:) skips values until the predicate returns false,
+then passes everything through.
+
+
+66% — encode and decode operators
+
+decode(type:decoder:) decodes upstream Data into a Decodable type using
+the given decoder. encode(encoder:) encodes Encodable upstream values into
+Data. Both are convenience operators for Codable pipelines.
+Follow-up: decode expects the upstream Output to be Data.
+Follow-up: Functionally identical, but decode/encode are more readable
+and compose cleanly in a pipeline.
+
+
+65% — Bridging Combine to async/await (.values)
+
+Any publisher with Failure == Never exposes a .values property that
+returns an AsyncPublisher — an AsyncSequence you can for-await over.
+Follow-up: .values is a property on Publisher where Failure == Never.
+It yields each emitted value as an async sequence element.
+Follow-up: Only works when Failure == Never. For failable publishers,
+first apply replaceError or catch. The async sequence ends when the
+publisher completes.
+
+
+64% — Custom Subscriber
+
+When you need fine-grained demand control or custom lifecycle behavior
+beyond what sink and assign provide.
+Follow-up: receive(subscription:) — store the subscription and request
+initial demand. receive(_ input:) — handle each value, return additional
+demand. receive(completion:) — handle finished or failure.
+Follow-up: Return .none from receive(_:) to stop after the initial demand,
+or .max(1) to request one more each time (pull model).
+
+
+63% — Record publisher
+
+Record stores a pre-recorded sequence of values and a completion. You
+initialize it with output values and a completion event. It replays them
+to each subscriber.
+Follow-up: Inject deterministic sequences in unit tests without timers or
+async waits. Predictable, synchronous emission.
+Follow-up: Yes — Record can replay a .failure completion.
+
+
+55% — Output and Failure associated types (deep dive)
+
+Every operator transforms Output, Failure, or both. The compiler enforces
+type alignment across the pipeline. Operators like map change Output.
+Operators like mapError change Failure. setFailureType changes Never to
+a specific error type without any runtime effect.
+Follow-up: Failure == Never means the publisher cannot fail. sink without
+a receiveCompletion closure is only available on Never-failing publishers.
+Follow-up: Use replaceError, catch, or assertNoFailure to convert a
+failable publisher to one with Failure == Never.

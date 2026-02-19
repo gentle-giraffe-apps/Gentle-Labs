@@ -1,0 +1,376 @@
+Senior iOS Interview Questions — Concurrency — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level concurrency-focused interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — async/await mechanics
+
+Explain what happens at a suspension point. Where does the thread go,
+and how does execution resume?
+Follow-up: Can an async function resume on a different thread than it suspended on?
+Follow-up: How does the compiler transform an async function under the hood?
+
+
+98% — Actors and isolation
+
+What is an actor and what guarantee does it provide about its mutable state?
+How is that enforced?
+Follow-up: Can two different methods on the same actor instance execute concurrently?
+Follow-up: What happens when you call an actor method from outside the actor?
+
+
+97% — @MainActor
+
+What is @MainActor, how does it work, and when do you use it?
+Follow-up: What is the difference between @MainActor, MainActor.run {}, and
+Task { @MainActor in }?
+Follow-up: What does SE-0466 (default actor isolation) change in Swift 6.2?
+
+
+96% — Sendable and @Sendable closures
+
+What is Sendable and why does the compiler enforce it? What makes a closure
+@Sendable?
+Follow-up: What are the Sendable conformance rules for value types vs classes?
+Follow-up: When is @unchecked Sendable justified?
+
+
+95% — Data race prevention and strict concurrency checking
+
+How does Swift prevent data races at compile time? Walk me through the
+strict concurrency checking levels.
+Follow-up: What is the difference between minimal, targeted, and complete checking?
+Follow-up: How do you adopt strict concurrency incrementally in a large project?
+
+
+94% — Task cancellation
+
+How does task cancellation work in Swift concurrency? Why is it cooperative?
+Follow-up: Show the difference between Task.isCancelled and Task.checkCancellation().
+Follow-up: What happens to child tasks when a parent task is cancelled?
+
+
+93% — Structured vs unstructured concurrency
+
+What is structured concurrency and what guarantees does it give you over
+unstructured concurrency?
+Follow-up: Name the structured and unstructured primitives in Swift.
+Follow-up: When would you deliberately choose unstructured concurrency?
+
+
+92% — Actor reentrancy
+
+Explain actor reentrancy. Why is it dangerous and how do you mitigate it?
+Follow-up: Give a concrete example of a reentrancy bug.
+Follow-up: Why did Swift choose to allow reentrancy rather than prevent it?
+
+
+91% — async let vs TaskGroup
+
+When do you use async let vs withTaskGroup/withThrowingTaskGroup?
+Follow-up: What happens to sibling async let tasks when one throws?
+Follow-up: How do you collect results from a TaskGroup?
+
+
+90% — Task creation and context inheritance
+
+What is the difference between Task {} and Task.detached {}?
+What context does each inherit?
+Follow-up: What are task-local values and how do they propagate?
+Follow-up: When would you actually need Task.detached?
+
+
+89% — Continuation bridging
+
+How do you bridge callback-based or delegate-based APIs into async/await?
+Follow-up: What is the difference between withCheckedContinuation and
+withUnsafeContinuation?
+Follow-up: What happens if you resume a continuation zero times or more than once?
+
+
+88% — nonisolated keyword
+
+What does nonisolated mean and when do you use it?
+Follow-up: What is nonisolated(unsafe) and when would you reach for it?
+Follow-up: How does nonisolated interact with SE-0466 default MainActor isolation?
+
+
+87% — Cross-actor calls and await
+
+Why do you need await to call a method on an actor from outside?
+What is happening at runtime?
+Follow-up: When can you call an actor method without await?
+Follow-up: What is actor hop and how does it differ from a context switch?
+
+
+86% — AsyncSequence protocol
+
+What is AsyncSequence and how do you consume one?
+Follow-up: How does cancellation interact with for-await-in loops?
+Follow-up: Name some framework-provided AsyncSequences.
+
+
+85% — AsyncStream and bridging patterns
+
+How do you create an AsyncStream? Walk me through a delegate-bridging example.
+Follow-up: What is the difference between AsyncStream and AsyncThrowingStream?
+Follow-up: What are the buffering policies and when do they matter?
+
+
+84% — Priority inversion and escalation
+
+What is priority inversion in Swift concurrency? How does the runtime
+mitigate it?
+Follow-up: Give a concrete scenario where priority inversion causes a performance problem.
+Follow-up: What is priority escalation and when does it trigger?
+
+
+83% — Cooperative thread pool
+
+How does Swift's cooperative thread pool work? Why is it limited to
+the number of CPU cores?
+Follow-up: What happens if you perform blocking work on the cooperative pool?
+Follow-up: How do you safely call blocking code from an async context?
+
+
+82% — Concurrency and Core Data / SwiftData
+
+How do you use Core Data safely with Swift concurrency? What about SwiftData?
+Follow-up: Can you pass an NSManagedObject across actor boundaries?
+Follow-up: How does SwiftData's @ModelActor help?
+
+
+81% — Sendable conformance rules
+
+Walk me through which types are implicitly Sendable, which require explicit
+conformance, and which cannot conform.
+Follow-up: Why must a Sendable class be final with only let properties?
+Follow-up: How do you handle a third-party type that isn't Sendable but is thread-safe?
+
+
+80% — withTaskGroup patterns
+
+Show me a pattern for parallel map using withTaskGroup.
+Follow-up: How do you limit concurrency within a TaskGroup?
+Follow-up: What happens when one child task throws inside withThrowingTaskGroup?
+
+
+79% — Concurrency migration (Swift 5 to Swift 6)
+
+What is the strategy for migrating a large app from Swift 5 concurrency
+to strict Swift 6?
+Follow-up: Which compiler flags do you enable first?
+Follow-up: What are the most common migration pain points?
+
+
+78% — Actor isolation boundaries
+
+What defines an actor isolation boundary? How does the compiler enforce
+what can cross it?
+Follow-up: What is the role of Sendable at isolation boundaries?
+Follow-up: How do you transfer a non-Sendable value across an isolation boundary?
+
+
+77% — Thread explosion and prevention
+
+What is thread explosion and how does Swift concurrency prevent it?
+Follow-up: How did GCD allow thread explosion?
+Follow-up: What are the symptoms of thread exhaustion in production?
+
+
+76% — GlobalActor (custom global actors)
+
+What is a global actor and how do you create a custom one?
+Follow-up: When would you need a global actor besides @MainActor?
+Follow-up: How does global actor isolation propagate to stored properties?
+
+
+75% — MainActor.run {} vs Task { @MainActor in }
+
+What is the difference between MainActor.run {} and Task { @MainActor in }?
+When do you use each?
+Follow-up: Which one creates a new task?
+Follow-up: Can MainActor.run be called from synchronous code?
+
+
+74% — Task priority
+
+Explain the task priority levels in Swift. How does the system use them?
+Follow-up: What is priority propagation?
+Follow-up: How do you set priority on a TaskGroup child task?
+
+
+73% — Debugging concurrency issues
+
+How do you debug concurrency issues in a Swift app?
+Follow-up: What does Thread Sanitizer detect that strict concurrency does not?
+Follow-up: What are the purple runtime warnings in Xcode and what causes them?
+
+
+72% — Isolation inference rules
+
+How does the compiler infer isolation for a function or closure?
+Follow-up: When does isolation NOT propagate to a closure?
+Follow-up: How does @Sendable affect isolation inference?
+
+
+71% — Executor protocols
+
+What are SerialExecutor and the executor protocols? How does an actor
+use them?
+Follow-up: When would you implement a custom executor?
+Follow-up: How do custom executors interact with the cooperative thread pool?
+
+
+70% — Blocking the cooperative thread pool
+
+What happens when you block a thread in the cooperative thread pool?
+How do you diagnose it?
+Follow-up: Name common operations that accidentally block.
+Follow-up: How do you safely wrap a blocking call for use in async code?
+
+
+69% — Transferring values across isolation boundaries
+
+How do you transfer a non-Sendable value across an isolation boundary
+in Swift 6?
+Follow-up: What is the sending keyword and how does it work?
+Follow-up: What is region-based isolation and how does it enable safe transfers?
+
+
+68% — withThrowingTaskGroup error handling
+
+How does error handling work in withThrowingTaskGroup?
+Follow-up: Does one child throwing cancel the other children?
+Follow-up: How do you collect partial results when some tasks fail?
+
+
+67% — Async let error propagation and cancellation
+
+What happens when an async let task throws before you await it?
+Follow-up: If you never await an async let, what happens?
+Follow-up: How does async let cancellation interact with the enclosing scope?
+
+
+66% — withDiscardingTaskGroup
+
+What is withDiscardingTaskGroup and why was it introduced?
+Follow-up: What problem does it solve that withTaskGroup does not?
+Follow-up: When would you use a discarding task group in production code?
+
+
+65% — Task-local values
+
+What are task-local values? How do you declare and use them?
+Follow-up: How do task-local values propagate to child tasks?
+Follow-up: Do task-local values cross actor boundaries?
+
+
+64% — Backward compatibility of concurrency features
+
+Which concurrency features are back-deployed and which require newer OS versions?
+Follow-up: How does the concurrency back-deployment library work?
+Follow-up: What are the limitations of back-deployed concurrency?
+
+
+63% — Strict concurrency checking levels
+
+What are the three strict concurrency checking levels and what does each catch?
+Follow-up: What is the recommended progression for adopting them?
+Follow-up: What does the SWIFT_STRICT_CONCURRENCY build setting control?
+
+
+62% — TaskGroup cancellation semantics
+
+How does cancellation work inside a TaskGroup?
+Follow-up: Does cancelAll() cancel already-running tasks or just prevent new ones?
+Follow-up: How does throwing from a child task interact with cancellation?
+
+
+61% — @unchecked Sendable
+
+What is @unchecked Sendable, when is it appropriate, and what are the risks?
+Follow-up: Name common legitimate uses.
+Follow-up: What should you document when marking something @unchecked Sendable?
+
+
+60% — Clock protocol
+
+What is the Clock protocol? What are ContinuousClock and SuspendingClock?
+Follow-up: How do you make time testable using Clock?
+Follow-up: What is the difference between ContinuousClock and SuspendingClock?
+
+
+59% — Distributed actors
+
+What are distributed actors and how do they extend the actor model?
+Follow-up: What is location transparency in the context of distributed actors?
+Follow-up: What are the practical use cases on Apple platforms?
+
+
+58% — Custom executors
+
+Explain custom executors in Swift concurrency. How do you implement one?
+Follow-up: What problems do custom executors solve that default actors cannot?
+Follow-up: How does the @TaskLocal + custom executor pattern work?
+
+
+57% — Isolation and protocol conformance
+
+How does actor isolation interact with protocol conformance?
+Follow-up: What happens when an actor conforms to a protocol with sync requirements?
+Follow-up: How do you declare a protocol method as isolated to a specific actor?
+
+
+56% — Concurrency and SwiftUI .task modifier
+
+How does the .task modifier interact with Swift concurrency under the hood?
+Follow-up: When does .task cancel its work?
+Follow-up: What is the difference between .task and .task(id:)?
+
+
+55% — Sendable checking for closures
+
+When does the compiler require a closure to be @Sendable? What restrictions
+does that impose?
+Follow-up: Why can't a @Sendable closure capture a mutable variable?
+Follow-up: How does @Sendable interact with actor-isolated closures?
+
+
+54% — Continuation safety
+
+What are the safety rules for continuations? What happens if you violate them?
+Follow-up: Why does withCheckedContinuation exist alongside withUnsafeContinuation?
+Follow-up: How do you handle cleanup when a continuation might not be resumed?
+
+
+53% — Actor isolation and closures
+
+How does actor isolation propagate into closures? When is a closure
+actor-isolated and when is it not?
+Follow-up: What happens when you pass an actor-isolated closure to a non-isolated function?
+Follow-up: How do @Sendable and actor isolation interact on closures?
+
+
+52% — Async let under the hood
+
+What happens at runtime when you write async let? When does the child
+task start?
+Follow-up: Does async let always create a new task?
+Follow-up: What is the lifetime of an async let child task?
+
+
+51% — Task.yield and cooperative scheduling
+
+What does Task.yield() do and when would you use it?
+Follow-up: How does cooperative scheduling prevent starvation?
+Follow-up: What is the difference between Task.yield() and Task.sleep()?
+
+
+50% — Concurrency performance pitfalls
+
+What are the most common performance mistakes when using Swift concurrency?
+Follow-up: When does actor serialization become a bottleneck?
+Follow-up: How do you measure and profile concurrency overhead?
