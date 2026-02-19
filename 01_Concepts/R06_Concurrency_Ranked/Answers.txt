@@ -1,0 +1,706 @@
+Senior iOS Interview Answers — Concurrency — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — async/await mechanics
+
+async marks a function that can suspend. At each await (suspension point),
+the function saves its local state into a heap-allocated continuation frame,
+releases the thread back to the cooperative pool, and returns control to
+the executor. When the awaited operation completes, the runtime picks an
+available thread (possibly different) and resumes execution from the saved
+frame. The compiler splits the function into partial functions at each
+suspension point — this is the "async lowering" transformation.
+Follow-up: Yes. After suspension the runtime resumes on whatever thread is
+available. Never assume thread affinity across await unless on an actor.
+Follow-up: The compiler converts the function into a state machine. Each
+segment between suspension points becomes a separate "resume" function.
+Local variables that live across suspension points are hoisted to a
+heap-allocated async frame instead of the stack.
+
+
+98% — Actors and isolation
+
+An actor is a reference type that protects its mutable state with serial
+execution. The compiler enforces that only one task runs synchronous code
+on an actor instance at a time. External access to any mutable state or
+non-nonisolated method requires await, which suspends the caller until
+the actor is free. This is compile-time enforcement — you cannot forget
+to lock.
+Follow-up: No. Only one synchronous section runs at a time per instance.
+But if a method hits an await, it suspends and another method CAN begin
+executing. That is reentrancy, not true concurrency.
+Follow-up: The caller suspends, the call is enqueued on the actor's serial
+executor, and the caller resumes when the actor method completes.
+
+
+97% — @MainActor
+
+@MainActor is a global actor that isolates code to the main thread.
+Apply it to types, methods, or closures that touch UI. The compiler
+enforces that all access happens on the main actor — calling from
+elsewhere requires await.
+Follow-up: @MainActor on a type/function is compile-time isolation.
+MainActor.run {} is a one-shot hop from an already-async context to
+the main actor — it does NOT create a new task, just switches context.
+Task { @MainActor in } creates a new unstructured task that runs on
+the main actor — use when you need to fire-and-forget from sync code.
+Follow-up: SE-0466 makes @MainActor the default isolation for code in
+app/UI targets. All unannotated functions become main-actor-isolated.
+Opt out with nonisolated. This eliminates the most common source of
+"missing @MainActor" bugs.
+
+
+96% — Sendable and @Sendable closures
+
+Sendable is a marker protocol that guarantees a value is safe to share
+across isolation boundaries. The compiler checks Sendable conformance at
+every boundary crossing. A @Sendable closure cannot capture mutable
+local variables and can only capture Sendable values. Task {} and
+Task.detached {} both require @Sendable closures.
+Follow-up: Value types are implicitly Sendable if all stored properties
+are Sendable. Classes must be final with only immutable (let) Sendable
+stored properties. Enums with Sendable payloads are Sendable.
+Follow-up: When you manually guarantee thread safety (locks, atomics, OS
+primitives) on a type the compiler can't verify. Document the invariant.
+Use sparingly — it silences the safety net.
+
+
+95% — Data race prevention and strict concurrency checking
+
+Swift prevents data races through three pillars: actor isolation
+(serialized access), Sendable (safe boundary crossing), and strict
+concurrency checking (compile-time verification). The compiler flags
+any unsynchronized access to shared mutable state.
+Follow-up: Minimal = only explicit Sendable annotations checked.
+Targeted = warnings for code adopted into concurrency (inferred Sendable).
+Complete = full enforcement, all violations are errors (required for Swift 6).
+Follow-up: Enable targeted first, fix warnings module-by-module starting
+with leaf modules, then move to complete. Use @preconcurrency imports
+to silence warnings for un-migrated dependencies temporarily.
+
+
+94% — Task cancellation
+
+Cancellation is cooperative: task.cancel() sets a boolean flag, nothing
+more. The running code must check Task.isCancelled (returns Bool) or call
+try Task.checkCancellation() (throws CancellationError). Many system APIs
+(URLSession.data, Task.sleep) check cancellation automatically.
+Follow-up: isCancelled returns a Bool for branching. checkCancellation()
+throws immediately if cancelled — use in loops for early exit.
+Follow-up: In structured concurrency, cancelling a parent propagates
+cancellation to ALL child tasks automatically. Children still must check
+cooperatively. Unstructured tasks must be cancelled explicitly.
+
+
+93% — Structured vs unstructured concurrency
+
+Structured concurrency scopes child task lifetime to the parent. The
+parent cannot complete until all children finish. Cancellation propagates
+automatically. Errors propagate automatically. No orphaned tasks.
+Follow-up: Structured: async let, withTaskGroup, withThrowingTaskGroup,
+withDiscardingTaskGroup. Unstructured: Task {}, Task.detached {}.
+Follow-up: When the task must outlive the current scope — e.g., starting
+background work from a button tap in a sync context, or bridging into
+concurrency from non-async code.
+
+
+92% — Actor reentrancy
+
+When an actor method suspends at an await, the actor can begin executing
+another queued method before the first resumes. State may have changed.
+If you check a condition, await, then act on it, the condition may no
+longer hold. This is the reentrancy hazard.
+Follow-up: func withdraw(amount: Int) async { guard balance >= amount else
+{ return }; await authorizeTransaction(); balance -= amount }. Between the
+guard and the subtraction, another withdraw could have drained the balance.
+Follow-up: Preventing reentrancy would require holding a lock across await,
+blocking the actor entirely — defeating concurrency. Swift chose performance
+over safety here. Mitigation: re-check state after await, use synchronous
+critical sections, or use token/flag patterns to detect stale operations.
+
+
+91% — async let vs TaskGroup
+
+async let: fixed number of concurrent tasks known at compile time. Each
+gets a named binding. Good for 2-5 parallel fetches.
+withTaskGroup: dynamic number of tasks, iterable results. Use for
+collections, variable-count work, or when you need to process results
+as they arrive.
+Follow-up: All sibling async let tasks are cancelled immediately when one
+throws. The error propagates to the enclosing scope.
+Follow-up: Use group.addTask {} to spawn, then for await result in group
+to collect. Results arrive in completion order, not submission order. Store
+in an array or dictionary inside the group closure.
+
+
+90% — Task creation and context inheritance
+
+Task {} inherits: actor isolation, priority, and task-local values from
+the calling context. If called from @MainActor, the task body runs on
+@MainActor. Task.detached {} inherits nothing — no actor, default priority,
+no task-local values. Runs on the global cooperative executor.
+Follow-up: Task-local values are declared with @TaskLocal static var on a
+type. They propagate to child tasks (both structured and Task {}) but NOT
+to Task.detached.
+Follow-up: When you explicitly need work off the current actor (e.g., heavy
+computation that would block @MainActor) and don't want inherited context.
+
+
+89% — Continuation bridging
+
+Use withCheckedContinuation or withUnsafeContinuation. Wrap the callback
+API, capture the continuation, resume it from the callback. This bridges
+the old world into async/await.
+Follow-up: Checked validates at runtime that resume is called exactly once.
+Double-resume triggers a runtime crash with a clear message. Never-resume
+triggers a warning log. Unsafe skips all checks — undefined behavior on
+misuse. Use checked during development, unsafe only for proven hot paths.
+Follow-up: Zero resumes: the Task hangs forever, leaking resources (checked
+variant logs a warning). More than once: checked crashes, unsafe is UB.
+Always ensure exactly one resume on every code path, including error paths.
+
+
+88% — nonisolated keyword
+
+nonisolated marks a function or property as outside any actor's isolation.
+It can be called without await from anywhere. On an actor, nonisolated
+members cannot access the actor's mutable state — only immutable (let)
+properties and other nonisolated members.
+Follow-up: nonisolated(unsafe) tells the compiler to skip isolation
+checking entirely. Useful for truly thread-safe code the compiler can't
+verify (e.g., Objective-C singletons, C atomics). Dangerous — you assume
+full responsibility for safety.
+Follow-up: With SE-0466 defaulting to @MainActor, you'll annotate
+nonisolated on functions that should run on the cooperative pool rather
+than the main thread. It becomes the opt-out mechanism.
+
+
+87% — Cross-actor calls and await
+
+Calling an actor method from outside requires await because the caller must
+suspend, enqueue the call on the actor's serial executor, and wait for it
+to complete. The await is the isolation boundary crossing.
+Follow-up: When you're already inside the same actor's isolation — calls
+between methods on the same actor instance are synchronous, no await needed.
+Also, nonisolated methods need no await.
+Follow-up: An actor hop is a context switch between two actor isolation
+domains. It involves suspending, enqueueing on the target actor, and
+resuming. It is cheaper than an OS thread context switch because it's
+cooperative scheduling within the same thread pool.
+
+
+86% — AsyncSequence protocol
+
+AsyncSequence is a protocol for types that produce values asynchronously,
+one at a time. Consume with for await value in sequence {}. Under the
+hood it uses AsyncIterator with a mutating func next() async throws -> Element?.
+Follow-up: When the enclosing Task is cancelled, the next call to next()
+can throw CancellationError. The for-await loop exits. The sequence's
+iterator gets a chance to clean up.
+Follow-up: NotificationCenter.notifications, URLSession.bytes, FileHandle.bytes,
+any Combine publisher's .values property, and custom AsyncStream.
+
+
+85% — AsyncStream and bridging patterns
+
+AsyncStream.init { continuation in } creates a stream. Call
+continuation.yield(value) to emit, continuation.finish() to end.
+Store the continuation, pass it to delegate callbacks.
+Example: wrap CLLocationManager — store continuation, yield from
+didUpdateLocations, finish on error.
+Follow-up: AsyncThrowingStream can finish with an error via
+continuation.finish(throwing:). AsyncStream cannot throw.
+Follow-up: Buffering policies: .unbounded (queue everything — risk OOM),
+.bufferingNewest(N) (keep last N, drop old), .bufferingOldest(N) (keep
+first N, drop new). Choose based on whether you need latest state or
+complete history.
+
+
+84% — Priority inversion and escalation
+
+Priority inversion: a high-priority task waits on a low-priority task
+that can't execute because medium-priority tasks preempt it. The high
+task is effectively demoted.
+Follow-up: A high-priority UI task awaits a background actor that is
+busy processing low-priority work. Medium tasks keep getting scheduled
+ahead of the low-priority actor work, starving the high-priority waiter.
+Follow-up: When a high-priority task awaits an actor occupied by a lower-
+priority task, the runtime temporarily boosts the lower-priority task to
+match the waiter's priority. Boost is removed once the awaited work
+completes.
+
+
+83% — Cooperative thread pool
+
+The pool has one thread per CPU core (e.g., 6 cores = 6 threads). Async
+tasks run cooperatively — they yield the thread at suspension points
+(await), letting other tasks run. No preemption of async code between
+suspension points.
+Follow-up: You starve the pool. Other tasks can't run. You may see hangs,
+UI freezes (if main actor can't make progress), or Xcode purple runtime
+warnings. Classic symptoms: app freezes doing network + heavy computation.
+Follow-up: Dispatch blocking work to a custom DispatchQueue or use
+Task.detached with a dedicated thread. Never call sleep(), semaphore.wait(),
+or synchronous I/O inside an async function.
+
+
+82% — Concurrency and Core Data / SwiftData
+
+Core Data: NSManagedObject is NOT Sendable and MUST stay on the context's
+queue. Use performBackgroundTask {} or context.perform {} to do work on
+the correct queue. Pass ObjectIDs (Sendable) across boundaries, re-fetch
+on the other context.
+Follow-up: No. NSManagedObject is tied to its context's queue. Passing it
+across actors is a data race. Pass NSManagedObjectID and re-fetch.
+Follow-up: @ModelActor creates an actor with its own ModelContainer and
+ModelContext. All database work is isolated to that actor, making
+concurrency safe by construction. It is the SwiftData equivalent of
+a background context.
+
+
+81% — Sendable conformance rules
+
+Implicitly Sendable: structs/enums whose stored properties are all
+Sendable. Tuples of Sendable types. Actors (always Sendable). Metatypes.
+Explicitly conformable: final classes with only let Sendable properties.
+Cannot conform (safely): non-final classes, classes with var properties,
+classes referencing non-Sendable types.
+Follow-up: Without final, a subclass could add mutable state, breaking
+the guarantee. Only let properties ensures no mutation after init, so
+concurrent reads are safe.
+Follow-up: Use @unchecked Sendable, wrapping the third-party type.
+Document why it's safe. File an issue upstream to add Sendable conformance.
+Alternatively, use @preconcurrency import to suppress warnings temporarily.
+
+
+80% — withTaskGroup patterns
+
+Parallel map: withTaskGroup(of: (Int, Result).self) { group in
+  for (i, item) in items.enumerated() { group.addTask { (i, await process(item)) } }
+  var results = Array(repeating: placeholder, count: items.count)
+  for await (i, result) in group { results[i] = result }
+  return results }
+Follow-up: Use a semaphore-like counter: maintain a running count, only
+addTask when count < limit, await group.next() to free a slot. Or use
+a simple loop: add N tasks, await one before adding the next.
+Follow-up: The first child to throw cancels all remaining children. The
+error propagates out of withThrowingTaskGroup. Partially completed results
+are lost unless you collect them before the throw.
+
+
+79% — Concurrency migration (Swift 5 to Swift 6)
+
+Start with leaf modules. Enable targeted strict concurrency checking.
+Fix warnings. Promote to complete. Repeat for each module moving inward
+toward the app target. Use @preconcurrency import to suppress warnings
+from un-migrated dependencies.
+Follow-up: SWIFT_STRICT_CONCURRENCY = targeted first, then complete.
+Enable per-target in build settings.
+Follow-up: Sendable conformance on model types that cross boundaries,
+closures that need @Sendable, global mutable state that must become
+actor-isolated or Sendable, and third-party libraries that aren't
+Sendable-annotated yet.
+
+
+78% — Actor isolation boundaries
+
+An isolation boundary exists wherever code transitions between different
+isolation domains — e.g., non-isolated to actor, actor A to actor B,
+any code to @MainActor. The compiler requires await at these boundaries
+and checks that only Sendable values cross them.
+Follow-up: Sendable is the gatekeeper. If a value crosses an isolation
+boundary, it must be Sendable. The compiler rejects non-Sendable values
+at boundary crossings.
+Follow-up: In Swift 6, use the sending keyword to transfer ownership.
+The compiler verifies via region-based isolation that the sender no
+longer accesses the value after transfer.
+
+
+77% — Thread explosion and prevention
+
+Thread explosion: GCD created a new thread for every blocked dispatch,
+easily reaching hundreds or thousands of threads. Each thread costs ~512KB
+stack, plus context-switch overhead. The system bogs down.
+Follow-up: GCD has no hard thread limit. Each queue.async {} from a blocked
+context can spawn a new thread. A common pattern: dozens of serial queues
+each blocking on I/O, each getting its own thread.
+Follow-up: Excessive memory use, CPU spent on context switching, watchdog
+kills, and eventual thread limit crashes. Diagnose with Instruments
+Thread States or the thread count in Xcode debug navigator.
+
+
+76% — GlobalActor (custom global actors)
+
+A global actor is a singleton actor usable as an annotation.
+@globalActor actor DatabaseActor { static let shared = DatabaseActor() }.
+Annotate types/methods with @DatabaseActor to isolate them.
+Follow-up: When you have shared mutable state accessed from multiple types
+that should serialize on a non-main context — database access, file I/O
+coordination, shared cache management.
+Follow-up: Stored properties on a type annotated with a global actor are
+isolated to that actor. Accessing them from outside requires await.
+
+
+75% — MainActor.run {} vs Task { @MainActor in }
+
+MainActor.run {}: synchronous hop to the main actor within an existing
+async context. Does NOT create a new task. The enclosing task suspends,
+runs the closure on the main actor, and returns the result.
+Task { @MainActor in }: creates a new unstructured task on the main actor.
+Independent lifecycle, not tied to the caller.
+Follow-up: Task { @MainActor in } creates a new task. MainActor.run {}
+does not — it's a context switch within the current task.
+Follow-up: No. MainActor.run {} is async. You must already be in an async
+context to call it. From sync code, use Task { @MainActor in }.
+
+
+74% — Task priority
+
+Priorities: .high (also .userInitiated), .medium, .low (also .utility),
+.background (lowest). Task {} inherits the caller's priority.
+Task.detached defaults to .medium if unspecified.
+The scheduler uses priority to order task execution. Higher-priority
+tasks are scheduled before lower ones.
+Follow-up: Task {} inherits the caller's priority. Child tasks in a
+TaskGroup inherit the group's priority. If a high-priority task awaits
+a lower-priority one, the runtime escalates.
+Follow-up: You CAN set priority on individual addTask(priority:) calls.
+If omitted, the child inherits the group's priority. This lets you mix
+priorities within one group.
+
+
+73% — Debugging concurrency issues
+
+Thread Sanitizer (TSan): runtime tool that detects data races by
+monitoring memory accesses. Enable in scheme diagnostics. Catches
+races that the compiler's static analysis misses (e.g., in Objective-C
+code or unsafe code). Purple runtime warnings: Xcode flags when you
+update UI off the main actor.
+Follow-up: TSan catches runtime data races in any code, including C/ObjC.
+Strict concurrency is static analysis limited to Swift. TSan requires
+execution of the racy code path; static checking covers all paths.
+Follow-up: Purple warnings indicate main-thread-only API called from
+a background context. Common causes: updating @State or UIKit views
+from a non-main-actor task.
+
+
+72% — Isolation inference rules
+
+The compiler infers isolation from context: a closure passed to an
+actor-isolated function inherits that isolation. A @MainActor type's
+methods are all @MainActor unless marked nonisolated. A closure literal
+in a @MainActor context is @MainActor-isolated.
+Follow-up: When the closure is @Sendable — @Sendable strips inherited
+actor isolation because the closure may execute on any context. Also,
+Task.detached closures are never actor-isolated.
+Follow-up: @Sendable forces the closure to be non-isolated (unless
+explicitly annotated). This is because a Sendable closure can be sent
+anywhere, so the compiler can't guarantee it runs on the original actor.
+
+
+71% — Executor protocols
+
+Every actor has a SerialExecutor that controls where its code runs.
+The default is the cooperative thread pool's executor. SerialExecutor
+requires enqueue(_ job: UnownedJob). The runtime calls enqueue to
+schedule work on the actor.
+Follow-up: When you need actor code on a specific thread — e.g., an
+OpenGL/Metal thread, a database thread, or integration with a library
+that requires a specific thread.
+Follow-up: Custom executors bypass the cooperative pool for that actor.
+The actor's code runs on whatever thread the custom executor provides.
+Other actors still use the cooperative pool normally.
+
+
+70% — Blocking the cooperative thread pool
+
+Blocking a cooperative pool thread (sync I/O, semaphores, locks, sleep())
+prevents that thread from serving other tasks. With only N threads (= cores),
+blocking all of them deadlocks the entire async runtime. Nothing can
+make progress.
+Follow-up: Thread.sleep(), DispatchSemaphore.wait(), os_unfair_lock_lock
+in an async function, synchronous file/network I/O, and accidentally
+calling a blocking C library function.
+Follow-up: Dispatch the blocking work to a dedicated DispatchQueue via
+withCheckedContinuation, or use the async equivalent (e.g., FileHandle
+async bytes, URLSession async data).
+
+
+69% — Transferring values across isolation boundaries
+
+Swift 6 introduces the sending keyword for function parameters and return
+types. A sending parameter transfers ownership: the caller must not access
+the value after passing it. The compiler uses region-based isolation
+analysis to verify no aliases remain.
+Follow-up: sending marks a parameter or return value as being transferred
+to a different isolation domain. The compiler ensures the value has no
+remaining references in the sender's region.
+Follow-up: The compiler tracks groups of values (regions) that may alias
+each other. A value can be sent across a boundary only if its entire region
+is transferred — no remaining references in the source isolation domain.
+
+
+68% — withThrowingTaskGroup error handling
+
+When a child task throws, the error is surfaced when you call group.next()
+or iterate with for await. By default, one child throwing does NOT
+automatically cancel siblings — you must handle that explicitly.
+Follow-up: No, unlike async let. In withThrowingTaskGroup, other children
+continue unless you call group.cancelAll() or the group closure throws
+(which implicitly cancels remaining children as the scope exits).
+Follow-up: Collect results into an array inside the for-await loop using
+a do/catch per iteration. Catch the error, skip the failed result, and
+continue collecting. Only throw from the group closure if you want to
+abort everything.
+
+
+67% — Async let error propagation and cancellation
+
+If an async let task throws, the error is delivered when you await that
+binding. All other async let siblings in the same scope are automatically
+cancelled. The enclosing scope handles the error with try.
+Follow-up: You must await every async let before the enclosing scope exits.
+If you don't await explicitly, the compiler inserts an implicit await at
+scope exit, and any thrown error is silently discarded. The child task is
+always cancelled when the scope exits.
+Follow-up: When the enclosing scope exits (normally or via throw), all
+async let child tasks that haven't completed are cancelled and awaited.
+This is structural: the scope owns the child tasks.
+
+
+66% — withDiscardingTaskGroup
+
+withDiscardingTaskGroup (and throwing variant) discards child task results
+immediately upon completion. Introduced for long-running server/daemon
+patterns where you spawn many tasks and never collect results.
+Follow-up: Regular withTaskGroup retains child results in an internal buffer
+until you consume them with next(). For fire-and-forget children (e.g.,
+handling connections), this wastes memory. Discarding groups free results
+immediately.
+Follow-up: Server-style patterns: accepting connections in a loop, each
+handled by a child task. Event processing pipelines. Any pattern where
+you spawn many tasks and don't need their return values.
+
+
+65% — Task-local values
+
+Declared as @TaskLocal static var on a type. Bind with
+MyType.$value.withValue(newValue) { ... }. Reads see the bound value
+within the scope. Like thread-local but for tasks.
+Follow-up: Child tasks (structured and Task {}) inherit task-local values
+from the parent at creation time. The child gets a snapshot — mutations
+in the parent after creation are not reflected.
+Follow-up: Yes. Task-local values propagate across actor hops because they
+are bound to the task, not the actor. When a task hops to a different actor,
+it carries its task-local bindings.
+
+
+64% — Backward compatibility of concurrency features
+
+async/await, actors, Sendable: back-deployed to iOS 13 via the concurrency
+compatibility library. AsyncSequence, TaskGroup: also back-deployed.
+NOT back-deployed: Clock protocol (iOS 16+), withDiscardingTaskGroup
+(iOS 17+), distributed actors, custom executors.
+Follow-up: The Swift compiler embeds a concurrency runtime library into
+your app binary that provides the cooperative thread pool and task
+scheduling on older OS versions.
+Follow-up: Some Sendable checking is less strict, certain runtime diagnostics
+are unavailable, and performance may differ from the OS-embedded runtime.
+Task priorities may not escalate as effectively on older systems.
+
+
+63% — Strict concurrency checking levels
+
+Minimal: only checks explicitly adopted concurrency features. Warnings
+only for sendability of explicitly annotated code.
+Targeted: adds warnings for implicit Sendable requirements — closures
+passed to concurrent contexts, protocol conformances crossing boundaries.
+Complete: full enforcement. Every violation is an error. Required for
+Swift 6 language mode.
+Follow-up: Minimal -> targeted (fix majority of warnings) -> complete
+(fix remaining, ship). Start with leaf modules, work inward.
+Follow-up: It sets the checking level per-target. It's a build setting,
+not a compiler flag per-file. In Swift 6 mode, complete is the default.
+
+
+62% — TaskGroup cancellation semantics
+
+group.cancelAll() sets a cancellation flag on the group. Already-running
+child tasks see Task.isCancelled == true but continue running until they
+cooperatively check. New addTask calls still create tasks, but those
+tasks are born cancelled.
+Follow-up: cancelAll() does NOT terminate running tasks. It sets the flag.
+Running tasks must check isCancelled. However, new tasks added after
+cancelAll() start in the cancelled state.
+Follow-up: If a child task throws and you let that error propagate out of
+the group closure, the group cancels all remaining children (since the
+scope is exiting). If you catch the error inside the for-await loop,
+other children are NOT cancelled.
+
+
+61% — @unchecked Sendable
+
+@unchecked Sendable suppresses the compiler's Sendable checks. You
+promise the type is thread-safe, but the compiler cannot verify it.
+If you're wrong, you get data races with no compiler warning.
+Follow-up: Wrapping OS primitives (os_unfair_lock), bridging ObjC types
+known to be thread-safe, performance-critical lock-based types where
+actor overhead is too high, and migration shims while incrementally
+adopting strict concurrency.
+Follow-up: Document exactly what synchronization mechanism guarantees
+safety, what invariants must hold, and under what conditions the guarantee
+could break. Treat it like unsafe code in Rust.
+
+
+60% — Clock protocol
+
+Clock defines a way to measure time and sleep. ContinuousClock: wall-clock
+time, counts even when the device sleeps. SuspendingClock: pauses when
+the device sleeps (like DispatchTime). Both conform to Clock.
+Follow-up: Inject a Clock dependency. In production pass ContinuousClock().
+In tests pass a TestClock (e.g., swift-clocks) that lets you advance time
+manually. This makes time-based tests deterministic and fast.
+Follow-up: ContinuousClock includes device sleep time (like mach_continuous_time).
+SuspendingClock pauses during sleep (like mach_absolute_time). For timeouts
+and delays in user-facing code, ContinuousClock is usually correct.
+
+
+59% — Distributed actors
+
+Distributed actors extend the actor model across process and network
+boundaries. Declared with distributed actor keyword. Methods marked
+distributed are callable remotely. The distributed actor system handles
+serialization, transport, and identity.
+Follow-up: Calling code doesn't know if the actor is local or remote.
+The same await syntax works. The runtime routes the call appropriately.
+All parameters and return values must be Codable.
+Follow-up: Currently niche on Apple platforms. Potential uses: multi-device
+communication, app-to-server actors, XPC-replacement patterns. More
+relevant in server-side Swift.
+
+
+58% — Custom executors
+
+Conform to SerialExecutor protocol. Implement enqueue(_ job: UnownedJob)
+to schedule work on your chosen thread/queue. Associate with an actor by
+implementing the unownedExecutor property.
+Follow-up: Running actor code on a specific thread (e.g., a render thread
+or database thread), integrating with legacy threading models, or reducing
+actor-hop overhead by colocating multiple actors on one executor.
+Follow-up: Actors with custom executors bypass the cooperative pool. Their
+work runs on whatever thread the executor provides. If you block that
+thread, only that actor is affected, not the cooperative pool.
+
+
+57% — Isolation and protocol conformance
+
+When an actor conforms to a protocol, its methods satisfy protocol
+requirements within the actor's isolation. If the protocol requires a
+sync non-isolated method, the actor conformance must mark it nonisolated.
+Follow-up: The actor must either: mark the method nonisolated (losing
+access to actor state), or the protocol method must be declared async
+so the isolation hop is allowed.
+Follow-up: Annotate the protocol method with a global actor:
+@MainActor func update(). Any conforming type must satisfy it on that
+actor. Alternatively, protocol methods can be async, allowing any actor
+to conform.
+
+
+56% — Concurrency and SwiftUI .task modifier
+
+.task {} creates a new Task tied to the view's lifetime. The task is
+structured relative to the view — when the view disappears, the task
+is cancelled. It inherits @MainActor isolation from the view.
+Follow-up: When the view's identity changes (removed from hierarchy or
+identity invalidated). Re-appearance creates a new task.
+Follow-up: .task { } runs once on appear. .task(id: someValue) cancels
+the previous task and starts a new one whenever someValue changes. Use
+it for reactive async work — like loading data when a selection changes.
+
+
+55% — Sendable checking for closures
+
+The compiler requires @Sendable when a closure may execute in a different
+isolation domain: Task {}, Task.detached {}, actor methods that store
+closures, DispatchQueue.async. @Sendable closures cannot capture mutable
+local vars and all captured values must be Sendable.
+Follow-up: A @Sendable closure can be sent to any isolation domain. If it
+captured a mutable var, two domains could mutate it simultaneously — a
+data race. Only let bindings of Sendable types are safe.
+Follow-up: An actor-isolated closure captures actor state safely. Making
+it @Sendable means it could run off-actor, losing isolation guarantees.
+The compiler rejects @Sendable closures that capture actor-isolated
+mutable state.
+
+
+54% — Continuation safety
+
+Rule: resume exactly once on every code path. Zero resumes = task hangs
+forever (resource leak). Two resumes = undefined behavior (checked variant
+crashes; unsafe variant corrupts memory).
+Follow-up: Checked is the safe development tool — it validates the single-
+resume invariant at runtime with clear diagnostics. Unsafe skips validation
+for zero overhead. Use checked by default, unsafe only after profiling
+proves the check is a bottleneck (rare).
+Follow-up: Use defer or a wrapper that calls continuation.resume(throwing:)
+in a defer block to ensure resume on all exit paths, including throws.
+withCheckedContinuation logs a warning on leak but does not prevent it.
+
+
+53% — Actor isolation and closures
+
+A closure defined inside an actor-isolated context inherits that isolation
+UNLESS it's @Sendable. Non-@Sendable closures can access the actor's
+state directly. @Sendable closures lose the isolation — they cannot
+access actor-isolated state without await.
+Follow-up: The compiler rejects it or requires the closure to be async and
+await access to actor state. The closure can't synchronously access actor
+state from a non-isolated context.
+Follow-up: @Sendable strips actor isolation from the closure. If the
+closure needs actor state, it must be async and use await. However, Task {} uses @_inheritActorContext to re-inherit the enclosing
+actor's isolation, so the task body CAN access actor state synchronously
+when it inherits that actor's isolation.
+
+
+52% — Async let under the hood
+
+When you write async let x = someAsyncFunc(), the child task starts
+immediately — it does not wait for the await. The runtime creates a
+child task that begins executing right away. The await is where the
+parent suspends to collect the result.
+Follow-up: Yes, each async let creates a child task in the current
+task's structured scope.
+Follow-up: The child task lives until the enclosing scope exits. If you
+leave the scope without awaiting, the runtime cancels the child and
+implicitly awaits it (discarding errors). You cannot extend its lifetime
+beyond the declaring scope.
+
+
+51% — Task.yield and cooperative scheduling
+
+Task.yield() voluntarily gives up the current thread so other tasks in
+the pool can run. Use it in long-running synchronous loops to prevent
+monopolizing a thread and starving other tasks.
+Follow-up: At each suspension point (await, yield), the scheduler can run
+any pending task. Yield ensures CPU-bound loops periodically give others a
+chance. Without it, a tight loop holds a thread indefinitely.
+Follow-up: yield() returns immediately if no other tasks are waiting — it
+just gives the scheduler a scheduling opportunity. sleep() actually
+suspends for a duration. yield() is zero-cost when there's no contention.
+
+
+50% — Concurrency performance pitfalls
+
+Over-serialization: funneling too much work through a single actor creates
+a bottleneck. Over-structuring: too many task groups where simple sequential
+code suffices. Unnecessary actor hops: crossing isolation boundaries for
+trivial work. Blocking the pool: sync I/O or locks inside async functions.
+Follow-up: When one actor becomes a throughput chokepoint. Monitor with
+Instruments (Swift Tasks) — if tasks spend most time waiting for the actor,
+it's over-serialized. Split into multiple actors or use nonisolated methods
+for read-only state.
+Follow-up: Use Instruments: Swift Concurrency template (Task creation,
+suspension, completion), Time Profiler (CPU time in async frames), and
+os_signpost for custom intervals. Look for tasks waiting vs executing.

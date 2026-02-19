@@ -1,0 +1,593 @@
+Senior iOS Interview Answers — Architecture & Design Patterns — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — MVVM in SwiftUI
+
+Model: data + business logic. View: declarative UI, reads state, dispatches actions.
+ViewModel: @Observable class that transforms model data for the view and handles
+user intent. View calls ViewModel methods, never touches the model directly.
+Business logic lives in the ViewModel or dedicated use-case objects the VM calls.
+ViewModel boundary: one ViewModel per screen or distinct feature area.
+Follow-up: Split massive ViewModels by extracting use-case classes, using computed
+properties instead of stored state, and composing multiple focused ViewModels.
+Follow-up: ViewModel is a plain class — inject mock dependencies, call methods,
+assert on property values directly. No SwiftUI imports needed in the test.
+
+
+98% — Dependency injection
+
+DI: pass dependencies into an object instead of letting it create its own.
+Protocols: define interface, inject conforming type. Most flexible, best for testing.
+Closures: lightweight for single-function deps — e.g., fetch: () async -> [Item].
+Containers: centralized registration (swift-dependencies, Factory). Resolve at call site.
+Environment: SwiftUI-native, scoped to the view tree. Great for view-layer deps.
+Follow-up: Inject a protocol-conforming mock/stub into the ViewModel. Tests control
+every external dependency — network, database, time, randomness.
+Follow-up: DI is the mechanism (passing in). Dependency inversion is the principle
+(high-level modules define the protocol, low-level modules conform to it).
+
+
+97% — SOLID principles (concrete iOS examples)
+
+S — Single Responsibility: ViewModel handles presentation logic only, not networking.
+O — Open-Closed: add new features via protocol conformance, don't modify existing types.
+L — Liskov Substitution: any Repository conforming to the protocol works interchangeably.
+I — Interface Segregation: split a fat DataManager protocol into Fetchable + Storable.
+D — Dependency Inversion: ViewModel depends on a protocol, not a concrete NetworkService.
+Follow-up: Single Responsibility — developers stuff networking, persistence, formatting,
+and navigation into one ViewController. Split them out.
+Follow-up: Define a protocol (e.g., DataSource). Add new data sources as new types
+conforming to the protocol instead of adding if/else branches to existing code.
+
+
+96% — Protocol-oriented design
+
+Define behavior through protocols and extensions, not class hierarchies. Structs and
+enums can conform. No single-parent restriction. Composition: a type conforms to
+multiple protocols, gaining behavior from each.
+Protocol extensions provide default implementations — shared logic without a base class.
+Follow-up: Each protocol requirement has a witness table entry mapping to the concrete
+implementation. Swift uses this table for dynamic dispatch on protocol types. Direct
+calls on concrete types get statically dispatched.
+Follow-up: If two protocol extensions provide the same default method and a concrete
+type conforms to both, Swift uses static dispatch for extension defaults — the method
+called depends on the declared type, not runtime type. Provide your own implementation
+on the concrete type to get consistent behavior.
+
+
+95% — MVC vs MVVM vs VIPER vs MV
+
+MVC: Apple's default. Controller mediates model and view. Scales poorly — Massive
+View Controller. Fine for small apps or rapid prototyping.
+MVVM: ViewModel owns presentation logic. Testable, clean separation. Default for
+SwiftUI. Can suffer from massive ViewModel if undisciplined.
+VIPER: View, Interactor, Presenter, Entity, Router. Maximum separation, heavy
+boilerplate. Justified for very large teams or strict module ownership.
+MV (SwiftUI): skip the ViewModel, put logic directly in the View struct using
+@State and .task. Works for simple screens, breaks down with complex logic.
+Follow-up: MVC puts too much in the controller. No clear testing boundary. Navigation,
+networking, formatting, and state all pile up.
+Follow-up: VIPER is justified when teams own distinct modules and you need strict
+interfaces. For most apps under ~10 devs, MVVM is the practical sweet spot.
+
+
+94% — Testing architecture
+
+Test pyramid: many unit tests (fast, isolated), fewer integration tests (real
+boundaries), minimal UI tests (slow, brittle). Unit test ViewModels, services,
+and business logic. Integration test real network/database round-trips. UI test
+critical user flows only.
+Follow-up: Stub: returns canned values, no verification. Mock: verifies specific
+methods were called with expected arguments. Spy: wraps a real object, records calls.
+Fake: working lightweight implementation (in-memory database).
+Follow-up: Don't test SwiftUI view body layout, private methods, or Apple framework
+behavior. Test your logic, not theirs.
+
+
+93% — Networking layer architecture
+
+Protocol-based: define a NetworkClient protocol with a single method like
+func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T.
+Endpoint is a struct/enum encoding path, method, headers, body.
+Response handling: decode JSON, map HTTP status errors to domain errors.
+Follow-up: The ViewModel receives a NetworkClient protocol. In tests, inject a mock
+that returns canned Data. No real network calls.
+Follow-up: Use an interceptor/middleware that checks for 401, refreshes the token,
+and retries the original request transparently. The caller never knows.
+
+
+92% — Repository pattern
+
+A repository abstracts data access behind a protocol. Callers request data without
+knowing if it comes from network, cache, or database. Repository decides the source
+and handles caching/syncing internally.
+Follow-up: Repository checks cache first, returns if fresh. Falls back to network.
+Stores result in cache/DB. Callers see a single interface: func items() async -> [Item].
+Follow-up: Inject mock dependencies (mock network client, mock cache). Call repository
+methods, assert on return values and that the cache was updated.
+
+
+91% — Coordinator / Router pattern
+
+Coordinators own navigation logic. Views/ViewModels don't know about other screens.
+Coordinator decides what screen to push based on events from the current screen.
+Decouples screens from each other — any screen can be shown from anywhere.
+Follow-up: Coordinator holds a reference to NavigationPath and exposes methods like
+showDetail(item:). ViewModel calls coordinator methods. Coordinator mutates the path.
+Follow-up: Adds indirection, more types to maintain. In small apps, overkill. Pays off
+when navigation logic is complex or when the same screen appears in multiple flows.
+
+
+90% — Clean Architecture / layered architecture
+
+Layers (inside-out): Entities (domain models) -> Use Cases (business rules) ->
+Interface Adapters (ViewModels, repositories) -> Frameworks (UIKit, network, DB).
+Dependencies always point inward. Inner layers never import outer layers.
+Follow-up: The dependency rule: source code dependencies must point inward. A use
+case defines a protocol; the outer layer implements it. Inner layers are stable,
+outer layers are interchangeable.
+Follow-up: Enforce with separate SPM modules per layer. A module can only import
+modules from its own or inner layers. The compiler enforces it.
+
+
+89% — Error handling architecture
+
+Define a domain error enum per feature (e.g., AuthError, PaymentError). Network layer
+maps HTTP errors and decoding failures to domain errors. ViewModel catches domain
+errors and maps them to user-facing messages. View displays based on error state.
+Propagation: throws for synchronous, async throws for async, Result when you need
+to store or pass errors between boundaries.
+Follow-up: Keep a mapping function in the presentation layer: func message(for error:)
+-> String. Centralizes copy, makes localization straightforward.
+Follow-up: throws for normal control flow, Result for storing/passing, optionals when
+the absence itself is the information and you don't care why.
+
+
+88% — Singleton pattern
+
+Appropriate for: truly shared stateless services (analytics, logging), or when the
+system requires exactly one instance (audio session). Inappropriate for anything
+with state you need to control in tests.
+Follow-up: Hide it behind a protocol. Inject the protocol. In production, inject the
+singleton. In tests, inject a mock. The caller never knows it's a singleton.
+Follow-up: Dependency containers (Factory, swift-dependencies), SwiftUI Environment
+values, or plain initializer injection. All more testable than direct singleton access.
+
+
+87% — Observer pattern
+
+NotificationCenter: loosely coupled, string-based, hard to trace. Use for system events.
+KVO: Objective-C legacy, works on NSObject subclasses. Fragile, avoid in new code.
+Combine: typed publishers, operators for transformation, cancellable subscriptions.
+@Observable: macro-based, per-property tracking, zero boilerplate. Preferred for iOS 17+.
+Follow-up: @Observable for view state. Combine for stream composition. NotificationCenter
+for system-wide events (keyboard, app lifecycle). Avoid KVO.
+Follow-up: @Observable tracks per-property access, so only views reading the changed
+property re-render. No @Published, no objectWillChange, no manual subscriptions.
+
+
+86% — Modular app design
+
+Split by feature (AuthModule, ProfileModule) or by layer (NetworkingKit, PersistenceKit).
+Each module is an SPM package or target. Internal visibility enforces boundaries.
+Shared protocols live in interface modules. Concrete implementations in feature modules.
+Follow-up: Feature module: contains UI, ViewModel, and logic for one feature. Interface
+module: protocols and models only, no implementation. Features depend on interfaces,
+not on each other.
+Follow-up: Features import interface modules, never other features. Use a dependency
+container at the composition root to wire concrete implementations to protocol interfaces.
+
+
+85% — Unidirectional data flow
+
+State flows one way: Action -> Reducer -> State -> View -> Action.
+State is the single source of truth. Views are pure functions of state.
+TCA: State, Action, Reducer, Store, Effect. Highly testable — assert entire state
+transitions. Redux-style: similar but without the Swift-specific Effect model.
+Follow-up: Eliminates inconsistent state, makes state changes traceable, simplifies
+debugging. Every state change has a clear origin.
+Follow-up: Overkill for simple CRUD apps. Essential for apps with complex state
+interactions, multi-step flows, or extensive undo/redo requirements.
+
+
+84% — App startup and composition root
+
+Composition root: the single place where all dependencies are created and wired
+together. In iOS, this is your @main App struct or AppDelegate's didFinishLaunching.
+All object graph construction happens here. No dependency creation deep in the tree.
+Follow-up: Defer heavy work: lazy-load services, move non-essential setup to background
+tasks, avoid synchronous network calls, keep didFinishLaunching under 400ms.
+Follow-up: Create a DependencyContainer at the root. Pass it (or its protocols) down
+through initializers or SwiftUI environment. Resolve lazily where possible.
+
+
+83% — Service layer design
+
+A service encapsulates a specific business operation (AuthService, PaymentService).
+It orchestrates multiple repositories and domain logic. A repository is data access
+only. A service adds business rules on top.
+Follow-up: Stateless services: new instance per use or singleton (cheap). Stateful
+services (e.g., WebSocket): one per session. Feature-scoped: live as long as the feature.
+Follow-up: One responsibility per service. If a service touches more than one domain
+area, split it. Keep them focused — AuthService doesn't also handle profile fetching.
+
+
+82% — Factory pattern
+
+A factory creates objects without exposing creation logic. Useful when initialization
+is complex, depends on configuration, or requires dependency resolution.
+Follow-up: Factory can resolve and inject dependencies automatically. ViewModelFactory
+takes a DependencyContainer and builds ViewModels with all deps pre-wired.
+Follow-up: Factory method: single method on a type. Abstract factory: protocol defining
+a family of related factories. Closure-as-factory: (Config) -> ViewModel — lightweight,
+great for SwiftUI.
+
+
+81% — Caching architecture
+
+Two-tier: NSCache for memory (auto-evicts under pressure), disk cache (FileManager or
+URLCache) for persistence. Check memory first, then disk, then network. Write back to
+both tiers on fetch.
+Follow-up: TTL (time-to-live), ETag/If-None-Match from server, or explicit invalidation
+on user action (pull-to-refresh). Combine strategies per data type.
+Follow-up: Return cached data immediately to the UI, fire a background network request,
+update UI when fresh data arrives. User sees instant content, then seamless updates.
+
+
+80% — Offline-first architecture
+
+Local database (SwiftData, Core Data, SQLite) is the single source of truth. UI reads
+from database only. Network sync runs in background, writes to database. UI observes
+database changes and updates reactively. Optimistic updates: write locally first, sync
+later, roll back on server rejection.
+Follow-up: The database. Never the network response. Network writes to the database,
+UI reads from the database. One direction.
+Follow-up: LWW: simple, per-field timestamps, loses concurrent edits. CRDTs: merge
+without conflicts, complex to implement. Manual merge: show user the conflict (git-style).
+LWW is right for most apps.
+
+
+79% — State machine pattern
+
+Use for flows with strict transitions: authentication (loggedOut -> loggingIn -> loggedIn
+-> error), payment, onboarding. Prevents invalid states at compile time.
+Follow-up: Enum with associated values. Each case is a state, each method returns the
+next valid state. Switch exhaustively — compiler catches missing transitions.
+Follow-up: Only define valid transitions. The type system ensures you can't go from
+loggedOut directly to loggedIn. Illegal transitions are not representable.
+
+
+78% — Strategy pattern
+
+Define a family of interchangeable algorithms behind a common interface. Example:
+a SortStrategy protocol with implementations for date-sort, name-sort, relevance-sort.
+Swap at runtime without changing the caller.
+Follow-up: Protocol: multiple methods, shared state across calls. Closure: single
+operation, lightweight, inline-definable.
+Follow-up: Closure for one-method strategies (comparators, formatters). Full protocol
+when the strategy has multiple methods or needs setup/teardown.
+
+
+77% — Feature flagging architecture
+
+Define a FeatureFlagProvider protocol. Local implementation reads from build config.
+Remote implementation reads from server (LaunchDarkly, Firebase). Combine them:
+local overrides remote for development. Inject the provider; callers never know the source.
+Follow-up: Local: compile-time, fast, no network. Remote: runtime, supports gradual
+rollout and kill switches. Use both — local for dev overrides, remote for production.
+Follow-up: Track flags in a registry. After full rollout, remove the flag check, delete
+the old code path, remove from the registry. Stale flags are pure tech debt.
+
+
+76% — Deep linking architecture
+
+Parse incoming URLs into a DeepLink enum (e.g., .profile(id), .settings, .item(id)).
+A DeepLinkHandler maps the enum to navigation actions. NavigationPath is set
+programmatically based on the parsed link.
+Follow-up: Register URL patterns. Parse path components and query parameters into the
+DeepLink enum. Handler pushes/resets the NavigationPath to reach the target screen.
+Follow-up: Universal links: HTTPS, requires apple-app-site-association on server, most
+secure. Custom schemes: myapp://path, any app can claim, use only as fallback.
+
+
+75% — Decorator pattern (view modifiers)
+
+Decorator wraps an object to add behavior without modifying it. Each SwiftUI modifier
+returns a new wrapper view — .padding() wraps in a PaddingModifier, .background() wraps
+in a BackgroundModifier. Chaining modifiers = stacking decorators.
+Follow-up: Struct conforming to ViewModifier with a body(content:) method. Apply with
+.modifier(MyModifier()). Or write a View extension that calls .modifier internally.
+Follow-up: ViewModifier struct when you need stored properties or want to compose
+multiple modifications. View extension for simple, stateless convenience wrappers.
+
+
+74% — Analytics architecture
+
+Define an AnalyticsEvent enum. AnalyticsProvider protocol with func track(_ event:).
+Concrete providers wrap specific SDKs (Firebase, Mixpanel). A CompositeProvider fans
+out to multiple providers. Inject the provider — swap or disable in tests.
+Follow-up: Provider protocol with a single track method. Swap the concrete provider
+without changing any call site. Add new providers by adding a new conformance.
+Follow-up: Dispatch analytics calls to a background queue or actor. Never block the
+main thread for tracking. Buffer events and batch-send if needed.
+
+
+73% — Configuration management
+
+Use xcconfig files per environment (Dev.xcconfig, Staging.xcconfig, Prod.xcconfig).
+Reference in Info.plist as $(API_BASE_URL). Access at runtime via Bundle.main.
+Separate build schemes per environment.
+Follow-up: Each scheme references a different xcconfig. The xcconfig sets preprocessor
+values and Info.plist substitution variables. No code changes needed to switch environments.
+Follow-up: Never hardcode secrets. Use xcconfig files excluded from git, or fetch secrets
+at build time from a CI vault (1Password, AWS Secrets Manager). Never ship API keys in
+the binary — use server-side proxying for sensitive keys.
+
+
+72% — Middleware pattern
+
+Middleware intercepts and transforms operations in a chain. Each middleware can modify
+the input, call the next middleware, and modify the output. Common in networking (add
+auth header, log request, retry on failure) and Redux (log actions, persist state).
+Follow-up: Networking: a chain of RequestMiddleware that each transform the URLRequest
+before it hits the network. Redux: middleware sits between dispatch and reducer,
+can intercept actions, dispatch new ones, or trigger side effects.
+Follow-up: Array of middleware, executed in order. Each calls the next. Compose by
+appending to the array. Order matters — auth before logging, logging before retry.
+
+
+71% — Micro-features architecture
+
+Each feature is a mini-framework with: interface target (protocols + models, no
+implementation), implementation target (concrete types), and optional tests + example
+app targets. Features depend only on interface targets of other features.
+Follow-up: Interface target exposes protocols and DTOs. Implementation target provides
+the concrete classes. The app's composition root wires implementations to interfaces.
+This eliminates compile-time coupling between features.
+Follow-up: More initial setup, more targets to manage. Worth it for large teams (10+
+devs) where compile times and merge conflicts are the bottleneck. Overkill for small teams.
+
+
+70% — Logging and observability architecture
+
+Use os_log / Logger (Apple's unified logging). Define categories per subsystem
+(networking, persistence, auth). Use log levels: debug, info, notice, error, fault.
+In production, aggregate with a service (Datadog, Sentry) for search and alerting.
+Follow-up: Debug: verbose, dev only. Info: notable events. Error: recoverable failures.
+Fault: unrecoverable. Categories: one per module or subsystem for filtering.
+Follow-up: Attach a session ID and user ID to log entries. Crash reports reference the
+same session ID. When investigating a crash, filter logs by that session to see what
+happened leading up to it.
+
+
+69% — Database migration strategy
+
+Version your schema. Each migration maps from version N to N+1. Test migrations with
+real data snapshots. Never ship without testing the upgrade path from every supported
+version.
+Follow-up: Core Data lightweight migration handles simple changes automatically (add
+attribute, rename with renaming ID). No code needed, just update the model version.
+Follow-up: Custom migration for: data transformation, splitting/merging entities,
+complex relationship changes. Use NSMigrationManager or write a manual migration step
+that runs before the stack loads. Always keep a rollback plan.
+
+
+68% — API versioning strategy
+
+Pin to a version via URL path (/v2/items) or Accept header. Client knows which version
+it speaks. Support graceful fallback when the server returns a newer payload.
+Follow-up: Use versioned Decodable models (ItemV2, ItemV3) or a single model with
+optional fields for newer properties. Decode leniently — unknown keys are ignored by
+default in Codable.
+Follow-up: Codable silently ignores unknown keys. For known fields that became optional
+in a new version, make them Optional in the model. Never crash on unexpected payloads.
+
+
+67% — Theming / design system architecture
+
+Define design tokens: colors, fonts, spacing, corner radii. Store in a Theme struct
+or environment value. All views reference tokens, never hardcoded values.
+Swap the theme to change the entire app's appearance.
+Follow-up: Use Asset Catalogs with dark/light variants. Dynamic Type: use
+.font(.body) and scaled custom fonts. Test with all size categories and both appearances.
+Follow-up: Theme struct in a shared DesignSystem module. All feature modules import it.
+Tokens are the contract — designers and engineers share the same names.
+
+
+66% — Accessibility architecture
+
+Bake it into the design system. Every component has accessibility labels, traits, and
+actions by default. Audit with VoiceOver during development, not after.
+Follow-up: .accessibilityLabel, .accessibilityHint, .accessibilityValue,
+.accessibilityElement(children:), .accessibilityAction. Group related elements with
+.accessibilityElement(children: .combine).
+Follow-up: Test with VoiceOver manually. Use Accessibility Inspector in Xcode for static
+analysis. Add XCUITest accessibility audits. Run the Accessibility Audit in Xcode 15+.
+
+
+65% — Localization architecture
+
+Use String Catalogs (.xcstrings, Xcode 15+). All user-facing strings go through
+NSLocalizedString or String(localized:). Never hardcode user-visible text.
+Organize by feature or screen for translator context.
+Follow-up: Plurals: use stringsdict or String Catalogs' automatic plural handling.
+Interpolation: use positional arguments. RTL: use leading/trailing, not left/right.
+Auto Layout handles mirroring.
+Follow-up: String Catalogs centralize all localizable strings with context, automatic
+extraction, and visual diffing. Replaces .strings and .stringsdict files with a
+single editor-friendly format.
+
+
+64% — Plugin / extensibility architecture
+
+Define a Plugin protocol (e.g., func configure(app:), func handle(event:)).
+Register plugins at startup. The app core calls plugin methods at defined extension
+points. Plugins can add features without modifying core code.
+Follow-up: Each plugin conforms to the protocol. Core iterates over registered plugins
+at each extension point. New functionality = new plugin, no core changes.
+Follow-up: Plugin for open-ended extensibility with many potential extensions. Strategy
+for a single interchangeable algorithm. Use plugin when the extension points are
+predefined and multiple extensions can be active simultaneously.
+
+
+63% — Command pattern
+
+Encapsulate an action as an object. The command stores what to do and can be queued,
+logged, or undone. Each command has execute() and optionally undo().
+Follow-up: Maintain a stack of executed commands. Undo pops and calls undo(). Redo
+pushes and calls execute(). Each command captures the state needed to reverse itself.
+Follow-up: Commands are individual actions. Event sourcing stores every command as an
+event log. Replay the log to reconstruct state. Commands are the building block;
+event sourcing is the persistence strategy.
+
+
+62% — Dependency graph and build times
+
+Deep dependency chains cause cascading rebuilds — one change recompiles everything
+downstream. Wide, shallow graphs parallelize better. Interface modules break the chain:
+change an implementation, only that module recompiles.
+Follow-up: Wide: many modules at the same level, few layers deep. Builds fast, changes
+are isolated. Deep: long chains A -> B -> C -> D. One change cascades through all layers.
+Follow-up: Features depend on interface modules (protocols only). Changing an
+implementation module doesn't trigger recompilation of dependent features because the
+interface didn't change. Dramatic build time savings on large projects.
+
+
+61% — Reactive vs imperative architecture
+
+Reactive (Combine, RxSwift): declarative chains, excellent for multi-stream composition
+(combineLatest, merge, debounce). Hard to debug — stack traces are opaque.
+Imperative (async/await): sequential, readable, familiar control flow. Easier to debug.
+Follow-up: Reactive stack traces are nested closures. Breakpoints land inside operators,
+not your logic. async/await gives linear stack traces you can step through.
+Follow-up: Wrap Combine publishers in async properties/methods. Replace one pipeline at
+a time. Keep Combine at the edges (publisher-to-async bridge) while converting core logic.
+
+
+60% — Security architecture
+
+Keychain for tokens and credentials — never UserDefaults. Use App Transport Security
+(HTTPS only). Encrypt sensitive local data. Sanitize user input. Never log PII.
+Follow-up: Keychain API (or a wrapper like KeychainAccess) for all secrets. UserDefaults
+is plaintext on disk, trivially readable on jailbroken devices.
+Follow-up: Certificate pinning: embed expected cert/public key, reject connections that
+don't match. Risk: if the cert rotates and you haven't updated the pin, your app is
+bricked. Use public key pinning (more stable) and have a fallback/kill-switch mechanism.
+
+
+59% — A/B testing architecture
+
+Treat experiments like feature flags with variants. An ExperimentProvider resolves
+which variant the user is in. View layer reads the variant and renders accordingly.
+Track exposure events for analysis.
+Follow-up: Every experiment has a cleanup date. When results are in, remove the losing
+variant and the experiment check entirely. Experiments are not permanent architecture.
+Follow-up: Feature flags are binary (on/off). A/B tests have variants (A, B, C).
+Implement A/B tests as multi-variant feature flags with the same provider abstraction.
+
+
+58% — Multi-target / white-label architecture
+
+Shared core module with all business logic. Brand-specific modules provide assets,
+themes, feature flags, and configuration. Each target/scheme selects which brand module
+to include. Minimize per-brand code — everything possible goes in shared.
+Follow-up: One Xcode project, multiple targets. Each target has its own Info.plist,
+asset catalog, and build settings. Shared code in a common framework. Schemes select
+the target and build configuration.
+Follow-up: Logic and navigation: shared. Brand colors, fonts, icons, copy, feature
+toggles: per-brand. If you're writing if brand == .foo in shared code, extract it
+into a brand-specific module instead.
+
+
+57% — Performance monitoring architecture
+
+Instrument critical paths: app launch, screen transitions, network requests, scrolling.
+Use MetricKit for system-level metrics. Custom spans for business-critical flows.
+Report to a dashboard (Datadog, Firebase Performance).
+Follow-up: Launch time (time to first frame), hang rate (main thread blocked >250ms),
+frame drop rate, P50/P95 network latency, memory highwater mark.
+Follow-up: MetricKit delivers daily diagnostic and metric payloads. Supplement with
+os_signpost for custom intervals. Combine both for a complete picture.
+
+
+56% — Crash resilience architecture
+
+Assume crashes happen. Persist critical state frequently (not just on termination).
+Use transactions for data integrity. Isolate failure domains — one feature's crash
+shouldn't corrupt another's data.
+Follow-up: Track consecutive failures per endpoint. After N failures, stop calling
+and return cached data or a fallback. Reset the breaker after a cooldown period or
+on explicit retry.
+Follow-up: On next launch, detect incomplete state (e.g., pending transaction flag).
+Clean up or resume. Never assume the previous session ended cleanly.
+
+
+55% — Background processing architecture
+
+Use BGAppRefreshTask for short periodic work (content refresh). BGProcessingTask for
+long work (database maintenance, ML). Register tasks in Info.plist, schedule with
+BGTaskScheduler. Always handle the expirationHandler — save progress, don't crash.
+Follow-up: BGAppRefreshTask: ~30 seconds. BGProcessingTask: minutes, device decides.
+Always check task.expirationHandler and save incremental progress.
+Follow-up: BGTasks survive app termination — the system relaunches the app in the
+background. For uploads, use URLSession background sessions which continue independently
+of your app process.
+
+
+54% — Notification architecture (push + local)
+
+Centralize in a NotificationHandler service. Parse the payload, determine the action,
+route to the correct screen via the deep linking system. Decouple payload parsing from
+navigation — the handler produces a DeepLink, the navigation system consumes it.
+Follow-up: Notification tap delivers a userInfo dictionary. Parse into a DeepLink enum.
+Pass to the same DeepLinkHandler used for URL-based deep links. One routing system.
+Follow-up: Send test push via Xcode or a .apns file. Unit test the payload parsing
+(dictionary -> DeepLink). Integration test the routing (DeepLink -> navigation state).
+
+
+53% — Widget / extension architecture
+
+Shared code in a common SPM module or framework. App and extensions import the same
+module. Share data via App Groups (shared UserDefaults or shared container directory).
+Keep shared code lightweight — extensions have strict memory limits.
+Follow-up: Enable App Groups capability on both targets. Use UserDefaults(suiteName:)
+for small data. Use the shared container directory (FileManager) for larger data or
+a shared database.
+Follow-up: Business logic and models live in the shared module. Each target (app,
+widget, intent) has its own thin entry point that imports and uses shared code.
+
+
+52% — Event-driven architecture
+
+Components communicate via events instead of direct calls. Decouples producers from
+consumers. Useful for cross-feature communication (user logged out -> reset all caches)
+without direct imports between features.
+Follow-up: Type-safe event bus using generics or Combine subjects. Avoid stringly-typed
+NotificationCenter. Keep the bus in a shared module. Consumers subscribe to specific
+event types — no catch-all handlers.
+Follow-up: Log every event with timestamp and context. Use a correlation ID per user
+action to trace the chain of events it triggers through the system.
+
+
+51% — Architecture decision records
+
+Write a short document for each significant architecture choice: context, decision,
+consequences, alternatives considered. Store in the repo alongside code.
+Follow-up: Title, status (proposed/accepted/deprecated), context (why we need to decide),
+decision (what we chose), consequences (tradeoffs we accepted).
+Follow-up: List explicit criteria (testability, build time, team familiarity, migration
+cost). Score each option. Make the reasoning transparent. Future-you will thank past-you.
+
+
+50% — Incremental migration strategy
+
+Migrate feature by feature, not all at once. Old and new architectures coexist.
+New features use the new pattern. Existing features migrate when touched. Set a
+deadline for full migration but accept it will slip.
+Follow-up: Wrap old components with adapters so they work in the new system. Run both
+paths for critical features until the new one is proven. Feature flags to toggle between.
+Follow-up: Strangler fig: build the new system around the old one. New functionality goes
+through the new path. Gradually route old functionality through the new path until the
+old system has nothing left and can be deleted.

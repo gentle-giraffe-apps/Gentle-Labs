@@ -1,0 +1,559 @@
+Senior iOS Interview Answers — Swift Language — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — Value types vs reference types (deep)
+
+Structs heap-allocate in three cases: (1) captured by an escaping closure,
+(2) stored inside an existential container that exceeds the 3-word inline
+buffer, (3) the compiler decides the value's lifetime requires heap promotion.
+COW works by wrapping a reference-counted backing store. On mutation, Swift
+checks if the reference count is 1 (unique) — if yes, mutate in place;
+if no, copy the storage first, then mutate.
+Follow-up: Create a class for storage, hold it in your struct. Before
+mutating, call isKnownUniquelyReferenced(&storage) — if false, copy.
+Follow-up: An existential container is a 5-word box: 3 words for inline
+value storage, 1 pointer to the value witness table, 1 pointer to the
+protocol witness table. Values larger than 3 words are heap-allocated
+and the container holds a pointer instead.
+
+
+98% — Protocol design (associated types, Self, composition)
+
+Associated types are placeholder types resolved by the conforming type —
+like generics for protocols. Generic parameters on protocols don't exist;
+associated types fill that role. Adding a Self requirement or associated
+type historically made the protocol non-existential (couldn't use as a type),
+but since Swift 5.7 you can use any P for primary associated types: any Collection<Int>.
+Follow-up: P1 & P2 creates an anonymous composed type. Use it in function
+parameters or type constraints when you need multiple conformances without
+creating a new protocol.
+Follow-up: any P<T> syntax (Swift 5.7+) lets you constrain the primary
+associated type, making protocols with associated types usable as existentials.
+
+
+97% — Closures (capture semantics and memory)
+
+Closures capture references to outer variables by default — they share the
+same mutable binding, not a copy. A capture list ([x] or [weak self]) copies
+the value at capture time or creates a weak/unowned reference.
+[weak self] makes self optional inside the closure; [self] explicitly captures
+self strongly (required by compiler in escaping closures to acknowledge the retain).
+Follow-up: @escaping means the closure outlives the function call (stored, async).
+Non-escaping (default) is guaranteed to run before the function returns. The compiler
+forbids capturing mutable self in escaping closures on value types.
+Follow-up: An escaping closure is a heap-allocated object — a ref-counted box
+holding a function pointer plus captured values. Non-escaping closures can stay on the stack.
+
+
+96% — Generics (constraints, where clauses, type erasure)
+
+Generic constraints: func f<T: P>(x: T) — T must conform to P. where clauses
+add complex constraints: where T.Element: Equatable. Generics are specialized
+at compile time — the compiler generates code for the concrete type.
+Type erasure wraps a concrete conformer behind a uniform interface (AnyPublisher,
+any P) when you need to hide the concrete type.
+Follow-up: Generics use static dispatch and can be specialized — zero overhead.
+Existentials (any P) use witness tables and may heap-allocate — measurable overhead
+in tight loops.
+Follow-up: AnyHashable is a stdlib type-erased wrapper. It exists because Dictionary
+keys need Hashable, and you can't use a generic protocol as a concrete type.
+It wraps any Hashable value and forwards == and hash(into:).
+
+
+95% — ARC deep dive (side tables, weak/unowned internals)
+
+Every heap object has an inline refcount (strong + unowned counts packed into
+one 64-bit word). When the first weak reference is created, the runtime
+allocates a side table — a separate heap object pointed to by both the original
+object and all weak references. The side table holds the strong, unowned, and
+weak counts.
+Follow-up: weak: runtime zeros out the reference when strong count hits 0.
+Accesses check via the side table. unowned: uses the inline refcount (no side table required), but traps
+if accessed after dealloc. unowned(unsafe): no check at all — undefined behavior
+if wrong, used only in performance-critical paths.
+Follow-up: When strong count hits 0, deinit runs, but the memory isn't freed
+until the unowned count also hits 0. Weak references see nil as soon as
+deinit begins — they check a flag in the side table.
+
+
+94% — Optionals (implementation, IUO, internals)
+
+Optional<T> is literally enum Optional<T> { case none; case some(T) }.
+The ? syntax is sugar: T? means Optional<T>. nil is .none.
+IUO (T!) is Optional<T> with implicit force-unwrap at use sites. Used mainly
+for two-phase init (IBOutlets) where the value is nil at init but guaranteed
+set before access. Overuse defeats safety.
+Follow-up: a?.b?.c compiles to nested switch/if-let chains. If any link is
+.none, the entire chain short-circuits to nil. The compiler emits conditional
+branches, not special instructions.
+Follow-up: ExpressibleByNilLiteral lets Optional get its nil syntax. Conforming
+your own types confuses readers and breaks expected semantics — nil should
+universally mean "no value."
+
+
+93% — Method dispatch (static, vtable, message)
+
+Static dispatch: compiler knows the exact function at compile time. Used for
+structs, enums, final class methods, protocol extension methods. Fastest — can inline.
+V-table dispatch: indirect call through a function table. Used for non-final
+class methods. One pointer lookup — fast but blocks inlining.
+Message dispatch: Objective-C runtime objc_msgSend. Used for @objc dynamic methods.
+Slowest — full method resolution, but enables swizzling and KVO.
+Follow-up: final forces static dispatch on class methods. @objc exposes to
+ObjC but doesn't change dispatch unless combined with dynamic. dynamic forces
+message dispatch — needed for KVO and swizzling.
+Follow-up: The extension method runs, not the conformer's override. Protocol
+requirements go through the witness table (dynamic); extension-only methods
+dispatch statically based on the compile-time type.
+
+
+92% — Opaque types (some) vs existentials (any)
+
+some P: the concrete type is fixed but hidden from the caller. The compiler
+knows the exact type — enables static dispatch, no boxing, no overhead.
+any P: a type-erased box that can hold ANY conforming type at runtime. Uses
+existential containers, witness tables, potential heap allocation.
+Follow-up: some preserves type identity — func f() -> some P always returns
+the same concrete type, so the compiler can reason about equality, associated
+types, etc. any erases the type — two calls might return different concrete types.
+Follow-up: any uses existential containers (up to 40 bytes), witness table
+indirection, and may heap-allocate. some compiles down to the concrete type
+directly — zero abstraction cost.
+
+
+91% — Access control (open vs public, module boundaries)
+
+private: visible within enclosing declaration + extensions in the same file.
+fileprivate: visible within the entire file.
+internal (default): visible within the module.
+public: visible outside the module but cannot be subclassed or overridden.
+open: visible outside the module AND can be subclassed/overridden.
+Follow-up: @testable import promotes internal symbols to open access for the test target.
+private and fileprivate remain hidden. It works by compiling the test target
+with special access.
+Follow-up: internal for most code. fileprivate when multiple types in one file
+need shared access. private to restrict to a single type/extension scope.
+
+
+90% — Enums (associated values, indirect, pattern matching)
+
+Swift enums are algebraic data types. Associated values store data per case:
+case .success(Data). Raw values map cases to a fixed type: case north = "N".
+indirect tells the compiler to heap-allocate the case payload via a pointer —
+needed for recursive definitions (e.g., tree nodes).
+Follow-up: CaseIterable auto-synthesizes allCases for enums with no associated
+values. If any case has an associated value, synthesis fails — you must
+implement it manually.
+Follow-up: if case let .loaded(data) = state { ... } binds data. for case
+let .loaded(data) in items { ... } filters and binds in a loop. Both use
+pattern matching without a full switch.
+
+
+89% — Memory layout (stack, heap, existential containers)
+
+Stack: local value types, function parameters, non-escaping closure contexts.
+Fast allocation (pointer bump), automatic deallocation on scope exit.
+Heap: class instances, escaping closure captures, values that escape or
+exceed the existential inline buffer. Requires ARC, slower to allocate.
+Follow-up: The existential container has a 3-word (24-byte) inline value
+buffer. If the value type fits (<=24 bytes), it's stored inline. If it
+exceeds that, the container heap-allocates and stores a pointer.
+Follow-up: If any captured variable is mutated or the closure escapes, the
+compiler heap-allocates the captures into a ref-counted box. Pure non-escaping
+closures with non-mutated captures can stay on the stack.
+
+
+88% — Property wrappers (wrappedValue, projectedValue)
+
+A property wrapper is a struct (or class/enum) with a wrappedValue property.
+@Wrapper var x: T makes the compiler generate a backing _x of type Wrapper
+and x that delegates get/set to _x.wrappedValue. projectedValue is accessed
+via $x and can be any type — used for auxiliary access.
+Follow-up: @State's projectedValue is a Binding. So $name gives you
+Binding<String> that you can pass to child views for two-way data flow.
+Follow-up: If the wrapper has init(wrappedValue:), you can assign a default:
+@Wrapper var x = 5. If it has other inits, you use @Wrapper(param: val) var x.
+You cannot combine both default value AND explicit wrapper arguments.
+
+
+87% — Protocol extensions and the static dispatch gotcha
+
+If a method is declared in the protocol's requirements block AND has a default
+in an extension, dispatch is dynamic (through the witness table). If a method
+is ONLY defined in the extension (not a requirement), dispatch is static based
+on the compile-time type.
+Follow-up: If the variable is typed as the protocol, the extension default
+runs — even if the struct has its own implementation. If the variable is typed
+as the concrete struct, the struct's version runs. This is the gotcha.
+Follow-up: Always declare methods in the protocol body if conformers should
+override them. Only put truly final utility methods in extension-only.
+Document this clearly when designing protocols.
+
+
+86% — throws, rethrows, typed throws
+
+throws means the function can throw any Error. rethrows means it only throws
+if the closure argument throws — lets callers who pass non-throwing closures
+skip try. Example: map is rethrows.
+Follow-up: Typed throws (throws(MyError)) restricts the thrown type. Useful
+for exhaustive catch blocks and clarity. The compiler enforces that only
+MyError can be thrown.
+Follow-up: try? converts the result to Optional — nil on error, .some(value)
+on success. The error itself is discarded. try! force-unwraps — crashes on error.
+
+
+85% — Conditional conformance
+
+A generic type conforms to a protocol only when its type parameters meet
+specific constraints. Example: extension Array: Equatable where Element: Equatable.
+The conformance is "conditional" on the element being Equatable.
+Follow-up: Array, Optional, Dictionary all conditionally conform to Equatable/
+Hashable/Encodable. [Int] is Equatable because Int is; [UIView] is not.
+Follow-up: Yes, you can retroactively add conditional conformance in an extension.
+But you don't own the type, so it's a retroactive conformance — use with caution
+to avoid conflicts.
+
+
+84% — String internals (small string, UTF-8, Character)
+
+String is a Collection of Character. A Character is an extended grapheme cluster
+(one or more Unicode scalars). Indexing is O(n) because characters have variable
+width — you must walk from the start.
+Follow-up: Strings of 15 bytes or fewer (on 64-bit) are stored inline in the
+String struct itself — no heap allocation. This covers most short strings.
+Follow-up: Swift 5 switched to native UTF-8 storage. This means zero-cost
+bridging to C strings, faster I/O and parsing, and lower memory for ASCII-heavy
+text. Accessing UTF-16 views (for Cocoa) now requires transcoding.
+
+
+83% — Copy-on-write implementation
+
+COW uses a reference-counted class as the backing store. The value type holds
+a reference to this storage. Before any mutation, call
+isKnownUniquelyReferenced(&storage): if true, mutate in place; if false,
+copy the storage, then mutate the copy.
+Follow-up: struct COW<T> { private var storage: Box<T>; mutating func
+update(_ f: (inout T)->Void) { if !isKnownUniquelyReferenced(&storage)
+{ storage = Box(storage.value) }; f(&storage.value) } }
+Follow-up: It always returns false for Objective-C class instances. ObjC objects
+use a different refcount mechanism. You must use a Swift class as the storage box.
+
+
+82% — Result builders (@resultBuilder)
+
+A result builder transforms a block of sequential statements into a series
+of method calls. The compiler rewrites the body: each statement becomes a
+buildExpression call, combined via buildBlock. Control flow uses buildOptional
+(if without else), buildEither(first:/second:) (if/else), buildArray (for loops).
+Follow-up: buildBlock combines multiple results into one. buildOptional wraps
+results from optional branches. buildEither handles if/else by picking first or
+second. buildArray aggregates loop iterations.
+Follow-up: @ViewBuilder is a result builder. Each view in a body is a statement
+passed to buildBlock, producing a TupleView. if/else uses buildEither to produce
+conditional content.
+
+
+81% — Collection protocol hierarchy
+
+Sequence: single-pass iteration via makeIterator(). Collection: multi-pass,
+subscript by index, startIndex/endIndex, guaranteed O(1) subscript.
+BidirectionalCollection: adds backward traversal (index(before:)).
+RandomAccessCollection: O(1) index distance and offset calculations.
+Follow-up: A Sequence may be single-pass — iterating again might yield different
+or no results. Collection guarantees multi-pass and non-destructive iteration.
+Follow-up: RandomAccessCollection enables O(1) count, index(_:offsetBy:), and
+distance(from:to:). Without it, these are O(n) because they walk index by index.
+
+
+80% — KeyPaths (typed, writable, reference-writable)
+
+KeyPath<Root, Value>: read-only path from Root to Value.
+WritableKeyPath: read-write path — requires the root to be a var.
+ReferenceWritableKeyPath: read-write path for reference types — works even
+when the root variable is let (because mutation is on the object, not the reference).
+Follow-up: WritableKeyPath requires var root; ReferenceWritableKeyPath works
+with let root because class properties are reference-semantics mutations.
+Follow-up: SwiftUI uses KeyPaths for dynamic member lookup on Binding.
+Combine uses them in .map(\.property) for publisher transforms. Both leverage
+type-safe property references.
+
+
+79% — Lazy sequences and lazy properties
+
+lazy on a collection (e.g., array.lazy.map { ... }) returns a LazyMapSequence
+that computes elements on demand — no intermediate array allocation.
+lazy var on a stored property delays initialization to first access.
+Follow-up: lazy var is NOT thread-safe. Two threads accessing it simultaneously
+can trigger double initialization. It's also always var (never let) and
+cannot have a didSet/willSet observer.
+Follow-up: Chain lazy operations when you only need a subset of results
+(e.g., first(where:)). Materialize into Array when you need random access
+or will iterate multiple times — lazy recomputes on each pass.
+
+
+78% — Equatable, Hashable, Comparable synthesis
+
+The compiler auto-synthesizes Equatable and Hashable for structs and enums
+when ALL stored properties (struct) or associated values (enum) conform to
+the same protocol. Enums with no associated values get it for free.
+Follow-up: Comparable is only auto-synthesized for enums without associated
+values (based on case declaration order). For structs, you must manually
+implement < yourself.
+Follow-up: If hash(into:) disagrees with == (two equal values produce
+different hashes), Dictionary and Set break silently — lookups fail,
+duplicates appear. It violates the invariant: a == b implies a.hashValue == b.hashValue.
+
+
+77% — Type metadata and metatypes (.self, .Type, type(of:))
+
+A metatype is the type of a type. String.Type is the metatype of String.
+String.self is the singleton instance of String.Type.
+type(of: x) returns the dynamic (runtime) metatype of x.
+Follow-up: For concrete types, T.self == type(of: instance). For protocols,
+T.self is the protocol metatype (P.Protocol), but type(of: instance) returns
+the concrete type's metatype — they differ.
+Follow-up: func f<T>(_ type: T.Type) — call with f(String.self). This is how
+JSONDecoder.decode(T.self, from:) works — the metatype carries the type info.
+
+
+76% — Memberwise initializers (rules, limitations)
+
+Swift generates a memberwise init for structs only. It includes all stored
+properties in declaration order. Default values become default parameters.
+Follow-up: Defining ANY custom init inside the struct body suppresses the
+memberwise init. Also suppressed for classes (never generated) and if a
+property is private from outside the module.
+Follow-up: Put the custom init in an extension. The compiler generates the
+memberwise init from the struct body, and the extension adds yours without
+suppressing it.
+
+
+75% — Pattern matching (switch, case let, ~= operator)
+
+Swift's switch uses pattern matching: enum cases, tuples, ranges, type
+casting (is/as), value binding (let x), and wildcards (_). switch must be
+exhaustive or have a default.
+Follow-up: The ~= operator powers pattern matching. expression ~= pattern.
+You can overload it: func ~=(pattern: Range<Int>, value: Int) -> Bool.
+This is how ranges work in case statements.
+Follow-up: switch (x, y) { case (0, 0): ... case (let a, let b) where a == b: ... }
+— tuple patterns with value bindings and where guards.
+
+
+74% — @autoclosure
+
+@autoclosure wraps an expression in a closure automatically. The argument
+looks like a value but is lazily evaluated — the closure is only called if
+needed. Used for short-circuit evaluation.
+Follow-up: assert(condition) — the condition is @autoclosure so it's not
+evaluated in release builds. ?? uses @autoclosure for the default value so
+it's only computed if the optional is nil.
+Follow-up: Overuse hides the fact that code is deferred. Readers may not
+realize side effects don't execute immediately. Use sparingly and only when
+lazy evaluation is the clear intent.
+
+
+73% — Macros (freestanding, attached, roles)
+
+Macros generate code at compile time, replacing boilerplate with compiler-checked
+expansions. Freestanding macros (#stringify, #Preview) produce code inline.
+Attached macros (@Observable, @Model) modify/augment the declaration they're
+attached to.
+Follow-up: Roles — expression: returns a value; declaration: produces new
+declarations; accessor: adds get/set; member: adds members to a type;
+peer: adds sibling declarations; extension: adds extensions; conformance:
+adds protocol conformance.
+Follow-up: Macros expand during compilation after parsing but before type
+checking. They operate on the syntax tree (SwiftSyntax), not semantic info.
+They run in a sandbox — no file/network access.
+
+
+72% — ~Copyable (noncopyable types)
+
+Noncopyable types (struct Foo: ~Copyable) cannot be implicitly copied.
+They model unique ownership — file handles, locks, database connections.
+When moved, the original binding becomes invalid. The compiler enforces
+single ownership at compile time.
+Follow-up: consuming: the callee takes ownership, caller can't use the value
+after. borrowing: callee gets read-only access, caller retains ownership.
+These control ownership transfer explicitly.
+Follow-up: discard self in a consuming method destroys the value without
+calling deinit. Useful when you've manually cleaned up resources and want
+to skip the deinit logic.
+
+
+71% — Deinit behavior and ordering
+
+deinit runs synchronously when the last strong reference drops (strong count
+hits 0). It runs on whatever thread releases the last reference — not
+necessarily the main thread.
+Follow-up: Yes, all stored properties are still valid in deinit. You can
+access them freely. They are destroyed after deinit completes.
+Follow-up: In a class hierarchy, the subclass deinit runs first, then the
+superclass deinit. Properties are released after the deinit at their own
+level completes — child first, then parent.
+
+
+70% — Global and static variable initialization
+
+Global variables and static stored properties are initialized lazily on first
+access. They use dispatch_once internally (via swift_once) — guaranteed
+to initialize exactly once, thread-safe.
+Follow-up: Yes, thread-safe by default. The runtime uses a dispatch_once
+barrier. Subsequent accesses are a simple pointer load with no synchronization.
+Follow-up: static members belong to the type and cannot be overridden.
+class var (computed only) can be overridden by subclasses. You cannot have
+a stored class var — only class-level computed properties.
+
+
+69% — where clauses in extensions and protocols
+
+In protocol extensions: extension Collection where Element: Equatable { }
+adds methods only when the constraint is met. In generic type extensions:
+extension Array where Element: Comparable { } scopes methods similarly.
+Follow-up: extension Array where Element: Equatable { func removeDuplicates()
+-> [Element] { ... } } — available only on arrays of equatable elements.
+Follow-up: Yes. Individual methods inside an unconstrained extension can have
+their own where clauses: func f() where Element: Hashable { }.
+
+
+68% — Recursive enums (indirect)
+
+indirect stores the associated value behind a heap-allocated pointer instead
+of inline. Without it, a recursive enum would have infinite size because the
+compiler can't determine the layout.
+Follow-up: Without indirect, associated values are stored inline in the enum.
+With indirect, a pointer is stored instead, and the actual value lives on
+the heap. Cost: one heap allocation per indirect case value.
+Follow-up: Yes. indirect case node(Tree, Tree) marks only that case as
+indirect. indirect enum Tree marks all cases. Per-case is more efficient
+when only some cases are recursive.
+
+
+67% — @dynamicMemberLookup and @dynamicCallable
+
+@dynamicMemberLookup lets you define subscript(dynamicMember:) so that
+arbitrary dot-syntax properties resolve to subscript calls. Enables
+DSLs and proxy objects.
+Follow-up: @dynamicCallable lets instances be called like functions by
+implementing dynamicallyCall(withArguments:) or dynamicallyCall(withKeywordArguments:).
+Follow-up: KeyPath-based @dynamicMemberLookup: subscript<T>(dynamicMember
+keyPath: KeyPath<Wrapped, T>) -> T. This is how Binding and other SwiftUI
+wrappers forward property access to the underlying value.
+
+
+66% — @frozen and library evolution
+
+@frozen tells the compiler the enum/struct layout will never change.
+The compiler can optimize by inlining the layout — no indirection. Use it
+for types that are truly stable and shipped in a binary framework.
+Follow-up: Library evolution mode (enabled for system frameworks) adds
+indirection so types can change layout between OS versions. @frozen opts
+out of this indirection for performance.
+Follow-up: @unknown default handles future enum cases added in library
+evolution. The compiler warns if you switch on a non-frozen enum without it,
+ensuring forward compatibility.
+
+
+65% — Never type
+
+Never is an uninhabited type — it has no values. A function returning Never
+(like fatalError()) guarantees it will never return. The compiler uses this
+for exhaustiveness checking and control flow analysis.
+Follow-up: Never is uninhabited, so it could theoretically satisfy any
+protocol (vacuous truth). In practice, Swift does NOT auto-conform Never
+to all protocols — conformances like Equatable, Hashable, Error, Sendable,
+and Codable are added explicitly in the stdlib.
+Follow-up: Result<String, Never> means the result can never be an error —
+you can call .get() without try. Useful for publishers/results that are
+guaranteed to succeed.
+
+
+64% — Phantom types and type-level programming
+
+A phantom type parameter appears in the generic signature but is not used in
+any stored property. It exists only to carry compile-time type information.
+Example: struct Identifier<Entity> { let rawValue: String } — the Entity
+phantom type prevents mixing user IDs with order IDs.
+Follow-up: struct Token<State> { } where State is Authenticated or
+Unauthenticated. Functions require Token<Authenticated> — you can't pass
+an unauthenticated token. Invalid states become unrepresentable.
+Follow-up: Zero cost. The phantom type is erased at runtime. The struct has
+the same memory layout regardless of the phantom parameter.
+
+
+63% — @inlinable and cross-module optimization
+
+@inlinable exposes the function body to callers in other modules, enabling
+the optimizer to inline the call across module boundaries. Without it,
+cross-module calls are opaque.
+Follow-up: @usableFromInline marks internal declarations so @inlinable
+functions can reference them. It makes them part of the ABI without
+making them public API.
+Follow-up: Once @inlinable, the function body is baked into client binaries.
+Changing the implementation is a source-compatible but not binary-compatible
+change — clients must recompile to pick up the new version.
+
+
+62% — Subscripts (static, generic, variadic)
+
+Subscripts support get, set, and _modify (for COW optimization). They can be
+overloaded by parameter type and return type. They support default parameters.
+Follow-up: Yes, subscripts can be generic: subscript<T>(key: String) -> T.
+Yes, they can be static: static subscript(key: String) -> Value.
+Follow-up: Subscripts are syntactic sugar with [] syntax. Functionally
+identical to a get/set method pair but conventionally used for indexed
+or keyed access. The compiler treats them the same way.
+
+
+61% — Retroactive conformance
+
+Adding a protocol conformance to a type you don't own in a module you don't
+own. Example: extension UIColor: Codable { }. Risky because another module
+might add the same conformance, causing a runtime conflict.
+Follow-up: Swift doesn't enforce the orphan rule (unlike Rust). Two modules
+can add the same conformance. The linker picks one arbitrarily — silent
+bugs. The compiler warns in Swift 6 with retroactive conformance diagnostics.
+Follow-up: If two modules both make UIColor: Codable with different
+implementations, which one runs depends on link order. This can cause
+data corruption or crashes. Always prefer wrapper types over retroactive conformance.
+
+
+60% — Tuples and their limitations
+
+Tuples group multiple values. They support labels, decomposition, and pattern
+matching. They're good for lightweight, unnamed return types.
+Follow-up: Tuples cannot conform to protocols. You can use == on tuples up
+to 6 elements (built-in overloads), but they don't formally conform to
+Equatable. You cannot store them as Equatable or Hashable.
+Follow-up: A tuple has no methods, can't conform to protocols, and can't be
+extended. A struct has names, methods, conformances, and access control.
+Use tuples only for transient, local groupings — structs for anything meaningful.
+
+
+59% — Lazy collections deep dive
+
+LazySequence wraps a base sequence and defers all transformations. Calling
+.map, .filter, etc. returns lazy wrappers — no work happens until you
+iterate. Operations compose without intermediate allocations.
+Follow-up: When you iterate the full sequence multiple times, lazy
+recomputes every time. When the closure has side effects, lazy evaluation
+order can surprise you. For small collections, the wrapper overhead may exceed
+the savings.
+Follow-up: It returns the same lazy sequence — no double-wrapping. The lazy
+property is idempotent on already-lazy sequences.
+
+
+58% — Typed throws (Swift 6)
+
+throws(MyError) restricts the function to only throw MyError. The catch
+block knows the exact error type — no as? casting needed.
+Untyped throws erases to any Error.
+Follow-up: In closures passed to generic functions, the compiler can infer
+the thrown error type from context. In most cases you specify it explicitly
+at the function signature level.
+Follow-up: If function A throws(ErrorA) and function B throws(ErrorB), a
+function calling both throws(any Error) unless you unify the error type.
+The compiler does not auto-merge typed throws.

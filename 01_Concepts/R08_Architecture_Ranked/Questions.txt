@@ -1,0 +1,375 @@
+Senior iOS Interview Questions — Architecture & Design Patterns — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level architecture-focused interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — MVVM in SwiftUI
+
+How do you implement MVVM in SwiftUI? Where does business logic live
+and how do you define ViewModel boundaries?
+Follow-up: How do you avoid the "massive ViewModel" problem?
+Follow-up: How do you unit test a SwiftUI ViewModel?
+
+
+98% — Dependency injection
+
+What is dependency injection and what are the common patterns in Swift?
+Compare protocols, closures, containers, and SwiftUI's Environment.
+Follow-up: How does dependency injection improve testability?
+Follow-up: What is the difference between dependency injection and
+dependency inversion?
+
+
+97% — SOLID principles (concrete iOS examples)
+
+Explain each SOLID principle with a concrete iOS example.
+Follow-up: Which SOLID principle do you see violated most often in iOS codebases?
+Follow-up: How does protocol-oriented programming support Open-Closed?
+
+
+96% — Protocol-oriented design
+
+What is protocol-oriented programming and how does it differ from
+class-based inheritance? When do you prefer composition over inheritance?
+Follow-up: What are protocol witnesses and how does Swift dispatch protocol methods?
+Follow-up: How do you handle the "diamond problem" with protocol extensions?
+
+
+95% — MVC vs MVVM vs VIPER vs MV
+
+Compare MVC, MVVM, VIPER, and the newer MV pattern in SwiftUI.
+When would you choose each?
+Follow-up: What are the practical problems with MVC at scale?
+Follow-up: Is VIPER overkill for most iOS apps? When is it justified?
+
+
+94% — Testing architecture
+
+What is your approach to testing in a large iOS app? Describe the
+test pyramid and which layers you prioritize.
+Follow-up: What types of test doubles do you use and when (mock, stub, spy, fake)?
+Follow-up: How do you decide what NOT to test?
+
+
+93% — Networking layer architecture
+
+How do you design a networking layer in Swift? Walk through request
+building, response handling, and error mapping.
+Follow-up: How do you abstract URLSession for testability?
+Follow-up: How do you handle authentication token refresh transparently?
+
+
+92% — Repository pattern
+
+What is the repository pattern and how does it apply to iOS?
+Follow-up: How does the repository abstract the data source (network vs cache vs database)?
+Follow-up: How do you test a repository in isolation?
+
+
+91% — Coordinator / Router pattern
+
+What is the coordinator pattern and why would you use it for navigation?
+Follow-up: How does the coordinator pattern work with SwiftUI's NavigationStack?
+Follow-up: What are the downsides of coordinators?
+
+
+90% — Clean Architecture / layered architecture
+
+Explain Clean Architecture in the context of an iOS app. What are the layers
+and how do dependencies flow?
+Follow-up: What is the dependency rule and why must dependencies point inward?
+Follow-up: How do you enforce layer boundaries in practice?
+
+
+89% — Error handling architecture
+
+How do you design an error handling strategy across an entire app?
+Describe error types, propagation, and user-facing error presentation.
+Follow-up: How do you map domain errors to user-friendly messages?
+Follow-up: When do you use throws vs Result vs optionals?
+
+
+88% — Singleton pattern
+
+When is a singleton appropriate in iOS? What are the testing and
+concurrency concerns?
+Follow-up: How do you make a singleton testable?
+Follow-up: What alternatives exist (dependency containers, environment values)?
+
+
+87% — Observer pattern
+
+Explain the observer pattern in iOS. Compare NotificationCenter, KVO,
+Combine publishers, and @Observable.
+Follow-up: When would you choose each approach?
+Follow-up: How does @Observable improve on the traditional observer patterns?
+
+
+86% — Modular app design
+
+How do you break a large iOS app into modules? Describe your module
+strategy using SPM.
+Follow-up: What is the difference between a feature module and an interface module?
+Follow-up: How do you manage dependencies between modules without creating cycles?
+
+
+85% — Unidirectional data flow
+
+What is unidirectional data flow? Explain the concept and how frameworks
+like TCA or Redux-style architectures implement it.
+Follow-up: What problems does unidirectional data flow solve?
+Follow-up: When is it overkill and when is it essential?
+
+
+84% — App startup and composition root
+
+What is a composition root and how do you structure app startup?
+Follow-up: How do you avoid doing too much work on the main thread at launch?
+Follow-up: How do you register and resolve dependencies at startup?
+
+
+83% — Service layer design
+
+What is a service layer and how does it differ from a repository?
+Follow-up: How do you scope service lifetimes (singleton vs per-request vs per-feature)?
+Follow-up: How do you avoid god-service classes?
+
+
+82% — Factory pattern
+
+What is the factory pattern and when do you use it in iOS?
+Follow-up: How do factories help with dependency injection?
+Follow-up: Compare factory methods, abstract factories, and closures-as-factories.
+
+
+81% — Caching architecture
+
+How do you design a caching layer with both memory and disk tiers?
+Follow-up: What cache invalidation strategies do you use?
+Follow-up: How does stale-while-revalidate work in practice?
+
+
+80% — Offline-first architecture
+
+How would you architect an offline-first feature from scratch?
+Describe the sync engine, conflict resolution, and optimistic updates.
+Follow-up: What is the single source of truth in an offline-first design?
+Follow-up: Compare last-writer-wins, CRDTs, and manual merge.
+
+
+79% — State machine pattern
+
+When do you use state machines in iOS? Give a concrete example.
+Follow-up: How do you implement a state machine in Swift (enums with associated values)?
+Follow-up: How do state machines prevent invalid state transitions?
+
+
+78% — Strategy pattern
+
+What is the strategy pattern? Give an iOS-specific example.
+Follow-up: How do protocols and closures each serve as strategies?
+Follow-up: When do you prefer a closure over a full protocol for a strategy?
+
+
+77% — Feature flagging architecture
+
+How do you architect a feature flag system?
+Follow-up: How do you handle local vs remote flags?
+Follow-up: How do you clean up stale feature flags?
+
+
+76% — Deep linking architecture
+
+How do you design a deep linking system in a SwiftUI app?
+Follow-up: How do you map a URL to a specific screen and navigation state?
+Follow-up: What is the difference between universal links and custom URL schemes?
+
+
+75% — Decorator pattern (view modifiers)
+
+What is the decorator pattern and how do SwiftUI view modifiers
+exemplify it?
+Follow-up: How would you write a custom view modifier?
+Follow-up: When do you use a ViewModifier struct vs a View extension?
+
+
+74% — Analytics architecture
+
+How do you design an analytics/event tracking layer?
+Follow-up: How do you abstract the analytics provider so you can swap SDKs?
+Follow-up: How do you ensure analytics calls don't block the UI?
+
+
+73% — Configuration management
+
+How do you manage environment-specific configurations (dev, staging, prod)?
+Follow-up: How do you use build configurations and xcconfig files?
+Follow-up: How do you keep secrets out of the binary?
+
+
+72% — Middleware pattern
+
+What is the middleware pattern and where is it useful in iOS?
+Follow-up: How is middleware used in networking layers or Redux-style architectures?
+Follow-up: How do you compose multiple middleware?
+
+
+71% — Micro-features architecture
+
+What is the micro-features architecture (Tuist-style)?
+Follow-up: How does each feature expose an interface target and an implementation target?
+Follow-up: What are the tradeoffs vs a simpler module structure?
+
+
+70% — Logging and observability architecture
+
+How do you design a logging system for a production iOS app?
+Follow-up: How do you structure log levels and categories?
+Follow-up: How do you correlate logs with crash reports and user sessions?
+
+
+69% — Database migration strategy
+
+How do you handle database schema migrations in iOS?
+Follow-up: How does Core Data lightweight migration work?
+Follow-up: When do you need a custom migration and how do you manage it safely?
+
+
+68% — API versioning strategy
+
+How do you handle API versioning on the client side?
+Follow-up: How do you support multiple API versions simultaneously?
+Follow-up: How do you gracefully degrade when the server returns unknown fields?
+
+
+67% — Theming / design system architecture
+
+How do you architect a theming or design system layer?
+Follow-up: How do you support dark mode and dynamic type systematically?
+Follow-up: How do you share design tokens across the app?
+
+
+66% — Accessibility architecture
+
+How do you build accessibility into your architecture rather than
+treating it as an afterthought?
+Follow-up: What accessibility APIs do you use in SwiftUI?
+Follow-up: How do you audit and test accessibility?
+
+
+65% — Localization architecture
+
+How do you architect localization for a large multi-language app?
+Follow-up: How do you handle plurals, interpolation, and right-to-left layouts?
+Follow-up: How has String Catalogs changed localization workflow?
+
+
+64% — Plugin / extensibility architecture
+
+How do you design a plugin or extensibility system in an iOS app?
+Follow-up: How do protocols enable a plugin architecture?
+Follow-up: When would you use this pattern vs a simpler strategy pattern?
+
+
+63% — Command pattern
+
+What is the command pattern and where does it apply in iOS?
+Follow-up: How can you use it to implement undo/redo?
+Follow-up: How does the command pattern relate to event sourcing?
+
+
+62% — Dependency graph and build times
+
+How does your architecture affect build times? How do you optimize
+the module dependency graph?
+Follow-up: What is the difference between a wide vs deep dependency graph?
+Follow-up: How do interface modules help compilation speed?
+
+
+61% — Reactive vs imperative architecture
+
+When do you choose a reactive architecture (Combine, RxSwift) vs a
+straightforward imperative async/await approach?
+Follow-up: What are the debugging tradeoffs of reactive chains?
+Follow-up: How do you migrate from Combine to async/await incrementally?
+
+
+60% — Security architecture
+
+How do you design for security in an iOS app architecture?
+Follow-up: How do you store tokens securely (Keychain, not UserDefaults)?
+Follow-up: How do you implement certificate pinning and what are the risks?
+
+
+59% — A/B testing architecture
+
+How do you architect A/B testing support?
+Follow-up: How do you ensure experiments don't create permanent code branching?
+Follow-up: How does A/B testing interact with feature flags?
+
+
+58% — Multi-target / white-label architecture
+
+How do you architect an app that ships multiple branded variants?
+Follow-up: How do you use targets, schemes, and build configurations?
+Follow-up: Where do you draw the line between shared and brand-specific code?
+
+
+57% — Performance monitoring architecture
+
+How do you architect performance monitoring into your app?
+Follow-up: What metrics do you track (launch time, frame drops, network latency)?
+Follow-up: How do you use MetricKit and custom instrumentation?
+
+
+56% — Crash resilience architecture
+
+How do you architect for crash resilience and graceful degradation?
+Follow-up: How do you implement circuit breakers for unreliable services?
+Follow-up: How do you recover state after a crash?
+
+
+55% — Background processing architecture
+
+How do you architect background work (sync, uploads, processing)?
+Follow-up: How do you handle BGTaskScheduler and time limits?
+Follow-up: How do you ensure work survives app termination?
+
+
+54% — Notification architecture (push + local)
+
+How do you architect push and local notification handling?
+Follow-up: How do you route notification taps to the correct screen?
+Follow-up: How do you test notification flows?
+
+
+53% — Widget / extension architecture
+
+How do you architect shared code between the main app and extensions
+(widgets, intents, watch)?
+Follow-up: How do you share data between app and extension (App Groups, shared container)?
+Follow-up: How do you avoid duplicating logic?
+
+
+52% — Event-driven architecture
+
+What is event-driven architecture and when is it useful in iOS?
+Follow-up: How do you implement an event bus without creating hidden dependencies?
+Follow-up: How do you trace and debug event flows?
+
+
+51% — Architecture decision records
+
+How do you document and communicate architecture decisions on a team?
+Follow-up: What belongs in an ADR (Architecture Decision Record)?
+Follow-up: How do you evaluate tradeoffs when choosing between patterns?
+
+
+50% — Incremental migration strategy
+
+How do you migrate a large codebase from one architecture to another
+incrementally (e.g., MVC to MVVM, UIKit to SwiftUI)?
+Follow-up: How do you maintain feature parity during a migration?
+Follow-up: How do you use the strangler fig pattern in iOS?

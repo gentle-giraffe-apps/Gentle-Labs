@@ -1,0 +1,315 @@
+Senior iOS Interview Questions — iOS Platform — Ranked by Probability
+
+Each question has an explicit % likelihood of being asked in a
+senior/staff-level iOS platform-focused interview.
+Sorted strictly from most to least likely. Focus prep top-down.
+
+
+99% — App lifecycle (scenes, @main, scenePhase)
+
+Explain the iOS app lifecycle. How do scenes work, and what's the
+relationship between UIApplicationDelegate and SceneDelegate?
+Follow-up: How do you observe lifecycle changes in a pure SwiftUI app using scenePhase?
+Follow-up: What happens to your app's state during a scene disconnect vs. app termination?
+
+
+98% — Data persistence strategies
+
+How do you persist data on iOS? Compare UserDefaults, Keychain,
+Core Data, SwiftData, and the file system.
+Follow-up: When would you reach for each one?
+Follow-up: What are the size/performance limits of UserDefaults?
+
+
+97% — URLSession and networking
+
+How does URLSession work? Explain configurations, sessions, and tasks.
+Follow-up: What's the difference between default, ephemeral, and background session configurations?
+Follow-up: How does URLCache work and how do you configure caching policies?
+
+
+96% — Push notifications (APNs)
+
+Walk me through the push notification flow — from registration to display.
+Follow-up: What is a silent push and when would you use it?
+Follow-up: How do Notification Service and Notification Content extensions work?
+
+
+95% — Memory management in practice
+
+How do you handle memory warnings on iOS? What is jetsam?
+Follow-up: How do you monitor your app's memory footprint at runtime?
+Follow-up: What's the typical memory budget on modern iPhones and how does jetsam decide to kill your app?
+
+
+94% — Background execution
+
+What are the different background execution modes on iOS?
+Follow-up: Compare BGAppRefreshTask vs BGProcessingTask — when do you use each?
+Follow-up: What are the time limits for background tasks?
+
+
+93% — Keychain and security
+
+How does the iOS Keychain work? When and how do you use it?
+Follow-up: What are Keychain access groups and how do you share items between apps?
+Follow-up: What are data protection classes (Complete, AfterFirstUnlock, etc.)?
+
+
+92% — Core Data stack and concurrency
+
+Explain the Core Data stack. How do you handle concurrency with NSManagedObjectContext?
+Follow-up: What is the difference between mainQueueConcurrencyType and privateQueueConcurrencyType?
+Follow-up: How do you pass objects between contexts safely?
+
+
+91% — Code signing and provisioning
+
+Explain code signing on iOS. What are certificates, provisioning profiles, and entitlements?
+Follow-up: What's the difference between development and distribution certificates?
+Follow-up: How do you troubleshoot "no valid provisioning profile" errors?
+
+
+90% — Instruments profiling
+
+How do you use Instruments to diagnose performance issues?
+Follow-up: Walk me through using Time Profiler to find a bottleneck.
+Follow-up: When would you use Allocations vs Leaks vs Network instruments?
+
+
+89% — XCTest and UI testing
+
+How do you structure unit tests and UI tests on iOS?
+Follow-up: What's the difference between XCTest unit tests and XCUITest?
+Follow-up: How do you make UI tests reliable and fast?
+
+
+88% — Permissions (camera, location, photos)
+
+How do you request user permissions on iOS? Walk through the flow.
+Follow-up: What happens if the user denies a permission? How do you handle that gracefully?
+Follow-up: What Info.plist keys are required and what happens if you forget one?
+
+
+87% — App Transport Security
+
+What is App Transport Security (ATS)?
+Follow-up: When and how would you add exceptions?
+Follow-up: Will App Store Review reject an app with ATS disabled globally?
+
+
+86% — SwiftData (@Model, ModelContainer, ModelContext)
+
+Explain SwiftData's architecture. How does @Model work?
+Follow-up: How do you set up a ModelContainer and perform queries?
+Follow-up: How does SwiftData compare to Core Data for new projects?
+
+
+85% — File system and sandboxing
+
+Explain the iOS file system sandbox. What directories are available?
+Follow-up: What is the difference between Documents, Library, tmp, and Caches?
+Follow-up: How do app groups allow shared storage between apps and extensions?
+
+
+84% — Privacy manifests and required reason APIs
+
+What are privacy manifests and why did Apple introduce them?
+Follow-up: What are required reason APIs and how do you declare them?
+Follow-up: What happens during App Store review if your manifest is missing or incomplete?
+
+
+83% — Accessibility (VoiceOver, Dynamic Type)
+
+How do you make an iOS app accessible?
+Follow-up: How do you support Dynamic Type in SwiftUI and UIKit?
+Follow-up: What are the key accessibility modifiers in SwiftUI?
+
+
+82% — URL schemes and universal links
+
+What's the difference between custom URL schemes and universal links?
+Follow-up: How do you set up universal links (apple-app-site-association)?
+Follow-up: How do you handle an incoming universal link in a SwiftUI app?
+
+
+81% — Certificate pinning
+
+What is certificate pinning and why would you use it?
+Follow-up: How do you implement it with URLSession?
+Follow-up: What are the risks of pinning and how do you handle certificate rotation?
+
+
+80% — App Tracking Transparency
+
+What is App Tracking Transparency (ATT)?
+Follow-up: When do you need to show the ATT prompt?
+Follow-up: What happens if the user denies tracking — how do you adapt?
+
+
+79% — Location services (CLLocationManager)
+
+How do you implement location services on iOS?
+Follow-up: What's the difference between requestWhenInUseAuthorization and requestAlwaysAuthorization?
+Follow-up: Explain significant-change monitoring and geofencing.
+
+
+78% — Core Data migrations
+
+How do you handle Core Data model migrations?
+Follow-up: What's the difference between lightweight and heavy (custom) migrations?
+Follow-up: When does lightweight migration fail and you need a mapping model?
+
+
+77% — WidgetKit
+
+How do you build a widget with WidgetKit?
+Follow-up: What is a Timeline, TimelineEntry, and TimelineProvider?
+Follow-up: How do you share data between your app and a widget?
+
+
+76% — StoreKit 2 (in-app purchases, subscriptions)
+
+How does StoreKit 2 work? Walk me through an in-app purchase flow.
+Follow-up: How do you verify transactions and handle subscription status?
+Follow-up: What changed from original StoreKit to StoreKit 2?
+
+
+75% — App extensions (share, notification, etc.)
+
+What are app extensions? How do they differ from the main app?
+Follow-up: How do you share data between an extension and the host app?
+Follow-up: What are the memory limits for extensions?
+
+
+74% — Live Activities and Dynamic Island
+
+What are Live Activities and how does the Dynamic Island work?
+Follow-up: How do you update a Live Activity — push vs local updates?
+Follow-up: What are the content size and update frequency limits?
+
+
+73% — Thread Sanitizer and Address Sanitizer
+
+What are TSan and ASan? When do you use each?
+Follow-up: What kinds of bugs does Thread Sanitizer catch that you can't find manually?
+Follow-up: Why can't you run TSan and ASan at the same time?
+
+
+72% — App Store review common rejections
+
+What are the most common reasons apps get rejected from App Store review?
+Follow-up: How do you handle guideline 2.1 (crashes/bugs) and 4.3 (spam) rejections?
+Follow-up: What's the appeal process?
+
+
+71% — MetricKit and performance monitoring
+
+What is MetricKit and how do you use it for production monitoring?
+Follow-up: What metrics does MetricKit provide (hang rate, battery, launch time)?
+Follow-up: How does MetricKit compare to third-party crash/performance SDKs?
+
+
+70% — Localization (String Catalogs, bundle, RTL)
+
+How do you localize an iOS app?
+Follow-up: What are String Catalogs (Xcode 15+) and how do they replace .strings files?
+Follow-up: How do you handle pluralization rules and right-to-left layouts?
+
+
+69% — App Intents and Shortcuts
+
+What is the App Intents framework?
+Follow-up: How do App Intents integrate with Siri and Shortcuts?
+Follow-up: How does this relate to SiriKit from older iOS versions?
+
+
+68% — Background URLSession
+
+How do background URL sessions work?
+Follow-up: What happens when a background download completes while the app is suspended?
+Follow-up: How do you handle the application(_:handleEventsForBackgroundURLSession:) callback?
+
+
+67% — Energy efficiency and battery
+
+How do you optimize your app for battery life?
+Follow-up: What tools does Xcode provide for measuring energy impact?
+Follow-up: What are the biggest battery drains in a typical iOS app?
+
+
+66% — TestFlight distribution
+
+How does TestFlight work?
+Follow-up: What's the difference between internal and external testing?
+Follow-up: How do you manage beta builds and test groups?
+
+
+65% — CloudKit basics
+
+What is CloudKit and when would you use it?
+Follow-up: What's the difference between public, private, and shared databases?
+Follow-up: How does CloudKit handle offline sync and conflict resolution?
+
+
+64% — Network Link Conditioner
+
+What is Network Link Conditioner and why should you use it during development?
+Follow-up: How do you simulate poor network conditions?
+Follow-up: What kinds of bugs does network conditioning reveal?
+
+
+63% — Xcode Cloud / CI-CD for iOS
+
+What is Xcode Cloud and how does CI/CD work for iOS?
+Follow-up: How do you structure workflows for build, test, and distribute?
+Follow-up: How does Xcode Cloud compare to other CI systems (GitHub Actions, Fastlane)?
+
+
+62% — App thinning (slicing, on-demand resources)
+
+What is app thinning? Explain slicing, bitcode, and on-demand resources.
+Follow-up: Is bitcode still relevant as of Xcode 14+?
+Follow-up: How do on-demand resources reduce initial download size?
+
+
+61% — Keychain sharing between apps
+
+How do you share Keychain items between multiple apps?
+Follow-up: What are Keychain access groups and how do you configure them?
+Follow-up: How do entitlements and team IDs affect Keychain sharing?
+
+
+60% — Multipeer Connectivity
+
+What is Multipeer Connectivity and when would you use it?
+Follow-up: How does peer discovery and session management work?
+Follow-up: What are the performance limitations?
+
+
+59% — Core Location vs MapKit
+
+What's the difference between Core Location and MapKit?
+Follow-up: When do you need Core Location without MapKit?
+Follow-up: How does the new MapKit for SwiftUI (Map) differ from MKMapView?
+
+
+58% — Core Spotlight (search indexing)
+
+What is Core Spotlight and how do you index app content for search?
+Follow-up: How do you handle a user tapping a Spotlight search result?
+Follow-up: What's the difference between Core Spotlight and NSUserActivity indexing?
+
+
+57% — NFC and Core NFC
+
+What is Core NFC and what can you do with it?
+Follow-up: What are the limitations of NFC reading on iOS?
+Follow-up: What tag types does iOS support (NDEF, ISO 7816, etc.)?
+
+
+56% — Handoff and Universal Clipboard
+
+What is Handoff and how do you implement it?
+Follow-up: How does NSUserActivity drive Handoff?
+Follow-up: How does Universal Clipboard work and what are the security considerations?

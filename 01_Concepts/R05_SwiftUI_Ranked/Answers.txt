@@ -1,0 +1,764 @@
+Senior iOS Interview Answers — SwiftUI — Ranked by Probability
+
+Concise answers designed to be memorized and delivered in 30-60 seconds.
+
+
+99% — View identity and structural identity
+
+SwiftUI identifies views two ways: structural identity (position in the
+view hierarchy / ViewBuilder body) and explicit identity (ForEach id,
+.id() modifier). Structural identity is determined by WHERE the view
+appears in the code — each branch of an if/else is a different identity.
+Explicit identity is when you assign an id directly. When identity is
+lost (e.g., unstable id), SwiftUI destroys and recreates the view —
+losing all @State, breaking animations, and restarting .task.
+Follow-up: State resets, animations jump, .task re-fires, onAppear
+re-triggers. The view is treated as a brand new instance.
+Follow-up: Self._printChanges() in the body prints which properties
+triggered a re-render. Attach to any view body for debugging.
+
+
+98% — Navigation (NavigationStack, NavigationSplitView, deep linking)
+
+NavigationStack: single-column push/pop stack. NavigationSplitView:
+multi-column (sidebar/detail) for iPad/Mac. Use NavigationLink(value:)
+with .navigationDestination(for:) for type-safe, data-driven navigation.
+NavigationPath is a type-erased collection — append to push, removeLast
+to pop, set to [] to pop to root.
+Follow-up: Build the full path array from the deep link URL, then
+assign it to NavigationPath in one shot. Each element must have a
+matching .navigationDestination(for:) registered.
+Follow-up: NavigationPath conforms to Codable. Encode to UserDefaults
+on scenePhase change, decode and restore on launch.
+
+
+97% — Environment and custom EnvironmentKey
+
+Environment is SwiftUI's dependency injection system. Data flows
+down the view tree. Custom key: define a struct conforming to
+EnvironmentKey with a static defaultValue, extend EnvironmentValues
+with a computed property, inject with .environment(\.myKey, value).
+Follow-up: @Environment reads built-in or custom keys by keypath.
+@EnvironmentObject injects a whole ObservableObject by type — no key
+needed, but crashes if not provided. Prefer @Environment with
+@Observable in iOS 17+.
+Follow-up: Use environment for cross-cutting concerns (theme, locale,
+feature flags). Use init for data specific to that view. Rule: if only
+one parent provides it, pass via init.
+
+
+96% — View modifiers (custom ViewModifier vs view extensions)
+
+ViewModifier: a struct with a body(content:) method. Apply with
+.modifier(MyModifier()). View extension: a method on View that returns
+some View. Both compose the same way in the view tree.
+Follow-up: Extensions read more naturally — .cardStyle() vs
+.modifier(CardStyle()). They also support autocomplete better. Teams
+use ViewModifier when they need @State or lifecycle hooks inside the
+modifier itself.
+Follow-up: Modifiers apply outside-in visually but wrap bottom-up
+structurally. .padding().background() applies padding first, then
+background covers the padded area. Order matters.
+
+
+95% — SwiftUI lifecycle (.onAppear, .task, .onChange, .onDisappear)
+
+.onAppear: fires when view is added to the hierarchy. Runs a non-async
+closure on the main thread. Can fire multiple times (tab switches,
+navigation returns). No auto-cancel.
+.task: fires async work tied to view lifetime. Auto-cancels on
+disappear. Preferred for network calls, subscriptions.
+.onChange(of:): fires when a watched value changes.
+.onDisappear: fires when removed. Not guaranteed on app termination.
+Follow-up: .task is tied to the view's identity lifetime — when the
+view disappears, the task is cancelled. .onAppear has no such tie, so
+you must manage cancellation manually.
+Follow-up: Old API gave you the new value as a parameter. New API
+(iOS 17+) gives you both old and new in a closure with two parameters.
+The initial: parameter controls whether it fires on first appearance.
+
+
+94% — @ViewBuilder parameter patterns
+
+@ViewBuilder is a result builder that lets you accept SwiftUI view
+content as a trailing closure parameter. Declare: init(@ViewBuilder
+content: () -> Content). The caller writes views like a normal body.
+Under the hood, ViewBuilder transforms if/else into _ConditionalContent,
+optional via buildOptional, and multiple views into TupleView.
+Follow-up: if/else produces _ConditionalContent — each branch has a
+different structural identity. Switch produces multiple branches.
+The return type encodes the full tree shape at compile time.
+Follow-up: Each if/else branch creates a different view identity, so
+toggling destroys and recreates the view (losing @State). A ternary
+on a modifier keeps the same identity. Prefer ternary for simple
+property changes, if/else for truly different content.
+
+
+93% — View composition patterns
+
+Extract into small, focused subview structs. Each gets its own identity
+and re-render boundary. Use computed properties for simple derived views
+that don't need their own state. Use private methods returning some View
+for one-off helpers. Compose containers (header, content, footer) as
+separate structs passed via @ViewBuilder parameters.
+Follow-up: Subview struct: gets own identity, independent re-render,
+can hold @State. Computed property: re-evaluates with parent, no own
+identity. Helper method: same as computed, use for parameterized
+snippets.
+Follow-up: Extracting a subview means SwiftUI tracks it independently.
+If the parent re-renders but the subview's inputs haven't changed,
+SwiftUI can skip its body evaluation. This is the primary tool for
+performance in large view hierarchies.
+
+
+92% — SwiftUI + UIKit interop (UIViewRepresentable)
+
+Implement makeUIView (create the UIKit view), updateUIView (sync
+SwiftUI state to UIKit), and optionally makeCoordinator (delegate
+target). Coordinator is a class you define — it holds a reference to
+the parent representable and acts as UIKit delegate/dataSource.
+Communicate back to SwiftUI through @Binding or calling methods
+on the parent captured in the coordinator.
+Follow-up: If the UIKit view has intrinsic content size, it works
+automatically. Otherwise implement sizeThatFits(_:uiView:context:)
+(iOS 16+) or wrap in a frame. Without this, the view may collapse
+to zero size or expand unexpectedly.
+Follow-up: Calling state updates from updateUIView triggers infinite
+loops. Always guard against redundant updates. Use Coordinator to
+break cycles. Test sizing on all device sizes.
+
+
+91% — Sheets, alerts, fullScreenCover presentation
+
+Each is driven by a binding — either a Bool (isPresented:) or an
+optional Identifiable item (item:). SwiftUI manages presentation
+lifecycle. Only one sheet modifier per view — use item-based APIs
+or an enum to present different content from one modifier.
+Follow-up: Use an optional enum as the item type. Each case
+represents a different sheet. Switch on the item inside the sheet's
+content closure. This replaces multiple Boolean flags.
+Follow-up: Item-based APIs (sheet(item:content:)) automatically
+dismiss when the item becomes nil. They also pass the unwrapped
+item to the closure, avoiding force-unwrapping. Cleaner than
+Bool + separate state.
+
+
+90% — Conditional views and AnyView performance
+
+if/else in a body produces _ConditionalContent with two branches.
+Switching branches destroys one view identity and creates another —
+@State resets, animations break. AnyView erases the concrete type,
+so SwiftUI cannot use structural identity for diffing. It falls back
+to slower, less accurate comparison.
+Follow-up: A ternary on a modifier (.opacity(isVisible ? 1 : 0))
+preserves view identity — same view, different properties. if/else
+swaps the entire view identity. Use ternary for visual changes,
+if/else for structurally different content.
+Follow-up: AnyView is acceptable at leaf nodes in truly dynamic
+contexts (plugin architectures, server-driven UI) where the type
+cannot be known at compile time. Avoid it in hot paths and lists.
+
+
+89% — Preferences and PreferenceKey
+
+Preferences flow data UPWARD from child to parent — the reverse of
+environment. Define a PreferenceKey with a defaultValue and a reduce
+function. Child sets it with .preference(key:value:). Parent reads
+with .onPreferenceChange or .overlayPreferenceValue.
+Follow-up: Measuring a child's size. A child uses GeometryReader to
+measure itself, sets a PreferenceKey with the size, parent reads it
+via .onPreferenceChange to position an overlay. Environment cannot
+flow upward.
+Follow-up: .onPreferenceChange fires on the main thread during the
+layout/render pass. Do not do heavy work inside it — just set @State.
+
+
+88% — GeometryReader (use cases and pitfalls)
+
+GeometryReader gives you the proposed size and frame of its container.
+Use for: relative sizing, reading scroll offsets, positioning overlays
+based on layout. Pitfall: it greedily fills all available space (unlike
+most views that fit their content). It also triggers a second layout
+pass since children depend on parent size.
+Follow-up: GeometryReader proposes the full available space to its
+child, so the child expands. This is by design — it's a "measure
+everything" container.
+Follow-up: ContainerRelativeFrame for relative sizing without
+GeometryReader. Custom Layout protocol for complex positioning.
+overlay + GeometryReader background trick for reading size without
+affecting layout.
+
+
+87% — Animation system (withAnimation, transitions, matchedGeometryEffect)
+
+SwiftUI animates by comparing view tree snapshots before and after a
+state change. withAnimation wraps a state mutation — all views affected
+by that mutation animate. .animation(_:value:) attaches animation to a
+specific value change. Transitions (.transition) define how views are
+inserted/removed. matchedGeometryEffect links two views by a shared ID
+to animate frame/position between them.
+Follow-up: .animation(_:value:) applies only when that specific value
+changes. withAnimation applies to everything that changes in the
+closure. Use .animation for isolated controls, withAnimation for
+coordinated changes.
+Follow-up: Implement AnyTransition.modifier(active:identity:) with
+two ViewModifier states. SwiftUI interpolates between them. Combine
+with .combined(with:) to compose transitions.
+
+
+86% — .task(id:) patterns
+
+.task(id:) runs an async task tied to the view's lifetime AND restarts
+whenever the id value changes. The previous task is cancelled before
+the new one starts. This gives you automatic cancellation and restart
+on input change — replacing Combine's switchToLatest pattern.
+Follow-up: For search: .task(id: searchText) { await search(query) }.
+When the user types, the previous search is cancelled and a new one
+fires. Add try? await Task.sleep for debounce.
+Follow-up: The previous task is cancelled cooperatively — Task.isCancelled
+becomes true, and any throwing await (like URLSession) throws
+CancellationError. Then the new task starts immediately.
+
+
+85% — List, LazyVStack, LazyVGrid performance
+
+List: backed by UICollectionView (iOS 16+). Lazy by default, built-in
+swipe actions, separators, reorder. Best for standard data lists.
+LazyVStack: lazy, fully customizable, no built-in chrome. Put inside
+ScrollView. Better for custom designs but no free features.
+LazyVGrid: grid layout, can struggle with self-sizing items that
+cause layout thrashing. Fixed-size items perform best.
+Follow-up: Self-sizing in LazyVGrid causes multiple layout passes.
+The grid proposes a size, the cell reports back, grid re-proposes.
+With variable heights this cascades. Use fixed sizes or
+.containerRelativeFrame when possible.
+Follow-up: List prefetches aggressively and recycles cells. LazyVStack
+creates views on demand but doesn't recycle — off-screen views are
+destroyed and recreated on scroll-back, resetting any non-State state.
+
+
+84% — Accessibility in SwiftUI
+
+Key modifiers: .accessibilityLabel (what it is), .accessibilityValue
+(current value), .accessibilityHint (what happens), .accessibilityAction
+(custom actions), .accessibilityElement (group/ignore children).
+SwiftUI provides good defaults — Text and Button are accessible
+automatically. You add modifiers for custom views and images.
+Follow-up: VoiceOver on device is the gold standard. Accessibility
+Inspector in Xcode for quick audits. XCUITest can query
+accessibility elements. Run Xcode's accessibility audit for automated
+checks.
+Follow-up: Label: short description ("Play button"). Value: current
+state ("3 of 10", "50%"). Hint: describes what happens on activation
+("Double-tap to play the track"). Keep labels concise.
+
+
+83% — Custom Layout protocol
+
+Layout protocol requires two methods: sizeThatFits(proposal:subviews:cache:)
+returns the container's size, placeSubviews(in:proposal:subviews:cache:)
+positions each child. You query each subview's size via
+subview.sizeThatFits(.unspecified) and compute placement manually.
+Follow-up: Layout participates in SwiftUI's layout system natively —
+no extra layout passes. GeometryReader reads size after layout, causing
+a second pass. Layout is more efficient and composable.
+Follow-up: Use .matchedGeometryEffect or wrap in AnyLayout to
+animate between two Layout types. AnyLayout(HStackLayout()) vs
+AnyLayout(VStackLayout()) with withAnimation switches the layout
+with animation.
+
+
+82% — @Bindable (iOS 17)
+
+@Bindable creates bindings to properties of an @Observable object.
+With ObservableObject you got bindings from @Published via $. With
+@Observable there's no @Published — @Bindable fills that gap.
+Use @Bindable on a variable that holds an @Observable object when
+you need to pass $object.property bindings to child views.
+Follow-up: @Binding is a two-way connection to a single value owned
+elsewhere. @Bindable wraps an @Observable object so you can create
+bindings to its properties with $ syntax.
+Follow-up: If you just read properties, no wrapper needed — @Observable
+tracks access automatically. You need @Bindable only when a child
+view requires a Binding<T> (e.g., TextField, Toggle, Sheet).
+
+
+81% — ScrollView + ScrollViewReader + ScrollPosition (iOS 17+)
+
+ScrollViewReader: wrap ScrollView, get a proxy, call
+proxy.scrollTo(id, anchor:). Requires .id() on target views.
+ScrollPosition (iOS 17+): a @State var position = ScrollPosition()
+bound via .scrollPosition($position). Supports reading AND writing
+position, detecting which item is visible, and programmatic scrolling.
+Follow-up: .scrollTargetLayout() marks children as snap targets.
+.scrollTargetBehavior(.paging) or .viewAligned snaps to them.
+Combine with .containerRelativeFrame for page-sized cells.
+Follow-up: ScrollViewReader is write-only (scroll to ID). ScrollPosition
+is read-write (know current position, set it). ScrollPosition also
+supports edge detection and continuous offset tracking.
+
+
+80% — Toolbar and ToolbarItem patterns
+
+.toolbar { } adds items to the navigation bar, bottom bar, or keyboard.
+ToolbarItem(placement:) specifies location: .navigationBarLeading,
+.navigationBarTrailing, .bottomBar, .keyboard, .principal.
+ToolbarItemGroup groups multiple items in one placement.
+Follow-up: Toolbar content can use if/else or ternary to show/hide
+items based on state. Items are identified structurally, same as
+body content. For complex dynamic toolbars, use .toolbar(id:) with
+customizable toolbar.
+Follow-up: .toolbarRole(.editor) tells the system this is an editing
+toolbar. On iPad it may collapse items into a menu. Helps adaptive
+layouts.
+
+
+79% — SwiftUI previews and #Preview macro
+
+#Preview (iOS 17+) replaces PreviewProvider structs. Simpler syntax:
+#Preview { MyView() }. Supports traits: #Preview(traits: .landscapeLeft).
+Multiple named previews per file. Previews are compiled targets — they
+need real data or mocks.
+Follow-up: Inject mock environment objects, wrap in NavigationStack,
+provide .environment values. Create a PreviewHelper that sets up common
+dependencies. Use @Previewable for inline @State in previews.
+Follow-up: Missing environment values, unresolved dependencies (Core Data,
+network), compilation errors in other files, or heavy init work. Fix:
+isolate previewed views, inject lightweight mocks.
+
+
+78% — Focus system (@FocusState, FocusedValue)
+
+@FocusState: a property wrapper that tracks which field is focused.
+Bind with .focused($focusedField, equals: .email). Set to nil to
+dismiss keyboard. Works with enum for multi-field forms.
+FocusedValue: publishes a value from the focused view upward (like
+preferences). Used for menu commands that act on the focused content.
+Follow-up: Set focusedField = nil. Or use .focused($isFocused) with
+a Bool binding and set isFocused = false. Works reliably on iOS.
+Follow-up: FocusedValue uses a key (like EnvironmentKey). FocusedObject
+exposes an ObservableObject from the focused view. Use FocusedValue for
+simple values, FocusedObject for observable state (common in macOS
+document-based apps and menu bar commands).
+
+
+77% — onChange(of:) old vs new API
+
+Old (deprecated iOS 17): .onChange(of: value) { newValue in }.
+New: .onChange(of: value) { oldValue, newValue in } or
+.onChange(of: value) { } (no parameters, just react).
+Follow-up: The two-parameter closure gives you both:
+.onChange(of: selection) { old, new in ... }. The old API only
+gave the new value.
+Follow-up: initial: true fires the closure immediately on appear
+with the current value (old and new are the same). Useful for
+running setup logic on first appearance without a separate .onAppear.
+
+
+76% — Searchable modifier
+
+.searchable(text: $query) adds a search bar to the navigation
+context. Filter data in the view or ViewModel based on the query
+binding. Add .searchSuggestions { } for autocomplete. Use
+.searchScopes for category filtering.
+Follow-up: .task(id: query) with a sleep for debounce:
+.task(id: query) { try? await Task.sleep(for: .milliseconds(300));
+await search(query) }. The task cancels on each keystroke.
+Follow-up: .searchable must be inside a NavigationStack or
+NavigationSplitView. The search bar appears in the navigation bar.
+Placement can be specified with .searchable(placement:).
+
+
+75% — Alert and error presentation patterns
+
+Use an enum for alert types: enum AlertType: Identifiable. Present with
+.alert(item: $activeAlert). Switch on the alert type to configure title,
+message, and actions. For ViewModel errors: expose an optional error
+property, bind with .alert(item: $viewModel.currentError).
+Follow-up: One optional enum @State property replaces multiple Booleans.
+Each enum case holds associated data for that alert type. Mutually
+exclusive by definition — only one alert at a time.
+Follow-up: ViewModel publishes an optional error. View binds:
+.alert(item: $vm.error) { error in } message: { Text(error.message) }.
+Setting error to nil dismisses it.
+
+
+74% — Charts framework
+
+Swift Charts uses a declarative Mark-based API. Mark types: BarMark,
+LineMark, PointMark, AreaMark, RuleMark. Each mark maps data to visual
+properties via .value("Label", dataValue) for x and y axes. Compose
+marks in a Chart { } container. Customize with .foregroundStyle,
+.symbol, .interpolationMethod.
+Follow-up: For large datasets use .chartScrollableAxes(.horizontal)
+and limit the visible domain. Downsample data before passing to Chart.
+Marks are value types — Chart diffs them efficiently.
+Follow-up: .chartOverlay with a DragGesture, or .chartXSelection(value:)
+(iOS 17+) for built-in selection. Read the selected value via
+chart.value(atX:). Use @State to track selection and highlight it.
+
+
+73% — .sensoryFeedback and .contentTransition
+
+.sensoryFeedback(.impact, trigger: value) plays haptic feedback when
+the trigger value changes. Replaces UIFeedbackGenerator in SwiftUI.
+.contentTransition(.numericText()) animates individual character
+changes in Text — digits slide in/out. Also supports .opacity and
+.interpolate for smooth content swaps.
+Follow-up: .numericText() diffs the text characters and animates only
+the changed digits. Pair with .animation() on the Text for the
+transition to be visible. Great for counters and scores.
+Follow-up: .impact (tap), .selection (light tick), .success/.warning/
+.error (semantic). Use .selection for toggles, .impact for button
+presses, .success/.error for outcomes. System decides actual haptic
+pattern.
+
+
+72% — safeAreaInset
+
+.safeAreaInset(edge:) shrinks the safe area and places your content
+in the inset. The main content scrolls or resizes to accommodate it.
+Unlike .overlay, the underlying content knows about the inset and
+adjusts layout — no content hidden behind the overlay.
+Follow-up: A floating bottom bar: .safeAreaInset(edge: .bottom) {
+BottomBar() }. List and ScrollView content automatically gets extra
+bottom padding so the last item isn't hidden.
+Follow-up: Keyboard avoidance and safeAreaInset stack — the keyboard
+inset adds to your custom inset. This can cause double-spacing if
+not accounted for. Test with keyboard visible.
+
+
+71% — ContainerRelativeFrame
+
+.containerRelativeFrame(.horizontal, count: 3, span: 1, spacing: 8)
+sizes a view relative to its nearest scrollable container or the
+screen. Replaces GeometryReader for common cases like "1/3 of screen
+width" or "full-width card with padding."
+Follow-up: ContainerRelativeFrame doesn't inject a second layout pass.
+It reads the container size during the normal layout pass. Cleaner
+and more efficient than GeometryReader for relative sizing.
+Follow-up: The nearest ScrollView, List, or the screen itself.
+In a ScrollView, it's the ScrollView's visible width/height. Outside
+any scrollable container, it's the screen/window.
+
+
+70% — TimelineView
+
+TimelineView re-evaluates its content on a schedule — useful for
+clocks, live activities, real-time data displays. It doesn't redraw
+the entire view tree, only the content closure.
+Follow-up: .animation: every frame (60/120Hz). .periodic(from:by:):
+fixed interval (e.g., every second). .explicit(dates): fire at
+specific Date values.
+Follow-up: Use .periodic instead of .animation when you don't need
+every frame. Inside the closure, keep work minimal — read the timeline
+date, compute display values, return lightweight views.
+
+
+69% — Canvas view for drawing
+
+Canvas is an immediate-mode drawing context. It draws once with a
+GraphicsContext and doesn't create a view per shape. Use for: particle
+systems, complex visualizations, hundreds of shapes where Shape/Path
+would create too many views.
+Follow-up: Canvas avoids SwiftUI's per-shape view identity tracking.
+Drawing 1000 circles in Canvas is one view. 1000 Circle() shapes is
+1000 views. Canvas scales much better for dense drawing.
+Follow-up: Canvas is not accessible by default — it's a single opaque
+view. Add .accessibilityLabel and .accessibilityChildren to manually
+describe content for VoiceOver.
+
+
+68% — SwiftUI testing strategies
+
+Unit test the ViewModel (async methods, state changes) — this is the
+highest-value, most reliable approach. XCUITest for integration/e2e
+flows (navigation, real data flow). ViewInspector: third-party library
+that introspects SwiftUI view trees, useful but fragile across OS
+updates. Snapshot testing: captures rendered images, catches visual
+regressions.
+Follow-up: SwiftUI views are opaque structs. Apple provides no public
+API to inspect the rendered tree. XCUITest works at the accessibility
+layer, not the view layer. This makes unit-testing the rendered
+output impractical.
+Follow-up: ViewModel tests verify business logic, state transitions,
+and error handling — fast and deterministic. View tests verify layout
+and interaction — slow and brittle. Focus effort on ViewModel tests,
+supplement with targeted XCUITests for critical flows.
+
+
+67% — PhaseAnimator and keyframe animations
+
+PhaseAnimator cycles through an array of phases, applying a different
+modifier configuration for each. The view animates between phases
+automatically. KeyframeAnimator animates a value type through
+keyframe tracks — each property can have independent timing curves.
+Follow-up: PhaseAnimator for simple sequential states (pulse, shake).
+It's declarative and automatic. State-machine + withAnimation for
+complex conditional logic where phases depend on user input.
+Follow-up: Each KeyframeTrack animates one property with its own
+keyframes (LinearKeyframe, SpringKeyframe, CubicKeyframe). Multiple
+tracks run in parallel, giving you orchestrated multi-property
+animation in a single animator.
+
+
+66% — TipKit integration
+
+Define a struct conforming to Tip. Set title, message, image.
+Configure rules (parameter-based, event-based) that control when the
+tip is eligible. Display with TipView(tip) inline or .popoverTip(tip)
+as popover. Invalidate with tip.invalidate(reason:) when the user
+completes the action.
+Follow-up: Parameters: tip.showCount < 3. Events: track with
+Event.donate(), then #Rule with event count. Combine rules with AND.
+Tips also respect system frequency controls.
+Follow-up: TipView is inline — placed directly in the view hierarchy.
+.popoverTip attaches as a popover pointing to the modified view.
+Choose based on context: inline for feature callouts, popover for
+toolbar buttons.
+
+
+65% — PhotosPicker and ShareLink
+
+PhotosPicker(selection: $item, matching: .images) presents the system
+picker. Returns PhotosPickerItem — call loadTransferable(type: Image.self)
+or Data.self to get the content asynchronously. ShareLink(item: url)
+presents the system share sheet with a Transferable item.
+Follow-up: PhotosPickerItem.loadTransferable calls the Transferable
+protocol — implement transferRepresentation to define how your type
+is exported/imported. Use .importedTypeIdentifiers to filter.
+Follow-up: PhotosPicker uses the out-of-process picker — your app
+gets access only to selected photos, not the full library. No
+permission prompt needed. This is privacy by design.
+
+
+64% — ContentUnavailableView
+
+ContentUnavailableView is a standardized empty-state view with icon,
+title, description, and optional actions. Use it for empty lists, no
+search results, error states, or first-launch onboarding.
+Follow-up: Create instances for each state:
+ContentUnavailableView("No Results", systemImage: "magnifyingglass",
+description: Text("Try a different search term.")). Add a Button
+in the actions closure for retry.
+Follow-up: ContentUnavailableView.search is a built-in variant
+shown by SwiftUI automatically when a .searchable list returns
+zero results. You can also invoke it manually.
+
+
+63% — WidgetKit basics
+
+TimelineProvider: supplies timeline entries (snapshots of data at
+specific dates). TimelineEntry: data + date for one widget render.
+IntentConfiguration or StaticConfiguration defines the widget.
+The widget view is a normal SwiftUI view but with limited interactivity
+(Button with AppIntent only, no scroll, no text input).
+Follow-up: Timeline entries include a reload policy: .atEnd (reload
+after last entry), .after(date) (reload at a specific time), .never.
+The system batches refreshes and may delay your request. Budget is
+limited — typically 40-70 refreshes per day.
+Follow-up: No NavigationStack, no ScrollView, no TextField, no
+custom gestures, no .task or .onAppear (no lifecycle). Limited to
+static display + Button/Toggle with AppIntent. Use Link for deep
+linking into the app.
+
+
+62% — Confirmation before destructive actions
+
+Use .confirmationDialog with a destructive button role:
+.confirmationDialog("Delete?", isPresented: $showConfirm) {
+Button("Delete", role: .destructive) { delete() } }.
+Always require confirmation for irreversible actions. Provide a
+clear description of what will be lost.
+Follow-up: .confirmationDialog shows an action sheet (bottom sheet
+on iPhone, popover on iPad). .alert shows a centered modal dialog.
+Use confirmationDialog for multiple options or destructive actions.
+Use alert for simple yes/no confirmations or informational messages.
+Follow-up: .destructive role renders the button in red and tells
+the system this is a dangerous action. On macOS, it may require
+additional confirmation. Always pair with a .cancel role button.
+
+
+61% — matchedGeometryEffect deep dive
+
+matchedGeometryEffect matches frame (position + size) between two
+views sharing the same id and namespace. The source of truth view
+(isSource: true) provides the geometry. The other view animates
+its frame to match. Both views must be in the view tree at the
+transition point.
+Follow-up: Both views must exist briefly during the transition. If
+one disappears before the other appears (different if/else branches),
+the match fails. Use a ZStack where both are present with opposite
+opacity, or phase your state changes. Mismatched anchor points and
+different coordinate spaces also cause jumps.
+Follow-up: matchedGeometryEffect works within a single view tree.
+NavigationStack transitions are system-controlled and don't support
+it directly. Use .navigationTransition(.zoom(sourceID:in:)) (iOS 18)
+for zoom hero transitions, or coordinate with a shared namespace in
+an overlay for custom hero effects.
+
+
+60% — Passing data through the view hierarchy
+
+Init injection: explicit, type-checked, traceable. Best for direct
+parent-child. Environment: implicit, any depth, good for cross-cutting
+concerns (theme, settings). EnvironmentObject: same as environment but
+for reference types, crashes if missing. PreferenceKey: child-to-parent
+only, for layout data (sizes, offsets).
+Follow-up: Beyond 3-4 levels deep, init injection becomes verbose —
+intermediate views pass through data they don't use (prop drilling).
+Switch to environment at that point.
+Follow-up: Environment should hold app-wide or feature-wide concerns,
+not every piece of data. If a value is used by one or two views, pass
+it directly. Overusing environment makes data flow invisible and
+debugging harder.
+
+
+59% — TypeSafeID patterns with Identifiable
+
+Create a generic ID wrapper: struct TypedID<Phantom>: Hashable { let
+rawValue: String }. typealias UserID = TypedID<User>. Now a UserID
+cannot be accidentally used where a PostID is expected. ForEach and
+List use the id for identity tracking — typed IDs prevent mismatched
+identity across different model types.
+Follow-up: ForEach requires Identifiable — your model's id property
+type determines the identity. Using TypedID ensures you never
+accidentally reuse IDs across unrelated models, which would break
+SwiftUI's diffing.
+Follow-up: Tagged (pointfree) is a popular library implementing this
+pattern. Phantom type: a generic parameter used only for compile-time
+distinction, never instantiated. Zero runtime cost.
+
+
+58% — Lazy containers and identity stability
+
+Lazy containers create views on demand as they scroll into view.
+Off-screen views are destroyed (not just hidden). When you scroll back,
+the view is recreated from scratch using the current data and identity.
+Follow-up: @State IS preserved for views in lazy containers as long as
+the identity (id in ForEach) stays stable. SwiftUI stores @State
+externally, keyed by identity. But any non-State local state (like
+a Coordinator's cached value) is lost on recreation.
+Follow-up: Always use stable, unique IDs. Array indices shift on
+insert/delete, causing mass identity changes. UUID generated per render
+creates new identity every time. Use model-owned IDs (database PK, UUID
+assigned at creation time).
+
+
+57% — ViewThatFits
+
+ViewThatFits evaluates each child view in order and picks the FIRST one
+that fits within the proposed size. Use for adaptive layouts: show a
+full label when there's room, fall back to an icon when space is tight.
+Follow-up: It proposes the available size to each child view's ideal
+size in order. The first child whose ideal size fits within the
+available space is displayed. Others are never rendered.
+Follow-up: ViewThatFits is declarative and doesn't trigger extra layout
+passes. GeometryReader reads the size and lets you switch manually —
+more flexible but heavier. ViewThatFits is better for simple
+adaptive cases.
+
+
+56% — Custom Shape and Path
+
+Shape protocol: func path(in rect: CGRect) -> Path. Return a Path
+built with lines, curves, arcs. Shapes are views — you can fill,
+stroke, and apply modifiers. InsettableShape adds strokeBorder
+support (insets the path before stroking so the stroke stays inside
+the frame).
+Follow-up: .trim(from:to:) draws a fraction of the path. Animate
+the to parameter from 0 to 1 for a drawing-on effect. Combine with
+.animation for smooth stroke animations.
+Follow-up: Shape for simple, reusable, animatable geometric forms.
+Canvas for complex scenes with many elements where per-shape view
+overhead is too high.
+
+
+55% — Redaction and privacy
+
+.redacted(reason: .placeholder) replaces content with rounded
+rectangles matching the text/image size. Views can check
+@Environment(\.redactionReasons) to customize behavior. .privacySensitive()
+marks a view for redaction in system contexts (widgets on Lock Screen,
+app switcher).
+Follow-up: Check redactionReasons in the view body:
+if redactionReasons.contains(.placeholder) { show skeleton } else
+{ show real content }. Use .unredacted() on child views that should
+always be visible (headers, icons).
+Follow-up: WidgetKit uses .placeholder redaction for the widget
+preview skeleton. Lock Screen widgets use .privacy to hide sensitive
+data. Your app declares which views are sensitive.
+
+
+54% — Grid layout (iOS 16+)
+
+Grid is an eager, non-lazy container that aligns children into rows
+and columns. Unlike LazyVGrid, all cells are measured and laid out at
+once. Use Grid when you need row-and-column alignment across cells
+(like a data table), or when the total item count is small.
+Follow-up: GridRow defines a row. .gridCellColumns(2) makes a cell
+span 2 columns. .gridCellAnchor(.leading) aligns cell content within
+its allocated space.
+Follow-up: Grid measures all children upfront — bad for large datasets.
+LazyVGrid is lazy — good for long scrolling lists. Grid is better for
+fixed-size tables where column alignment across rows matters.
+
+
+53% — Multiple windows and scenes (iPad/Mac)
+
+In the App body, declare multiple Scene types: WindowGroup for standard
+windows, DocumentGroup for document-based, Settings for preferences.
+Each WindowGroup can be identified and opened programmatically.
+Follow-up: @Environment(\.openWindow) gives you an OpenWindowAction.
+Call openWindow(id: "detail") or openWindow(value: itemId) to open a
+new window with that scene.
+Follow-up: Inject the value via the WindowGroup(for: Item.ID.self)
+initializer. SwiftUI routes the value to the new window's view.
+Each window has independent state and its own scene lifecycle.
+
+
+52% — Transaction and AnimationContext
+
+A Transaction carries animation context through the view update.
+withAnimation sets the transaction's animation. withTransaction
+lets you set any transaction property (animation, disablesAnimations).
+You can intercept transactions with .transaction { $0.animation = nil }
+to strip animation from specific subtrees.
+Follow-up: .transaction { $0.disablesAnimations = true } on a
+specific view or .animation(nil, value: x) to prevent a particular
+value change from animating.
+Follow-up: withAnimation creates a Transaction with the specified
+animation and applies it to all changes in the closure. Transaction
+flows through the view tree — any view can read or modify it.
+
+
+51% — Custom ButtonStyle and other Style protocols
+
+ButtonStyle: receives Configuration (label, isPressed). Return a
+styled view. Apply with .buttonStyle(MyStyle()). PrimitiveButtonStyle:
+also controls the trigger mechanism (you call configuration.trigger()
+manually). Other styles: ToggleStyle, LabelStyle, ProgressViewStyle,
+GroupBoxStyle, DatePickerStyle, TextFieldStyle.
+Follow-up: configuration.label is the Button's original label view.
+configuration.isPressed tracks the press state. You transform the
+label — scale, opacity, background — based on isPressed.
+Follow-up: ButtonStyle gets automatic press handling. PrimitiveButtonStyle
+lets you control WHEN the action fires — useful for long-press buttons,
+swipe-to-confirm, or delayed actions. You must call trigger() yourself.
+
+
+50% — Observable in collections and nested objects
+
+@Observable objects in an array: SwiftUI tracks access to each
+element's properties individually. Mutating one object's property
+only invalidates views reading that specific property. But adding/
+removing from the array itself is a structural change that triggers
+re-evaluation of views iterating the array.
+Follow-up: If you iterate with ForEach and access element.name,
+only views reading that specific element's name re-render on change.
+But replacing the array reference (e.g., items = newItems) invalidates
+all ForEach children because identity may have changed.
+Follow-up: Nested observation works automatically — if parent.child.name
+changes, a view reading parent.child.name re-renders. The Observation
+framework tracks the full keypath access chain. No special annotation
+needed on the nested object beyond @Observable.
