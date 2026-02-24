@@ -207,8 +207,7 @@ def build():
     pdf.compact_list("Init:", ["String(42)", "String(3.14)", 'String(repeating:count:)'])
     pdf.compact_list("Character:", ["isLetter", "isNumber", "isWhitespace", "asciiValue"])
     pdf.code_block(
-        's[s.index(s.startIndex, offsetBy: 4)]   // index access\n'
-        'Character(UnicodeScalar(97))             // "a"'
+        's[s.index(s.startIndex, offsetBy: 4)]   // index access'
     )
 
     # ── ARRAY ──
@@ -398,7 +397,7 @@ def build():
     pdf.code_block(
         'let fm = FileManager.default\n'
         'let docs = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]\n'
-        'let url = docs.appendingPathComponent("data.json")\n'
+        'let url = docs.appending(path: "data.json")  // iOS 16+\n'
         'try data.write(to: url)              // write\n'
         'let d = try Data(contentsOf: url)    // read\n'
         'fm.fileExists(atPath: url.path)      // check\n'
@@ -471,7 +470,7 @@ def build():
         '// Read current task name (useful in logging)\n'
         'if let n = Task.name { print("Running: \\(n)") }\n'
         '\n'
-        '// Priorities: .high .medium .low .userInitiated .utility .background'
+        '// Priorities: .userInitiated .medium .utility .background'
     )
 
     # ── SWIFTUI .task ──
@@ -732,7 +731,7 @@ def build():
         'Solution: catch-all case preserves the raw value'
     )
     pdf.code_block(
-        'enum Status: Codable, Equatable {\n'
+        'enum Status: Decodable, Equatable {\n'
         '    case active, inactive, archived\n'
         '    case unknown(String)    // catch-all\n'
         '\n'
@@ -750,6 +749,186 @@ def build():
     )
     pdf.body_text(
         '{"status":"pending"} -> .unknown("pending")'
+    )
+
+    # ══════════════════════════════════════════════════════════
+    #  PAGE -- Platform Patterns
+    # ══════════════════════════════════════════════════════════
+    pdf.new_page("Platform Patterns")
+
+    # ── IN-FLIGHT COALESCING CACHE ──
+    pdf.section("In-Flight Coalescing Cache")
+    pdf.body_text(
+        'Dedup concurrent requests for the same key.\n'
+        'Common for: image loading, API calls, token refresh.'
+    )
+    pdf.code_block(
+        'actor RequestCoalescer<Key: Hashable, Value: Sendable> {\n'
+        '    private var inFlight: [Key: Task<Value, Error>] = [:]\n'
+        '\n'
+        '    func fetch(\n'
+        '        key: Key,\n'
+        '        work: @Sendable () async throws -> Value\n'
+        '    ) async throws -> Value {\n'
+        '        if let existing = inFlight[key] {\n'
+        '            return try await existing.value // reuse\n'
+        '        }\n'
+        '        let task = Task { try await work() }\n'
+        '        inFlight[key] = task\n'
+        '        defer { inFlight[key] = nil }\n'
+        '        return try await task.value\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// Usage -- Data is Sendable (UIImage is NOT)\n'
+        'let loader = RequestCoalescer<URL, Data>()\n'
+        'let data = try await loader.fetch(key: url) {\n'
+        '    let (d, _) = try await URLSession\n'
+        '        .shared.data(from: url)\n'
+        '    return d\n'
+        '}\n'
+        'let image = UIImage(data: data)  // decode on caller'
+    )
+
+    # ── ACTOR REENTRANCY ──
+    pdf.section("Actor Reentrancy")
+    pdf.body_text(
+        'Each await is a suspension point -- other callers\n'
+        'can interleave. Never split a critical section\n'
+        '(read-modify-write) across an await.'
+    )
+    pdf.code_block(
+        '// BUG: read-modify-write SPLIT across await\n'
+        'actor Cache {\n'
+        '    var items = [Item]()\n'
+        '    func process() async {\n'
+        '        let current = items      // READ\n'
+        '        let new = await fetch()  // SUSPEND!\n'
+        '        items = current + [new]  // WRITE (stale!)\n'
+        '        // Call B can interleave at suspend --\n'
+        '        // both read same state, last write wins,\n'
+        '        // first caller\'s append is LOST\n'
+        '    }\n'
+        '}'
+    )
+    pdf.subsection("Fix: keep critical section atomic")
+    pdf.code_block(
+        '// GOOD: async work ABOVE, state update below\n'
+        'func process() async {\n'
+        '    let new = await fetch()  // suspend here\n'
+        '    items.append(new)        // atomic read+write\n'
+        '}\n'
+        '\n'
+        '// GOOD: state update ABOVE, async work below\n'
+        'func enqueue(_ item: Item) async {\n'
+        '    items.append(item)       // atomic read+write\n'
+        '    await sync()             // suspend here\n'
+        '}'
+    )
+    pdf.body_text(
+        'Rule: critical section above OR below the await,\n'
+        'never split across it. Each synchronous block on\n'
+        'an actor is serialized -- no interleaving.'
+    )
+
+    # ── MAINACTOR ──
+    pdf.section("MainActor Isolation")
+    pdf.code_block(
+        '// Entire class on main thread (ViewModels)\n'
+        '@MainActor\n'
+        'class ProfileVM: ObservableObject {\n'
+        '    @Published var name = ""\n'
+        '    func load() async throws {\n'
+        '        // already on MainActor\n'
+        '        name = try await api.fetchName()\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// One-off main thread hop\n'
+        'await MainActor.run { self.label = "Done" }\n'
+        '\n'
+        '// Mark a function\n'
+        '@MainActor func updateUI() { ... }\n'
+        '\n'
+        '// nonisolated: opt out for pure computation\n'
+        'nonisolated func hash(into: inout Hasher) { }'
+    )
+
+    # ── SENDABLE ──
+    pdf.section("Sendable")
+    pdf.body_text(
+        'Types safe to pass across actor/concurrency boundaries.'
+    )
+    pdf.code_block(
+        '// Value types are implicitly Sendable\n'
+        'struct Point: Sendable { var x, y: Double }\n'
+        '\n'
+        '// Classes must be final + immutable\n'
+        'final class Token: Sendable {\n'
+        '    let value: String  // let only, no var\n'
+        '}\n'
+        '\n'
+        '// Actors are always Sendable\n'
+        '// @Sendable closures: no mutable captures\n'
+        'Task { @Sendable in\n'
+        '    await process(item)  // item must be Sendable\n'
+        '}'
+    )
+    pdf.body_text(
+        '@unchecked Sendable: escape hatch when you\n'
+        'manage thread safety yourself (e.g. with locks).'
+    )
+
+    # ── COOPERATIVE CANCELLATION ──
+    pdf.section("Cooperative Cancellation")
+    pdf.code_block(
+        '// Check cancellation (throws if cancelled)\n'
+        'try Task.checkCancellation()\n'
+        '\n'
+        '// Poll cancellation (non-throwing)\n'
+        'guard !Task.isCancelled else { return partial }\n'
+        '\n'
+        '// withTaskCancellationHandler\n'
+        'let data = try await withTaskCancellationHandler {\n'
+        '    try await longDownload()\n'
+        '} onCancel: {\n'
+        '    urlSessionTask.cancel() // bridge to non-async\n'
+        '}'
+    )
+    pdf.body_text(
+        'Cancellation is cooperative -- tasks must check.\n'
+        'URLSession, Task.sleep, etc. check automatically.'
+    )
+
+    # ── ASYNCSEQUENCE / ASYNCSTREAM ──
+    pdf.section("AsyncSequence & AsyncStream")
+    pdf.code_block(
+        '// Consuming an AsyncSequence\n'
+        'for await msg in webSocket.messages {\n'
+        '    handle(msg)\n'
+        '}\n'
+        '\n'
+        '// Creating a custom stream (replaces delegate)\n'
+        'let stream = AsyncStream<CLLocation> { cont in\n'
+        '    locMgr.onUpdate = { cont.yield($0) }\n'
+        '    locMgr.onDone   = { cont.finish() }\n'
+        '    cont.onTermination = { _ in\n'
+        '        locMgr.stop()\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// AsyncThrowingStream for errors\n'
+        'let s = AsyncThrowingStream<Data, Error> { c in\n'
+        '    c.yield(data)\n'
+        '    c.finish(throwing: err) // or c.finish()\n'
+        '}'
+    )
+    pdf.body_text(
+        'Use AsyncStream to bridge delegates, callbacks,\n'
+        'NotificationCenter, KVO into async/await.'
     )
 
     # ── Output ──
