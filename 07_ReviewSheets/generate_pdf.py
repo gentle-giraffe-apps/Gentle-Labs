@@ -405,6 +405,28 @@ def build():
         'try fm.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil)'
     )
 
+    # ── BUNDLE RESOURCES ──
+    pdf.section("Bundle Resources")
+    pdf.code_block(
+        '// Load bundled JSON file\n'
+        'guard let url = Bundle.main.url(\n'
+        '    forResource: "data", withExtension: "json"\n'
+        ') else { fatalError("Missing resource") }\n'
+        'let data = try Data(contentsOf: url)\n'
+        'let items = try JSONDecoder().decode(\n'
+        '    [Item].self, from: data)\n'
+        '\n'
+        '// Load bundled text file\n'
+        'let text = try String(\n'
+        '    contentsOf: Bundle.main.url(\n'
+        '        forResource: "info", withExtension: "txt"\n'
+        '    )!, encoding: .utf8)'
+    )
+    pdf.body_text(
+        'Files must be in target\'s "Copy Bundle Resources"\n'
+        'build phase. Bundle is read-only at runtime.'
+    )
+
     # ── URLSESSION + JSONDECODER ──
     pdf.section("URLSession GET + JSONDecoder")
     pdf.code_block(
@@ -1005,6 +1027,69 @@ def build():
         'Key operators: debounce, throttle, removeDuplicates,\n'
         'combineLatest, merge, map, compactMap, flatMap,\n'
         'receive(on:), eraseToAnyPublisher()'
+    )
+
+    # ── PAGINATED VIEWMODEL ──
+    pdf.section("Paginated ViewModel (@Observable)")
+    pdf.code_block(
+        'enum LoadState {\n'
+        '    case idle, loading, loaded, error, empty\n'
+        '}\n'
+        '\n'
+        'protocol FetchItemsUseCase {\n'
+        '    func execute(offset: Int, limit: Int)\n'
+        '        async throws -> [Item]\n'
+        '}'
+    )
+    pdf.code_block(
+        '@Observable class PaginatedVM {\n'
+        '    private(set) var items = [Item]()\n'
+        '    private(set) var state: LoadState = .idle\n'
+        '\n'
+        '    private let useCase: FetchItemsUseCase\n'
+        '    private var offset = 0\n'
+        '    private let limit = 20\n'
+        '    private var hasMore = true\n'
+        '\n'
+        '    init(useCase: FetchItemsUseCase) {\n'
+        '        self.useCase = useCase\n'
+        '    }\n'
+        '\n'
+        '    func loadNextPage() async {\n'
+        '        guard state != .loading,\n'
+        '              hasMore else { return }\n'
+        '        state = .loading\n'
+        '        do {\n'
+        '            let page = try await useCase\n'
+        '                .execute(offset: offset,\n'
+        '                         limit: limit)\n'
+        '            items += page\n'
+        '            offset += page.count\n'
+        '            hasMore = page.count == limit\n'
+        '            state = items.isEmpty\n'
+        '                ? .empty : .loaded\n'
+        '        } catch {\n'
+        '            state = .error\n'
+        '        }\n'
+        '    }\n'
+        '}'
+    )
+    pdf.subsection("View (infinite scroll trigger)")
+    pdf.code_block(
+        'List(vm.items) { item in\n'
+        '    Row(item: item)\n'
+        '        .task {\n'
+        '            if item.id == vm.items.last?.id {\n'
+        '                await vm.loadNextPage()\n'
+        '            }\n'
+        '        }\n'
+        '}\n'
+        '.task { await vm.loadNextPage() }'
+    )
+    pdf.body_text(
+        '@Observable (iOS 17+): no @Published needed.\n'
+        'Guard prevents duplicate fetches & past-end loads.\n'
+        'hasMore: false when page.count < limit.'
     )
 
     # ── Output ──
