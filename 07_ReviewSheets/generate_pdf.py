@@ -752,6 +752,178 @@ def build():
         '{"status":"pending"} -> .unknown("pending")'
     )
 
+    # ══════════════════════════════════════════════════════════
+    #  PAGE -- Platform Patterns
+    # ══════════════════════════════════════════════════════════
+    pdf.new_page("Platform Patterns")
+
+    # ── IN-FLIGHT COALESCING CACHE ──
+    pdf.section("In-Flight Coalescing Cache")
+    pdf.body_text(
+        'Dedup concurrent requests for the same key.\n'
+        'Common for: image loading, API calls, token refresh.'
+    )
+    pdf.code_block(
+        'actor RequestCoalescer<Key: Hashable, Value> {\n'
+        '    private var inFlight: [Key: Task<Value, Error>] = [:]\n'
+        '\n'
+        '    func fetch(\n'
+        '        key: Key,\n'
+        '        work: @Sendable () async throws -> Value\n'
+        '    ) async throws -> Value {\n'
+        '        if let existing = inFlight[key] {\n'
+        '            return try await existing.value // reuse\n'
+        '        }\n'
+        '        let task = Task { try await work() }\n'
+        '        inFlight[key] = task\n'
+        '        defer { inFlight[key] = nil }\n'
+        '        return try await task.value\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// Usage\n'
+        'let images = RequestCoalescer<URL, UIImage>()\n'
+        'let img = try await images.fetch(key: url) {\n'
+        '    let (data, _) = try await URLSession\n'
+        '        .shared.data(from: url)\n'
+        '    return UIImage(data: data)!\n'
+        '}'
+    )
+
+    # ── ACTOR REENTRANCY ──
+    pdf.section("Actor Reentrancy")
+    pdf.body_text(
+        'Each await is a suspension point -- other callers\n'
+        'can interleave. State may change underneath you.'
+    )
+    pdf.code_block(
+        '// BUG: state changes between check and use\n'
+        'actor Counter {\n'
+        '    var count = 0\n'
+        '    func incrementIfLow() async {\n'
+        '        guard count < 10 else { return }\n'
+        '        await someAsyncWork()  // SUSPENSION!\n'
+        '        count += 1  // count may now be >= 10\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// FIX: capture before await, re-validate after\n'
+        'actor Counter {\n'
+        '    var count = 0\n'
+        '    func incrementIfLow() async {\n'
+        '        guard count < 10 else { return }\n'
+        '        let result = await someAsyncWork()\n'
+        '        guard count < 10 else { return } // re-check\n'
+        '        count += 1\n'
+        '    }\n'
+        '}'
+    )
+    pdf.body_text(
+        'Rule: never trust actor state across an await.\n'
+        'Capture values before, re-validate after.'
+    )
+
+    # ── MAINACTOR ──
+    pdf.section("MainActor Isolation")
+    pdf.code_block(
+        '// Entire class on main thread (ViewModels)\n'
+        '@MainActor\n'
+        'class ProfileVM: ObservableObject {\n'
+        '    @Published var name = ""\n'
+        '    func load() async {\n'
+        '        // already on MainActor\n'
+        '        name = try await api.fetchName()\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// One-off main thread hop\n'
+        'await MainActor.run { self.label = "Done" }\n'
+        '\n'
+        '// Mark a function\n'
+        '@MainActor func updateUI() { ... }\n'
+        '\n'
+        '// nonisolated: opt out for pure computation\n'
+        'nonisolated func hash(into: inout Hasher) { }'
+    )
+
+    # ── SENDABLE ──
+    pdf.section("Sendable")
+    pdf.body_text(
+        'Types safe to pass across actor/concurrency boundaries.'
+    )
+    pdf.code_block(
+        '// Value types are implicitly Sendable\n'
+        'struct Point: Sendable { var x, y: Double }\n'
+        '\n'
+        '// Classes must be final + immutable\n'
+        'final class Token: Sendable {\n'
+        '    let value: String  // let only, no var\n'
+        '}\n'
+        '\n'
+        '// Actors are always Sendable\n'
+        '// @Sendable closures: no mutable captures\n'
+        'Task { @Sendable in\n'
+        '    await process(item)  // item must be Sendable\n'
+        '}'
+    )
+    pdf.body_text(
+        '@unchecked Sendable: escape hatch when you\n'
+        'manage thread safety yourself (e.g. with locks).'
+    )
+
+    # ── COOPERATIVE CANCELLATION ──
+    pdf.section("Cooperative Cancellation")
+    pdf.code_block(
+        '// Check cancellation (throws if cancelled)\n'
+        'try Task.checkCancellation()\n'
+        '\n'
+        '// Poll cancellation (non-throwing)\n'
+        'guard !Task.isCancelled else { return partial }\n'
+        '\n'
+        '// withTaskCancellationHandler\n'
+        'let data = try await withTaskCancellationHandler {\n'
+        '    try await longDownload()\n'
+        '} onCancel: {\n'
+        '    urlSessionTask.cancel() // bridge to non-async\n'
+        '}'
+    )
+    pdf.body_text(
+        'Cancellation is cooperative -- tasks must check.\n'
+        'URLSession, Task.sleep, etc. check automatically.'
+    )
+
+    # ── ASYNCSEQUENCE / ASYNCSTREAM ──
+    pdf.section("AsyncSequence & AsyncStream")
+    pdf.code_block(
+        '// Consuming an AsyncSequence\n'
+        'for await msg in webSocket.messages {\n'
+        '    handle(msg)\n'
+        '}\n'
+        '\n'
+        '// Creating a custom stream (replaces delegate)\n'
+        'let stream = AsyncStream<CLLocation> { cont in\n'
+        '    locMgr.onUpdate = { cont.yield($0) }\n'
+        '    locMgr.onDone   = { cont.finish() }\n'
+        '    cont.onTermination = { _ in\n'
+        '        locMgr.stop()\n'
+        '    }\n'
+        '}'
+    )
+    pdf.code_block(
+        '// AsyncThrowingStream for errors\n'
+        'let s = AsyncThrowingStream<Data, Error> { c in\n'
+        '    c.yield(data)\n'
+        '    c.finish(throwing: err) // or c.finish()\n'
+        '}'
+    )
+    pdf.body_text(
+        'Use AsyncStream to bridge delegates, callbacks,\n'
+        'NotificationCenter, KVO into async/await.'
+    )
+
     # ── Output ──
     out = os.path.join(os.path.dirname(__file__), "Swift_iOS_DSA_QuickRef.pdf")
     pdf.output(out)
