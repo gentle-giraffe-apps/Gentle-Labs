@@ -39,9 +39,7 @@ c.isNumber
 c.isWhitespace
 c.asciiValue                          // UInt8?
 
-// ASCII math
 Int(c.asciiValue!)                    // 65
-Character(UnicodeScalar(97))          // "a"
 
 
 ── Array ───────────────────────────────────────────────
@@ -336,7 +334,7 @@ let fm = FileManager.default
 
 // Documents directory
 let docs = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
-let fileURL = docs.appendingPathComponent("data.json")
+let fileURL = docs.appending(path: "data.json")  // iOS 16+
 
 // Write
 try data.write(to: fileURL)
@@ -418,7 +416,7 @@ Task.detached(name: "bg-export", priority: .background) {
 // Read current task name (useful in logging)
 if let name = Task.name { print("Running: \(name)") }
 
-// Priorities: .high, .medium, .low, .userInitiated, .utility, .background
+// Priorities: .userInitiated, .medium, .utility, .background
 
 
 ── SwiftUI .task ───────────────────────────────────────
@@ -541,6 +539,34 @@ ScrollView(.vertical) { }                 // free-form scrolling
 LazyVGrid(columns: cols) { }             // vertical grid
 LazyHGrid(rows: rows) { }               // horizontal grid
 
+// ── List Skeleton (UITableView analog) ──
+List(selection: $selected) {
+    Section("Favorites") {          // header
+        ForEach(filtered) { item in
+            Row(item: item)
+                .swipeActions(edge: .trailing) {
+                    Button("Delete",
+                        role: .destructive) { del(item) }
+                }
+                .swipeActions(edge: .leading) {
+                    Button("Pin") { pin(item) }
+                }
+        }
+        .onDelete { offsets in remove(offsets) }
+        .onMove { from, to in move(from, to) }
+    } footer: {
+        Text("\(filtered.count) items")
+    }
+}
+.searchable(text: $query)          // search bar
+.refreshable { await reload() }    // pull-to-refresh
+.listStyle(.insetGrouped)          // .plain .grouped
+.environment(\.editMode, $mode)    // enable edit mode
+
+// List = UICollectionView under the hood (iOS 16+).
+// Cell reuse, lazy rendering, diffable updates, prefetch.
+// ForEach in List is lazy; in ScrollView/VStack is eager.
+
 // ── Navigation ──
 NavigationStack { }                       // push/pop navigation (iOS 16+)
 NavigationLink("Detail") { DetailView() } // push trigger
@@ -660,7 +686,7 @@ struct Post: Codable {
 // Problem: API adds new enum values → your app crashes on decode
 // Solution: catch-all case preserves the raw value
 
-enum Status: Codable, Equatable {
+enum Status: Decodable, Equatable {
     case active
     case inactive
     case archived
@@ -680,3 +706,239 @@ enum Status: Codable, Equatable {
 // Usage in a DTO struct:
 // struct Task: Codable { let id: Int; let status: Status }
 // Safely decodes: {"id": 1, "status": "pending"} → .unknown("pending")
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 3 — Platform Patterns
+═══════════════════════════════════════════════════════════
+
+
+── In-Flight Coalescing Cache ─────────────────────────
+
+// Dedup concurrent requests for the same key.
+// Common for: image loading, API calls, token refresh.
+
+actor RequestCoalescer<Key: Hashable, Value: Sendable> {
+    private var inFlight: [Key: Task<Value, Error>] = [:]
+
+    func fetch(
+        key: Key,
+        work: @Sendable () async throws -> Value
+    ) async throws -> Value {
+        if let existing = inFlight[key] {
+            return try await existing.value // reuse
+        }
+        let task = Task { try await work() }
+        inFlight[key] = task
+        defer { inFlight[key] = nil }
+        return try await task.value
+    }
+}
+
+// Usage -- Data is Sendable (UIImage is NOT)
+let loader = RequestCoalescer<URL, Data>()
+let data = try await loader.fetch(key: url) {
+    let (d, _) = try await URLSession
+        .shared.data(from: url)
+    return d
+}
+let image = UIImage(data: data)  // decode on caller
+
+
+── Actor Reentrancy ───────────────────────────────────
+
+// Each await is a suspension point -- other callers
+// can interleave. Never split a critical section
+// (read-modify-write) across an await.
+
+// BUG: read-modify-write SPLIT across await
+actor Cache {
+    var items = [Item]()
+    func process() async {
+        let current = items      // READ
+        let new = await fetch()  // SUSPEND!
+        items = current + [new]  // WRITE (stale!)
+        // Call B can interleave at suspend --
+        // both read same state, last write wins,
+        // first caller's append is LOST
+    }
+}
+
+// Fix: keep critical section atomic
+
+// GOOD: async work ABOVE, state update below
+func process() async {
+    let new = await fetch()  // suspend here
+    items.append(new)        // atomic read+write
+}
+
+// GOOD: state update ABOVE, async work below
+func enqueue(_ item: Item) async {
+    items.append(item)       // atomic read+write
+    await sync()             // suspend here
+}
+
+// Rule: critical section above OR below the await,
+// never split across it. Each synchronous block on
+// an actor is serialized -- no interleaving.
+
+
+── MainActor Isolation ────────────────────────────────
+
+// Entire class on main thread (ViewModels)
+@MainActor
+class ProfileVM: ObservableObject {
+    @Published var name = ""
+    func load() async throws {
+        // already on MainActor
+        name = try await api.fetchName()
+    }
+}
+
+// One-off main thread hop
+await MainActor.run { self.label = "Done" }
+
+// Mark a function
+@MainActor func updateUI() { ... }
+
+// nonisolated: opt out for pure computation
+nonisolated func hash(into: inout Hasher) { }
+
+
+── Sendable ───────────────────────────────────────────
+
+// Types safe to pass across actor/concurrency boundaries.
+
+// Value types are implicitly Sendable
+struct Point: Sendable { var x, y: Double }
+
+// Classes must be final + immutable
+final class Token: Sendable {
+    let value: String  // let only, no var
+}
+
+// Actors are always Sendable
+// @Sendable closures: no mutable captures
+Task { @Sendable in
+    await process(item)  // item must be Sendable
+}
+
+// @unchecked Sendable: escape hatch when you
+// manage thread safety yourself (e.g. with locks).
+
+
+── Cooperative Cancellation ───────────────────────────
+
+// Check cancellation (throws if cancelled)
+try Task.checkCancellation()
+
+// Poll cancellation (non-throwing)
+guard !Task.isCancelled else { return partial }
+
+// withTaskCancellationHandler
+let data = try await withTaskCancellationHandler {
+    try await longDownload()
+} onCancel: {
+    urlSessionTask.cancel() // bridge to non-async
+}
+
+// Cancellation is cooperative -- tasks must check.
+// URLSession, Task.sleep, etc. check automatically.
+
+
+── AsyncSequence & AsyncStream ────────────────────────
+
+// Consuming an AsyncSequence
+for await msg in webSocket.messages {
+    handle(msg)
+}
+
+// Creating a custom stream (replaces delegate)
+let stream = AsyncStream<CLLocation> { cont in
+    locMgr.onUpdate = { cont.yield($0) }
+    locMgr.onDone   = { cont.finish() }
+    cont.onTermination = { _ in
+        locMgr.stop()
+    }
+}
+
+// AsyncThrowingStream for errors
+let s = AsyncThrowingStream<Data, Error> { c in
+    c.yield(data)
+    c.finish(throwing: err) // or c.finish()
+}
+
+// Use AsyncStream to bridge delegates, callbacks,
+// NotificationCenter, KVO into async/await.
+
+
+── Combine Recipes ────────────────────────────────
+
+── ViewModel + @Published + @StateObject ──
+
+import Combine
+
+class ProfileVM: ObservableObject {
+    @Published var name = ""
+    @Published var isLoading = false
+    private var cancellables = Set<AnyCancellable>()
+
+    func load() {
+        isLoading = true
+        api.fetchProfile()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] _ in
+                    self?.isLoading = false
+                },
+                receiveValue: { [weak self] p in
+                    self?.name = p.name
+                }
+            )
+            .store(in: &cancellables)
+    }
+}
+
+// View
+@StateObject private var vm = ProfileVM()
+Text(vm.name)
+    .onAppear { vm.load() }
+
+── Repository Publisher + AnyCancellable ──
+
+class UserRepo {
+    func fetchUser(id: Int)
+        -> AnyPublisher<User, Error> {
+        URLSession.shared
+            .dataTaskPublisher(for: url)
+            .map(\.data)
+            .decode(type: User.self,
+                    decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
+}
+
+// Consumer
+var cancel: AnyCancellable?
+cancel = repo.fetchUser(id: 1)
+    .receive(on: DispatchQueue.main)
+    .sink(
+        receiveCompletion: { ... },
+        receiveValue: { user in ... }
+    )
+
+── Search Debounce (classic pipeline) ──
+
+// In VM init -- react to @Published changes
+$searchText
+    .debounce(for: .milliseconds(300),
+             scheduler: RunLoop.main)
+    .removeDuplicates()
+    .sink { [weak self] query in
+        self?.performSearch(query)
+    }
+    .store(in: &cancellables)
+
+// Key operators: debounce, throttle, removeDuplicates,
+// combineLatest, merge, map, compactMap, flatMap,
+// receive(on:), eraseToAnyPublisher()
