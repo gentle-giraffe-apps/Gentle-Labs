@@ -1,0 +1,241 @@
+Swift / iOS / DSA — Quick Reference  ::  PDF LAYOUT BLUEPRINT
+================================================================
+Page: Landscape Letter (279mm x 216mm)
+Margins: 6mm all sides | Column gap: 4mm
+Columns: 3 equal (~85.7mm each)
+Fonts: Helvetica (body), Courier (code) | 5.5-8pt range
+================================================================
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PAGE 1 — Swift Fundamentals & DSA                                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+========================= PAGE HEADER (full width, 14mm tall) ==========================
+| [DARK BLUE bg]  [WHITE Helvetica Bold 14pt, centered]                                |
+|                     Swift Fundamentals & DSA                                          |
+========================================================================================
+
+
+COLUMN 1 (~85.7mm)                  COLUMN 2 (~85.7mm)                  COLUMN 3 (~85.7mm)
+starts at y=18mm                    starts at y=18mm                    starts at y=18mm
+|                                   |                                   |
+|  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────┐
+|  │ String                │        |  │ Higher-Order           │        |  │ DSA Patterns -    │
+|  │ [MED BLUE bg]         │        |  │ Functions              │        |  │ Swift Idioms      │
+|  └───────────────────────┘        |  │ [MED BLUE bg]          │        |  │ [MED BLUE bg]     │
+|  [compact_list rows]              |  └────────────────────────┘        |  └───────────────────┘
+|  Properties: count, isEmpty,      |  ┌─ CODE BLOCK ──────────┐        |
+|    startIndex, endIndex           |  │ .map { $0 * 2 }  ...  │        |  ┌─ SUBSECTION ──────┐
+|  Case: lowercased(), ...          |  │ .flatMap { $0 }  ...  │        |  │ Hash Map Counting │
+|  Search: contains, hasPrefix,     |  │ .reduce(0, +)    ...  │        |  └───────────────────┘
+|    hasSuffix, starts(with:)       |  │ .forEach { ... } ...  │        |  ┌─ CODE ────────────┐
+|  Transform: reversed(), ...       |  │ .enumerated()    ...  │        |  │ for c in str {    │
+|  Init: String(42), ...            |  │ .first(where:)   ...  │        |  │  freq[c,def:0]+=1 │
+|  Character: isLetter, ...         |  │ .prefix(while:)  ...  │        |  └───────────────────┘
+|  ┌─ CODE BLOCK ──────────┐        |  │ zip(a, b)        ...  │        |
+|  │ s[s.index(startIn..)  │        |  └────────────────────────┘        |  ┌─ SUBSECTION ──────┐
+|  │ Character(UnicodeSc..)│        |                                    |  │ Two Pointers      │
+|  └───────────────────────┘        |  ┌─ SECTION ─────────────┐        |  └───────────────────┘
+|                                   |  │ NeetCode DSA           │        |  ┌─ CODE ────────────┐
+|  ┌─ SECTION ─────────────┐        |  │ Categories             │        |  │ var lo=0, hi=...  │
+|  │ Array                 │        |  │ [MED BLUE bg]          │        |  │ while lo < hi ... │
+|  │ [MED BLUE bg]         │        |  └────────────────────────┘        |  └───────────────────┘
+|  └───────────────────────┘        |  [compact_list rows x18]           |
+|  [compact_list rows]              |  1. Arrays & Hashing ...           |  ┌─ SUBSECTION ──────┐
+|  Access: first, last, count,      |  2. Two Pointers ...               |  │ Sliding Window     │
+|    isEmpty, min(), max()          |  3. Sliding Window ...             |  └───────────────────┘
+|  Mutate: append, insert, ...      |  4. Stack ...                      |  ┌─ CODE ────────────┐
+|  Order: sort, sorted, ...         |  5. Binary Search ...              |  │ var left = 0      │
+|  Search: contains, ...            |  6. Linked List ...                |  │ for right in 0..< │
+|  Slice: prefix, suffix, ...       |  7. Trees ...                      |  │  while /*invalid*/ │
+|  Init: Array(repeating:), ...     |  8. Tries ...                      |  └───────────────────┘
+|  ┌─ CODE BLOCK ──────────┐        |  9. Heap / Priority Queue ...      |
+|  │ // Stack: append      │        |  10. Backtracking ...              |  ┌─ SUBSECTION ──────┐
+|  │ //  (push/pop/peek)   │        |  11. Graphs ...                    |  │ BFS (head-index)  │
+|  └───────────────────────┘        |  12. Adv. Graphs ...               |  └───────────────────┘
+|                                   |  13. 1-D DP ...                    |  ┌─ CODE ────────────┐
+|  ┌─ SECTION ─────────────┐        |  14. 2-D DP ...                    |  │ var queue=[start] │
+|  │ Dictionary            │        |  15. Greedy ...                    |  │ var head = 0      │
+|  │ [MED BLUE bg]         │        |  16. Intervals ...                 |  │ while head<queue  │
+|  └───────────────────────┘        |  17. Math & Geometry ...           |  │  ...              │
+|  Access: d["k"], default, ...     |  18. Bit Manipulation ...          |  │ // removeFirst    │
+|  Mutate: d["k"]=v, remove, ...    |  (all 18 fit — no overflow)       |  │ //   O(n) vs O(1) │
+|  Query: contains(where:)          |                                    |  └───────────────────┘
+|  ┌─ CODE BLOCK ──────────┐        |                                    |
+|  │ // Counting + Freq ..  │        |                                    |  ┌─ SUBSECTION ──────┐
+|  └───────────────────────┘        |                                    |  │ DFS (Recursive)   │
+|  ┌─ SUBSECTION ──────────┐        |                                    |  └───────────────────┘
+|  │ Sparse Grid           │        |                                    |  ┌─ CODE ────────────┐
+|  └───────────────────────┘        |                                    |  │ func dfs(_ node:  │
+|  ┌─ CODE BLOCK ──────────┐        |                                    |  │  visited.insert.. │
+|  │ grid = [[Int]:Int]()  │        |                                    |  │  for nb in ...    │
+|  │ grid[[23,77]] = 1     │        |                                    |  │    dfs(nb)        │
+|  │ grid[[-1,-1],def:0]   │        |                                    |  └───────────────────┘
+|  └───────────────────────┘        |                                    |
+|                                   |                                    |  ┌─ SUBSECTION ──────┐
+|  ┌─ SECTION ─────────────┐        |                                    |  │ Binary Search     │
+|  │ Set                   │        |                                    |  └───────────────────┘
+|  │ [MED BLUE bg]         │        |                                    |  ┌─ CODE ────────────┐
+|  └───────────────────────┘        |                                    |  │ var lo=0, hi=..   │
+|  Mutate: insert, remove, ...      |                                    |  │ while lo <= hi {  │
+|  Algebra: union, intersect, ...   |                                    |  │  let mid = lo+... │
+|                                   |                                    |  └───────────────────┘
+|  ┌─ SECTION ─────────────┐        |                                    |
+|  │ Tuple & Comparable    │        |                                    |  ┌─ SUBSECTION ──────┐
+|  │ [MED BLUE bg]         │        |                                    |  │ Heap / Top-K      │
+|  └───────────────────────┘        |                                    |  └───────────────────┘
+|  ┌─ CODE BLOCK ──────────┐        |                                    |  ┌─ CODE ────────────┐
+|  │ let pair = (x:1,y:2)  │        |                                    |  │ arr.sorted(by:>)  │
+|  │ // Comparable up to 6  │        |                                    |  │  .prefix(k)       │
+|  │ (1,"b") < (2,"a")     │        |                                    |  └───────────────────┘
+|  └───────────────────────┘        |                                    |
+|                                   |                                    |  ┌─ SUBSECTION ──────┐
+|  (END OF COLUMN 1)                |  (END OF COLUMN 2)                 |  │ Stack / Monotonic │
+|                                   |                                    |  └───────────────────┘
+|                                   |                                    |  ┌─ CODE ────────────┐
+                                                                         |  │ // Stack: append  │
+                                                                         |  │ // Monotonic:     │
+                                                                         |  │ for i in 0..<..   │
+                                                                         |  │  while let top=.. │
+                                                                         |  └───────────────────┘
+                                                                         |
+                                                                         |  ┌─ SUBSECTION ──────┐
+                                                                         |  │ Deque (Slide Max) │
+                                                                         |  └───────────────────┘
+                                                                         |  ┌─ CODE ────────────┐
+                                                                         |  │ var deque=[Int]() │
+                                                                         |  │ for i in 0..<..   │
+                                                                         |  │  ...              │
+                                                                         |  └───────────────────┘
+                                                                         |
+                                                                         |  (END OF COLUMN 3)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PAGE 2 — iOS APIs & Networking                                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+========================= PAGE HEADER (full width, 14mm tall) ==========================
+| [DARK BLUE bg]  [WHITE Helvetica Bold 14pt, centered]                                |
+|                      iOS APIs & Networking                                            |
+========================================================================================
+
+
+COLUMN 1 (~85.7mm)                  COLUMN 2 (~85.7mm)                  COLUMN 3 (~85.7mm)
+starts at y=18mm                    starts at y=18mm                    starts at y=18mm
+|                                   |                                   |
+|  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────┐
+|  │ UserDefaults           │        |  │ Codable Struct +       │        |  │ Resilient Enum    │
+|  │ [MED BLUE bg]          │        |  │ CodingKeys             │        |  │ (DTO Best         │
+|  └────────────────────────┘        |  │ [MED BLUE bg]          │        |  │  Practice)        │
+|  ┌─ CODE BLOCK (5 lines)─┐        |  └────────────────────────┘        |  │ [MED BLUE bg]     │
+|  │ let ud = UD.standard   │        |  ┌─ CODE BLOCK (12 ln) ──┐        |  └───────────────────┘
+|  │ ud.set(val, forKey:..) │        |  │ struct User: Codable { │        |  ┌─ BODY TEXT ───────┐
+|  │ ud.integer(forKey:)... │        |  │   let id: Int          │        |  │ Problem: API adds │
+|  │ ud.removeObject(for..) │        |  │   let firstName: Str.. │        |  │ new enum values   │
+|  │ // Codable won't auto..│        |  │   ...                  │        |  │ -> app crashes    │
+|  └────────────────────────┘        |  │   enum CodingKeys:     │        |  └───────────────────┘
+|                                   |  │     String, CodingKey { │        |  ┌─ CODE BLOCK ──────┐
+|  ┌─ SECTION ─────────────┐        |  │     case id             │        |  │ enum Status:      │
+|  │ FileManager            │        |  │     case firstName =    │        |  │   Codable, Eq.. { │
+|  │ [MED BLUE bg]          │        |  │       "first_name"     │        |  │  case active,     │
+|  └────────────────────────┘        |  │     ...                │        |  │    inactive,       │
+|  ┌─ CODE BLOCK (8 lines)─┐        |  │   }                    │        |  │    archived        │
+|  │ let fm = FileMgr...    │        |  │ }                      │        |  │  case unknown(Str) │
+|  │ let docs = fm.urls..   │        |  └────────────────────────┘        |  │                   │
+|  │ let url = docs.app..   │        |  ┌─ BODY TEXT ──────────┐         |  │  init(from dec..)  │
+|  │ try data.write(to:)    │        |  │ CodingKeys map JSON   │         |  │    let val = ...   │
+|  │ let d = try Data(..)   │        |  │ snake_case → Swift     │         |  │    switch val {    │
+|  │ fm.fileExists(..)      │        |  │ camelCase. Alt:        │         |  │    case "active":  │
+|  │ try fm.removeItem(..)  │        |  │ .convertFromSnakeCase  │         |  │      ...           │
+|  │ try fm.contentOfDir..  │        |  └────────────────────────┘         |  │    default:        │
+|  └────────────────────────┘        |                                    |  │      .unknown(val) │
+|                                   |  ┌─ SECTION ─────────────┐        |  │    }               │
+|  ┌─ SECTION ─────────────┐        |  │ Custom Decoding        │        |  │  }                 │
+|  │ URLSession GET +       │        |  │ [MED BLUE bg]          │        |  │ }                  │
+|  │ JSONDecoder            │        |  └────────────────────────┘        |  └───────────────────┘
+|  │ [MED BLUE bg]          │        |  ┌─ CODE BLOCK (17 ln) ──┐        |  ┌─ BODY TEXT ───────┐
+|  └────────────────────────┘        |  │ struct Post: Codable { │        |  │ {"status":"pend."}│
+|  ┌─ CODE BLOCK (6 lines)─┐        |  │   let id: Int          │        |  │ -> .unknown("pend")│
+|  │ let url = URL(str..)   │        |  │   let title: String    │        |  └───────────────────┘
+|  │ let (data,resp) = ...  │        |  │   let tags: [String]   │        |
+|  │ guard let http = ...   │        |  │                        │        |  (END OF COLUMN 3)
+|  │   http.statusCode==200 │        |  │   enum CodingKeys:..{  │        |
+|  │ else { throw URLErr..} │        |  │     case id, title     │        |
+|  │ let items = try JSON..  │        |  │     case tags =        │        |
+|  └────────────────────────┘        |  │       "post_tags"      │        |
+|                                   |  │   }                    │        |
+|  ┌─ SUBSECTION ──────────┐        |  │                        │        |
+|  │ With URLRequest &      │        |  │   init(from dec..) {   │        |
+|  │ Decoder Options        │        |  │     let c = try dec..  │        |
+|  │ [LIGHT BLUE bg]        │        |  │     id = try c.dec..   │        |
+|  └────────────────────────┘        |  │     title = try c.d..  │        |
+|  ┌─ CODE BLOCK (7 lines)─┐        |  │     tags = try c.dec   │        |
+|  │ var req = URLReq...    │        |  │       IfPresent(..)??[]│        |
+|  │ req.setValue(...)      │        |  │   }                    │        |
+|  │ let (data,_) = ...    │        |  │ }                      │        |
+|  │                        │        |  └────────────────────────┘        |
+|  │ let dec = JSONDec..    │        |  ┌─ BODY TEXT ──────────┐         |
+|  │ dec.keyDecoding...     │        |  │ decodeIfPresent: nil   │         |
+|  │ dec.dateDecoding...    │        |  │ nestedContainer: ...   │         |
+|  └────────────────────────┘        |  │ singleValueContainer   │         |
+|                                   |  │ unkeyedContainer       │         |
+|  (END OF COLUMN 1)                |  └────────────────────────┘         |
+|                                   |                                    |
+|                                   |  (END OF COLUMN 2)                 |
+
+
+========================================================================================
+                              LAYOUT NOTES
+========================================================================================
+
+CONTENT FLOW:
+  Page 1 — "Swift Fundamentals & DSA"
+    Col 1: String -> Array -> Dictionary (w/ sparse grid) -> Set -> Tuple & Comparable
+    Col 2: Higher-Order Functions -> NeetCode DSA Categories (all 18 fit)
+    Col 3: DSA Patterns (Hash Map, Two Pointers, Sliding Window, BFS, DFS,
+            Binary Search, Heap, Stack/Monotonic, Deque)
+
+  Page 2 — "iOS APIs & Networking"
+    Col 1: UserDefaults (slim) -> FileManager -> URLSession + URLRequest
+           -> Structured Concurrency (async let, TaskGroup)
+    Col 2: Task (Unstructured) -> SwiftUI .task
+           -> SwiftUI Property Wrappers -> SwiftUI Components
+           -> Codable Struct + CodingKeys -> Custom Decoding
+  Note: With concurrency + SwiftUI + Codable sections, Page 2 will
+        likely need Page 3 overflow. Auto-flow handles this.
+    Col 3: Resilient Enum (DTO Best Practice)
+
+FIXES APPLIED:
+  - DFS long line broken into multi-line (was truncating at 95 chars)
+  - URLSession guard broken into multi-line (was exceeding 95 chars)
+  - BFS uses head-index trick (O(1) vs O(n) removeFirst)
+  - Custom Decoding: CodingKeys now justified (tags = "post_tags")
+  - Redundant struct Item/Wrapper removed from URLSession (Codable section covers this)
+  - NeetCode #18 no longer orphaned (col 2 has room for all 18)
+  - Tuple & Comparable added to PDF (was only in txt)
+  - Sparse grid technique added to PDF (was only in txt)
+  - Deque/Sliding Window Max added to PDF (was only in txt)
+  - Resilient Enum: encode(to:) removed (decode-only for DTOs)
+  - Array: removed 2D grid init line (overflows column width)
+  - UserDefaults slimmed to 5-line code block with Codable warning
+
+ELEMENT STYLING REFERENCE:
+  ┌──────────────┬────────────────────────────────────────────────┐
+  │ Element      │ Style                                          │
+  ├──────────────┼────────────────────────────────────────────────┤
+  │ Page header  │ Dark blue bg (30,60,110), white Helv-B 14pt   │
+  │ Section      │ Med blue bg (55,90,145), white Helv-B 8pt     │
+  │ Subsection   │ Light blue bg (200,215,235), black Helv-B 6.5 │
+  │ compact_list │ Black Helv-B 6pt label + gray Courier 5.5pt   │
+  │ Code block   │ Light gray bg (245,245,245), gray Courier 5.8 │
+  │ Body text    │ Gray Helvetica 6pt                             │
+  └──────────────┴────────────────────────────────────────────────┘
+
+COLUMN DIMENSIONS:
+  Page width:     279.4mm (landscape letter)
+  Usable width:   267.4mm (279.4 - 2*6mm margins)
+  Column width:    85.7mm ((267.4 - 2*4mm gaps) / 3)
+  Column height:  ~192mm  (216 - 6mm margin - 18mm header top)
+  Code char limit: ~95 chars per line (Courier 5.8pt in 85.7mm col)
