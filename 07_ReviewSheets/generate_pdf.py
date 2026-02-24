@@ -27,6 +27,7 @@ class CheatSheet(FPDF):
         self.col_top = 18  # below page header
         self.col_y = self.col_top
         self.current_page_title = ""
+        self._last_subsect = None  # orphan prevention tracking
 
     def page_header(self, title):
         self.current_page_title = title
@@ -52,14 +53,46 @@ class CheatSheet(FPDF):
                 self.col_idx = 0
                 self.col_y = self.col_top
 
+    def _check_space_keep_subsect(self, needed):
+        """Like _check_space, but if a subsection header was just placed on
+        this column and the content would overflow, erase the orphaned header
+        and re-draw it on the new column/page so header + content stay together."""
+        sub = self._last_subsect
+        if sub is not None:
+            title, sub_y, sub_page, sub_col = sub
+            same_loc = (sub_page == self.page and sub_col == self.col_idx)
+            would_overflow = (self.col_y + needed > self.h - self.margin)
+            if same_loc and would_overflow:
+                # White-out the orphaned header
+                self.set_fill_color(*WHITE)
+                self.rect(self._col_left(), sub_y, self.col_w,
+                          self.col_y - sub_y, "F")
+                self.col_y = sub_y
+                # Break with room for header + content
+                self._check_space(5.5 + needed)
+                # Re-draw subsection header in new location
+                x = self._col_left()
+                self.set_fill_color(*SUBSECT_BG)
+                self.set_text_color(*BLACK)
+                self.set_font("Helvetica", "B", 6.5)
+                self.set_xy(x, self.col_y)
+                self.cell(self.col_w, 4.5, f"  {title}", fill=True)
+                self.col_y += 5.5
+                self._last_subsect = None
+                return
+            self._last_subsect = None
+        self._check_space(needed)
+
     def new_page(self, title):
         """Force a new page with the given header title."""
         self.add_page()
         self.page_header(title)
         self.col_idx = 0
         self.col_y = self.col_top
+        self._last_subsect = None
 
     def section(self, title):
+        self._last_subsect = None
         self._check_space(7)
         x = self._col_left()
         self.set_fill_color(*SECTION_BG)
@@ -78,36 +111,44 @@ class CheatSheet(FPDF):
         self.set_font("Helvetica", "B", 6.5)
         self.set_xy(x, self.col_y)
         self.cell(self.col_w, 4.5, f"  {title}", fill=True)
+        # Track for orphan prevention (title, y_start, page, col_idx)
+        self._last_subsect = (title, self.col_y, self.page, self.col_idx)
         self.col_y += 5.5
 
     def code_block(self, text):
-        self.set_font("Courier", "", 5.8)
-        self.set_text_color(*DARK_GRAY)
         lines = text.strip().split("\n")
         needed = len(lines) * 3.4 + 2
-        self._check_space(needed)
+        self._check_space_keep_subsect(needed)
+        self.set_font("Courier", "", 5.5)
+        self.set_text_color(*DARK_GRAY)
+        # Dynamic max chars (Courier is monospace)
+        available_w = self.col_w - 2
+        max_chars = int(available_w / self.get_string_width("M"))
         x = self._col_left()
         y_start = self.col_y
         self.set_fill_color(*CODE_BG)
         self.rect(x, y_start, self.col_w, needed, "F")
         cy = y_start + 1
         for line in lines:
-            self.set_xy(x + 1.5, cy)
-            self.cell(self.col_w - 3, 3.2, line[:95])
+            self.set_xy(x + 1, cy)
+            self.cell(available_w, 3.2, line[:max_chars])
             cy += 3.4
         self.col_y = y_start + needed + 0.5
 
     def body_text(self, text):
-        x = self._col_left()
-        self.set_font("Helvetica", "", 6)
-        self.set_text_color(*DARK_GRAY)
         lines = text.strip().split("\n")
         needed = len(lines) * 3.2 + 1
-        self._check_space(needed)
+        self._check_space_keep_subsect(needed)
+        self.set_font("Helvetica", "", 6)
+        self.set_text_color(*DARK_GRAY)
         x = self._col_left()
+        available_w = self.col_w - 3
         for line in lines:
             self.set_xy(x + 1.5, self.col_y)
-            self.cell(self.col_w - 3, 3, line[:100])
+            truncated = line
+            while len(truncated) > 0 and self.get_string_width(truncated) > available_w:
+                truncated = truncated[:-1]
+            self.cell(available_w, 3, truncated)
             self.col_y += 3.2
         self.col_y += 1
 
@@ -449,15 +490,15 @@ def build():
     pdf.section("SwiftUI Property Wrappers")
     pdf.subsection("Value Types (view-owned state)")
     pdf.code_block(
-        '@State private var count = 0        // View OWNS. Survives re-renders.\n'
-        '@Binding var isOn: Bool             // Two-way ref to parent @State.\n'
-        '                                    // Created with $: Toggle(isOn: $vm.isOn)'
+        '@State private var count = 0   // View OWNS. Survives re-renders.\n'
+        '@Binding var isOn: Bool        // Two-way ref to parent @State.\n'
+        '    // Created with $: Toggle(isOn: $vm.isOn)'
     )
     pdf.subsection("Reference Types (ObservableObject)")
     pdf.code_block(
         '@StateObject private var vm = VM()  // View OWNS. Created once.\n'
         '@ObservedObject var vm: VM          // Passed in. NOT owned.\n'
-        '@EnvironmentObject var vm: VM       // Injected via .environmentObject()'
+        '@EnvironmentObject var vm: VM       // via .environmentObject()'
     )
     pdf.subsection("Inside ObservableObject")
     pdf.code_block(
