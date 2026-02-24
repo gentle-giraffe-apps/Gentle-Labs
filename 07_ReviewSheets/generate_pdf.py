@@ -574,6 +574,36 @@ def build():
         'LazyVGrid(columns: cols) { }       // vertical grid\n'
         'LazyHGrid(rows: rows) { }          // horizontal grid'
     )
+    pdf.subsection("List Skeleton (UITableView analog)")
+    pdf.code_block(
+        'List(selection: $selected) {\n'
+        '    Section("Favorites") {          // header\n'
+        '        ForEach(filtered) { item in\n'
+        '            Row(item: item)\n'
+        '                .swipeActions(edge: .trailing) {\n'
+        '                    Button("Delete",\n'
+        '                        role: .destructive) { del(item) }\n'
+        '                }\n'
+        '                .swipeActions(edge: .leading) {\n'
+        '                    Button("Pin") { pin(item) }\n'
+        '                }\n'
+        '        }\n'
+        '        .onDelete { offsets in remove(offsets) }\n'
+        '        .onMove { from, to in move(from, to) }\n'
+        '    } footer: {\n'
+        '        Text("\\(filtered.count) items")\n'
+        '    }\n'
+        '}\n'
+        '.searchable(text: $query)          // search bar\n'
+        '.refreshable { await reload() }    // pull-to-refresh\n'
+        '.listStyle(.insetGrouped)          // .plain .grouped\n'
+        '.environment(\\.editMode, $mode)    // enable edit mode'
+    )
+    pdf.body_text(
+        'List = UICollectionView under the hood (iOS 16+).\n'
+        'Cell reuse, lazy rendering, diffable updates, prefetch.\n'
+        'ForEach in List is lazy; in ScrollView/VStack is eager.'
+    )
     pdf.subsection("Navigation")
     pdf.code_block(
         'NavigationStack { }                // push/pop (iOS 16+)\n'
