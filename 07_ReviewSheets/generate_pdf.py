@@ -207,8 +207,7 @@ def build():
     pdf.compact_list("Init:", ["String(42)", "String(3.14)", 'String(repeating:count:)'])
     pdf.compact_list("Character:", ["isLetter", "isNumber", "isWhitespace", "asciiValue"])
     pdf.code_block(
-        's[s.index(s.startIndex, offsetBy: 4)]   // index access\n'
-        'Character(UnicodeScalar(97))             // "a"'
+        's[s.index(s.startIndex, offsetBy: 4)]   // index access'
     )
 
     # ── ARRAY ──
@@ -398,7 +397,7 @@ def build():
     pdf.code_block(
         'let fm = FileManager.default\n'
         'let docs = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]\n'
-        'let url = docs.appendingPathComponent("data.json")\n'
+        'let url = docs.appending(path: "data.json")  // iOS 16+\n'
         'try data.write(to: url)              // write\n'
         'let d = try Data(contentsOf: url)    // read\n'
         'fm.fileExists(atPath: url.path)      // check\n'
@@ -471,7 +470,7 @@ def build():
         '// Read current task name (useful in logging)\n'
         'if let n = Task.name { print("Running: \\(n)") }\n'
         '\n'
-        '// Priorities: .high .medium .low .userInitiated .utility .background'
+        '// Priorities: .userInitiated .medium .utility .background'
     )
 
     # ── SWIFTUI .task ──
@@ -732,7 +731,7 @@ def build():
         'Solution: catch-all case preserves the raw value'
     )
     pdf.code_block(
-        'enum Status: Codable, Equatable {\n'
+        'enum Status: Decodable, Equatable {\n'
         '    case active, inactive, archived\n'
         '    case unknown(String)    // catch-all\n'
         '\n'
@@ -764,7 +763,7 @@ def build():
         'Common for: image loading, API calls, token refresh.'
     )
     pdf.code_block(
-        'actor RequestCoalescer<Key: Hashable, Value> {\n'
+        'actor RequestCoalescer<Key: Hashable, Value: Sendable> {\n'
         '    private var inFlight: [Key: Task<Value, Error>] = [:]\n'
         '\n'
         '    func fetch(\n'
@@ -782,47 +781,55 @@ def build():
         '}'
     )
     pdf.code_block(
-        '// Usage\n'
-        'let images = RequestCoalescer<URL, UIImage>()\n'
-        'let img = try await images.fetch(key: url) {\n'
-        '    let (data, _) = try await URLSession\n'
+        '// Usage -- Data is Sendable (UIImage is NOT)\n'
+        'let loader = RequestCoalescer<URL, Data>()\n'
+        'let data = try await loader.fetch(key: url) {\n'
+        '    let (d, _) = try await URLSession\n'
         '        .shared.data(from: url)\n'
-        '    return UIImage(data: data)!\n'
-        '}'
+        '    return d\n'
+        '}\n'
+        'let image = UIImage(data: data)  // decode on caller'
     )
 
     # ── ACTOR REENTRANCY ──
     pdf.section("Actor Reentrancy")
     pdf.body_text(
         'Each await is a suspension point -- other callers\n'
-        'can interleave. State may change underneath you.'
+        'can interleave. Never split a critical section\n'
+        '(read-modify-write) across an await.'
     )
     pdf.code_block(
-        '// BUG: state changes between check and use\n'
-        'actor Counter {\n'
-        '    var count = 0\n'
-        '    func incrementIfLow() async {\n'
-        '        guard count < 10 else { return }\n'
-        '        await someAsyncWork()  // SUSPENSION!\n'
-        '        count += 1  // count may now be >= 10\n'
+        '// BUG: read-modify-write SPLIT across await\n'
+        'actor Cache {\n'
+        '    var items = [Item]()\n'
+        '    func process() async {\n'
+        '        let current = items      // READ\n'
+        '        let new = await fetch()  // SUSPEND!\n'
+        '        items = current + [new]  // WRITE (stale!)\n'
+        '        // Call B can interleave at suspend --\n'
+        '        // both read same state, last write wins,\n'
+        '        // first caller\'s append is LOST\n'
         '    }\n'
         '}'
     )
+    pdf.subsection("Fix: keep critical section atomic")
     pdf.code_block(
-        '// FIX: capture before await, re-validate after\n'
-        'actor Counter {\n'
-        '    var count = 0\n'
-        '    func incrementIfLow() async {\n'
-        '        guard count < 10 else { return }\n'
-        '        let result = await someAsyncWork()\n'
-        '        guard count < 10 else { return } // re-check\n'
-        '        count += 1\n'
-        '    }\n'
+        '// GOOD: async work ABOVE, state update below\n'
+        'func process() async {\n'
+        '    let new = await fetch()  // suspend here\n'
+        '    items.append(new)        // atomic read+write\n'
+        '}\n'
+        '\n'
+        '// GOOD: state update ABOVE, async work below\n'
+        'func enqueue(_ item: Item) async {\n'
+        '    items.append(item)       // atomic read+write\n'
+        '    await sync()             // suspend here\n'
         '}'
     )
     pdf.body_text(
-        'Rule: never trust actor state across an await.\n'
-        'Capture values before, re-validate after.'
+        'Rule: critical section above OR below the await,\n'
+        'never split across it. Each synchronous block on\n'
+        'an actor is serialized -- no interleaving.'
     )
 
     # ── MAINACTOR ──
@@ -832,7 +839,7 @@ def build():
         '@MainActor\n'
         'class ProfileVM: ObservableObject {\n'
         '    @Published var name = ""\n'
-        '    func load() async {\n'
+        '    func load() async throws {\n'
         '        // already on MainActor\n'
         '        name = try await api.fetchName()\n'
         '    }\n'
