@@ -1,0 +1,682 @@
+Swift / iOS / DSA — Quick Reference
+=====================================
+
+═══════════════════════════════════════════════════════════
+  PAGE 1 — Swift Fundamentals & DSA
+═══════════════════════════════════════════════════════════
+
+
+── String ──────────────────────────────────────────────
+
+let s = "Hello, World"
+
+s.count
+s.isEmpty
+s.lowercased()
+s.uppercased()
+s.contains("llo")
+s.hasPrefix("He")
+s.hasSuffix("ld")
+s.reversed()                          // ReversedCollection — String(s.reversed())
+s.split(separator: ",")               // [Substring]
+s.components(separatedBy: ", ")       // [String] (Foundation)
+s.trimmingCharacters(in: .whitespaces)
+s.replacingOccurrences(of: "o", with: "0")
+s.starts(with: "He")
+
+s[s.startIndex]
+s[s.index(s.startIndex, offsetBy: 4)]
+s[s.startIndex..<s.index(s.startIndex, offsetBy: 5)]   // "Hello"
+
+String(42)
+String(3.14)
+String(repeating: "ab", count: 3)     // "ababab"
+
+// Character checks
+let c: Character = "A"
+c.isLetter
+c.isNumber
+c.isWhitespace
+c.asciiValue                          // UInt8?
+
+// ASCII math
+Int(c.asciiValue!)                    // 65
+Character(UnicodeScalar(97))          // "a"
+
+
+── Array ───────────────────────────────────────────────
+
+var a = [1, 2, 3, 4, 5]
+
+a.count
+a.isEmpty
+a.first                               // Optional
+a.last                                // Optional
+a.append(6)
+a.insert(0, at: 0)
+a.remove(at: 0)
+a.removeFirst()
+a.removeLast()
+a.removeAll()
+a.contains(3)
+a.firstIndex(of: 3)                   // Optional
+a.swapAt(0, 1)
+a.reverse()                           // in-place
+a.reversed()                          // lazy
+a.sort()                              // in-place
+a.sorted()                            // new array
+a.sorted(by: >)
+a.shuffle()
+a.min()
+a.max()
+
+a[0..<3]                              // ArraySlice
+Array(a[0..<3])                       // new Array
+a.prefix(3)
+a.suffix(2)
+
+// Stack usage
+a.append(val)                         // push
+a.removeLast()                        // pop
+a.last                                // peek
+
+// Initialize
+Array(repeating: 0, count: 10)
+Array(0..<10)
+Array(stride(from: 0, to: 10, by: 2))
+
+
+── Dictionary ──────────────────────────────────────────
+
+var d = [String: Int]()
+var d2 = ["a": 1, "b": 2]
+
+d["key"] = 10
+d["key"]                              // Optional
+d["key", default: 0]
+d["key", default: 0] += 1            // counting pattern
+d.removeValue(forKey: "key")
+d.keys                                // Dictionary.Keys
+d.values                              // Dictionary.Values
+d.count
+d.isEmpty
+d.contains(where: { $0.value > 5 })
+d.merge(d2) { current, _ in current }
+d.mapValues { $0 * 2 }
+
+// Frequency map one-liner
+let freq = arr.reduce(into: [:]) { $0[$1, default: 0] += 1 }
+
+// Technique: sparse grid via Dictionary (avoids 2D array + bounds checking)
+var grid = [[Int]: Int]()            // [Int] is Hashable — use as N-ary key
+grid[[23, 77]] = 1                   // set — no allocation, no bounds issues
+grid[[-1, -1], default: 0]          // safe get — missing keys return default
+// Works for any dimensionality: grid[[x, y, z]] for 3D, etc.
+
+
+── Set ─────────────────────────────────────────────────
+
+var s = Set<Int>()
+var s2: Set = [1, 2, 3]
+
+s.insert(1)                           // (inserted: Bool, memberAfterInsert)
+s.remove(1)                           // Optional
+s.contains(1)
+s.count
+s.isEmpty
+
+s.union(s2)
+s.intersection(s2)
+s.subtracting(s2)
+s.symmetricDifference(s2)
+s.isSubset(of: s2)
+s.isSuperset(of: s2)
+
+
+── Tuple & Comparable ──────────────────────────────────
+
+let pair = (x: 1, y: 2)
+pair.x
+pair.0
+
+// Tuples are Comparable element-wise (up to 6 elements)
+(1, "b") < (2, "a")                  // true — compares first element first
+
+
+── Higher-Order Functions ──────────────────────────────
+
+// map
+[1,2,3].map { $0 * 2 }                                   // [2,4,6]
+
+// compactMap
+["1","a","3"].compactMap { Int($0) }                      // [1,3]
+
+// flatMap
+[[1,2],[3,4]].flatMap { $0 }                              // [1,2,3,4]
+
+// filter
+[1,2,3,4].filter { $0 % 2 == 0 }                         // [2,4]
+
+// reduce
+[1,2,3].reduce(0, +)                                     // 6
+[1,2,3].reduce(0) { acc, val in acc + val }               // 6
+
+// reduce(into:)
+[1,2,1,3].reduce(into: [:]) { $0[$1, default: 0] += 1 }  // [1:2, 2:1, 3:1]
+
+// forEach
+[1,2,3].forEach { print($0) }
+
+// sorted
+[3,1,2].sorted()                                          // [1,2,3]
+[3,1,2].sorted(by: >)                                     // [3,2,1]
+people.sorted { $0.age < $1.age }
+
+// enumerated
+for (i, val) in arr.enumerated() { }
+
+// zip
+for (a, b) in zip(arr1, arr2) { }
+
+// prefix / drop
+[1,2,3,4].prefix(while: { $0 < 3 })                      // [1,2]
+[1,2,3,4].drop(while: { $0 < 3 })                        // [3,4]
+
+// allSatisfy
+[2,4,6].allSatisfy { $0 % 2 == 0 }                       // true
+
+// first(where:)
+[1,2,3].first(where: { $0 > 1 })                         // 2
+
+// contains(where:)
+[1,2,3].contains(where: { $0 > 2 })                      // true
+
+
+── NeetCode DSA Categories ─────────────────────────────
+
+ 1. Arrays & Hashing
+    - frequency maps, two sum, group anagrams, top-K frequent
+ 2. Two Pointers
+    - valid palindrome, 3sum, container with most water, trapping rain water
+ 3. Sliding Window
+    - best time to buy/sell stock, longest substring without repeating chars
+ 4. Stack
+    - valid parentheses, min stack, evaluate reverse polish, daily temperatures
+ 5. Binary Search
+    - search rotated array, find min in rotated array, koko eating bananas
+ 6. Linked List
+    - reverse, merge two sorted, detect cycle, LRU cache
+ 7. Trees
+    - invert tree, max depth, level order traversal, validate BST, serialize/deserialize
+ 8. Tries
+    - implement trie, word search II
+ 9. Heap / Priority Queue
+    - kth largest element, merge k sorted lists, find median from data stream
+10. Backtracking
+    - subsets, permutations, combination sum, word search, n-queens
+11. Graphs
+    - number of islands, clone graph, course schedule (topological sort), word ladder
+12. Advanced Graphs
+    - Dijkstra, Prim/Kruskal MST, network delay time
+13. 1-D Dynamic Programming
+    - climbing stairs, house robber, longest increasing subsequence, coin change
+14. 2-D Dynamic Programming
+    - unique paths, longest common subsequence, edit distance
+15. Greedy
+    - max subarray (Kadane), jump game, gas station, hand of straights
+16. Intervals
+    - merge intervals, insert interval, meeting rooms I/II
+17. Math & Geometry
+    - rotate image, spiral matrix, set matrix zeroes, pow(x, n)
+18. Bit Manipulation
+    - single number, counting bits, reverse bits, missing number
+
+
+── Common DSA Patterns (Swift Idioms) ──────────────────
+
+// Hash map counting
+var freq = [Character: Int]()
+for c in str { freq[c, default: 0] += 1 }
+
+// Two pointers
+var lo = 0, hi = arr.count - 1
+while lo < hi { /* ... */ lo += 1; hi -= 1 }
+
+// Sliding window
+var left = 0
+for right in 0..<arr.count {
+    // expand window
+    while /* window invalid */ { left += 1 }
+    // update answer
+}
+
+// BFS (head-index trick: O(1) dequeue instead of O(n) removeFirst)
+var queue = [startNode]
+var head = 0
+var visited = Set([startNode])
+while head < queue.count {
+    let node = queue[head]
+    head += 1
+    for neighbor in graph[node, default: []] {
+        guard !visited.contains(neighbor) else { continue }
+        visited.insert(neighbor)
+        queue.append(neighbor)
+    }
+}
+// queue.removeFirst() shifts all elements — O(n)
+// head index just advances a pointer — O(1), array stays intact
+
+// DFS (recursive)
+var visited = Set<Int>()
+func dfs(_ node: Int) {
+    visited.insert(node)
+    for nb in graph[node, default: []]
+        where !visited.contains(nb) {
+        dfs(nb)
+    }
+}
+
+// Binary search
+var lo = 0, hi = arr.count - 1
+while lo <= hi {
+    let mid = lo + (hi - lo) / 2
+    if arr[mid] == target { return mid }
+    else if arr[mid] < target { lo = mid + 1 }
+    else { hi = mid - 1 }
+}
+
+// Heap (via sorted array or CFBinaryHeap — no stdlib heap)
+// Sort-based top-K:
+arr.sorted(by: >).prefix(k)
+// For true O(n log k), use a manual min-heap or Collections package:
+// import Collections  →  Heap<Int>
+
+// Stack
+var stack = [Int]()
+stack.append(val)       // push
+stack.removeLast()      // pop
+stack.last              // peek
+
+// Monotonic stack (next greater element)
+var stack = [Int]()     // indices
+for i in 0..<arr.count {
+    while let top = stack.last, arr[top] < arr[i] {
+        result[stack.removeLast()] = arr[i]
+    }
+    stack.append(i)
+}
+
+// Deque (sliding window max)
+var deque = [Int]()     // indices, front = max
+for i in 0..<arr.count {
+    while let back = deque.last, arr[back] <= arr[i] { deque.removeLast() }
+    deque.append(i)
+    if deque.first! <= i - k { deque.removeFirst() }
+    if i >= k - 1 { result.append(arr[deque.first!]) }
+}
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 2 — iOS APIs & Networking
+═══════════════════════════════════════════════════════════
+
+
+── UserDefaults ────────────────────────────────────────
+
+let ud = UserDefaults.standard
+ud.set(value, forKey: "k")       // Int, String, Bool, Array, Data, etc.
+ud.integer(forKey:)              // .string, .bool, .array, .double, .float, .object
+ud.removeObject(forKey: "k")
+// WARNING: Codable structs stored via set(_:forKey:) won't auto-decode — use Data + JSONEncoder/Decoder
+
+
+── FileManager ─────────────────────────────────────────
+
+let fm = FileManager.default
+
+// Documents directory
+let docs = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+let fileURL = docs.appendingPathComponent("data.json")
+
+// Write
+try data.write(to: fileURL)
+
+// Read
+let loaded = try Data(contentsOf: fileURL)
+
+// Check existence
+fm.fileExists(atPath: fileURL.path)
+
+// Delete
+try fm.removeItem(at: fileURL)
+
+// List contents
+let items = try fm.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil)
+
+
+── URLSession GET + JSONDecoder ────────────────────────
+
+// Minimal async GET
+let url = URL(string: "https://api.example.com/items")!
+let (data, resp) = try await URLSession.shared.data(from: url)
+guard let http = resp as? HTTPURLResponse,
+      http.statusCode == 200
+else { throw URLError(.badServerResponse) }
+let items = try JSONDecoder().decode([Item].self, from: data)
+
+// With URLRequest (custom headers, etc.)
+var request = URLRequest(url: url)
+request.httpMethod = "GET"
+request.setValue("application/json", forHTTPHeaderField: "Accept")
+let (data, response) = try await URLSession.shared.data(for: request)
+
+// JSONDecoder options
+let decoder = JSONDecoder()
+decoder.keyDecodingStrategy = .convertFromSnakeCase
+decoder.dateDecodingStrategy = .iso8601
+let result = try decoder.decode(Wrapper.self, from: data)
+
+
+── Structured Concurrency ──────────────────────────────
+
+// async let — parallel calls, awaited together
+async let user = fetchUser(id: 1)
+async let posts = fetchPosts(id: 1)
+let (u, p) = try await (user, posts)     // both run concurrently
+
+// TaskGroup — dynamic number of concurrent tasks
+let results = await withTaskGroup(of: String.self) { group in
+    for url in urls {
+        group.addTask(name: "fetch-\(url)") { await fetch(url) }
+    }
+    var collected = [String]()
+    for await result in group { collected.append(result) }
+    return collected
+}
+// withThrowingTaskGroup for tasks that can throw
+
+
+── Task (Unstructured) ─────────────────────────────────
+
+// Fire-and-forget (inherits actor context)
+Task(name: "refreshData") {
+    await refreshData()
+}
+
+// Store handle — access value or cancel later
+let task = Task<String, Error>(name: "fetchName") {
+    try await fetchUserName()
+}
+let name = try await task.value           // blocks until done
+task.cancel()                             // cooperative cancellation
+
+// Detached — does NOT inherit actor context or priority
+Task.detached(name: "bg-export", priority: .background) {
+    await exportLargeFile()
+}
+
+// Read current task name (useful in logging)
+if let name = Task.name { print("Running: \(name)") }
+
+// Priorities: .high, .medium, .low, .userInitiated, .utility, .background
+
+
+── SwiftUI .task ───────────────────────────────────────
+
+// Runs on appear, auto-cancelled on disappear
+.task {
+    await viewModel.loadData()
+}
+
+// Re-runs when id changes (old task cancelled, new one started)
+.task(id: selectedTab) {
+    await viewModel.load(tab: selectedTab)
+}
+
+// Useful for: initial data loading, search-as-you-type debounce,
+//   reactive fetches tied to @State changes
+
+
+── SwiftUI Property Wrappers ───────────────────────────
+
+// ── Value Types (view-owned state) ──
+
+@State private var count = 0             // View OWNS this value. Private, value type.
+                                          // Survives re-renders. Triggers view update on change.
+
+@Binding var isOn: Bool                   // Two-way reference to parent's @State.
+                                          // Does NOT own the data. Child reads & writes parent's value.
+                                          // Created with $: Toggle(isOn: $viewModel.isOn)
+
+// ── Reference Types (ObservableObject) ──
+
+@StateObject private var vm = MyVM()      // View OWNS this object. Created once, survives re-renders.
+                                          // Use when THIS view creates the object.
+
+@ObservedObject var vm: MyVM              // View does NOT own. Passed in from parent.
+                                          // Can be destroyed/recreated on parent re-render.
+                                          // Use when parent creates & passes the object.
+
+@EnvironmentObject var vm: MyVM           // Injected via .environmentObject(vm) up the tree.
+                                          // Accessed by any descendant. Crashes if missing.
+
+// ── Inside ObservableObject ──
+
+class MyVM: ObservableObject {
+    @Published var items: [Item] = []     // Changes trigger objectWillChange → view re-render.
+}
+
+// ── Environment Values ──
+
+@Environment(\.colorScheme) var scheme    // Reads system/environment values.
+@Environment(\.dismiss) var dismiss       // .dismiss, .openURL, .locale, .scenePhase, etc.
+
+// ── Persistence ──
+
+@AppStorage("username") var name = ""     // Backed by UserDefaults. Auto-persists.
+@SceneStorage("draft") var draft = ""     // Per-scene state restoration (e.g., tab state).
+
+// ── Focus ──
+
+@FocusState private var isFocused: Bool   // Tracks/controls keyboard focus.
+
+// ── iOS 17+ @Observable macro (replaces ObservableObject) ──
+
+@Observable class MyVM {                  // No @Published needed — all stored props tracked auto.
+    var items: [Item] = []                // SwiftUI only re-renders views that read changed props.
+}
+
+@Bindable var vm: MyVM                    // Creates bindings to @Observable properties.
+                                          // TextField("Name", text: $vm.name)
+
+// Quick rule:
+//   @State / @StateObject → view OWNS it (use for creation)
+//   @Binding / @ObservedObject → view BORROWS it (passed from parent)
+//   @EnvironmentObject → view FINDS it (injected up the tree)
+//   @Observable + @Bindable → iOS 17+ replacement (simpler, more efficient)
+
+
+── SwiftUI Components ──────────────────────────────────
+
+// ── Text & Labels ──
+Text("Hello")                             // static or dynamic text
+Label("Settings", systemImage: "gear")    // icon + text pair
+Image(systemName: "star.fill")            // SF Symbol
+Image("photo")                            // asset catalog
+    .resizable()                          // required to resize
+    .aspectRatio(contentMode: .fill)       // .fit or .fill
+    .frame(width: 200, height: 150)
+    .clipShape(RoundedRectangle(cornerRadius: 12))
+AsyncImage(url: url)                      // remote image
+
+// ── Buttons & Input ──
+Button("Tap") { action() }               // tappable label + action
+Toggle("Wi-Fi", isOn: $isOn)             // on/off switch
+Slider(value: $val, in: 0...100)          // continuous range
+Stepper("Qty: \(qty)", value: $qty)       // increment/decrement
+Picker("Sort", selection: $sort) { ... }  // dropdown / segmented / wheel
+DatePicker("Date", selection: $date)      // date/time selector
+ColorPicker("Color", selection: $color)   // color selector
+
+// ── Text Input ──
+TextField("Placeholder", text: $text)     // single-line input
+SecureField("Password", text: $pw)        // masked input
+TextEditor(text: $body)                   // multi-line editor
+
+// ── Layout ──
+VStack { }                                // vertical stack
+HStack { }                                // horizontal stack
+ZStack { }                                // layered (back to front)
+LazyVStack { }                            // lazy vertical (scrollable perf)
+LazyHStack { }                            // lazy horizontal
+Grid { GridRow { } }                      // 2D grid layout (iOS 16+)
+Spacer()                                  // expands to fill space
+Divider()                                 // thin line separator
+GeometryReader { geo in }                 // reads parent size/position
+
+// ── Lists & Scroll ──
+List(items) { item in Row(item) }         // scrollable, selectable rows
+ForEach(items) { item in ... }            // loop inside containers
+ScrollView(.vertical) { }                 // free-form scrolling
+LazyVGrid(columns: cols) { }             // vertical grid
+LazyHGrid(rows: rows) { }               // horizontal grid
+
+// ── Navigation ──
+NavigationStack { }                       // push/pop navigation (iOS 16+)
+NavigationLink("Detail") { DetailView() } // push trigger
+NavigationSplitView { } detail: { }       // sidebar + detail (iPad)
+TabView { }.tabItem { Label(...) }        // tab bar
+
+// ── NavigationDestination (data-driven) ──
+NavigationStack {
+    List(items) { item in
+        NavigationLink(value: item) {
+            Text(item.name)
+        }
+    }
+    .navigationDestination(for: Item.self) { item in
+        DetailView(item: item)
+    }
+}
+
+// ── Coordinator Pattern (iOS 17+) ──
+enum Route: Hashable {
+    case detail(Item)
+    case settings
+}
+
+@Observable class Coordinator {
+    var path = NavigationPath()
+    func push(_ r: Route) { path.append(r) }
+    func pop() { path.removeLast() }
+    func popToRoot() { path.removeLast(path.count) }
+
+    @ViewBuilder
+    func view(for route: Route) -> some View {
+        switch route {
+        case .detail(let item): DetailView(item: item)
+        case .settings:         SettingsView()
+        }
+    }
+}
+
+// ── NavigationStack + Path ──
+@State private var coordinator = Coordinator()
+
+NavigationStack(path: $coordinator.path) {
+    HomeView()
+        .navigationDestination(for: Route.self) {
+            coordinator.view(for: $0)
+        }
+}
+
+// ── Containers & Presentation ──
+Form { }                                  // grouped settings-style list
+Section("Header") { }                     // group within List/Form
+GroupBox("Title") { }                     // bordered container
+DisclosureGroup("More") { }              // expandable section
+Sheet: .sheet(isPresented: $show) { }     // modal bottom sheet
+Alert: .alert("Title", isPresented: $show)// alert dialog
+FullScreen: .fullScreenCover(...)         // full-screen modal
+Popover: .popover(isPresented: $show) { } // popover (iPad)
+ConfirmationDialog: .confirmationDialog(...)// action sheet
+
+// ── Progress & Status ──
+ProgressView()                            // indeterminate spinner
+ProgressView(value: 0.5)                 // determinate bar
+Gauge(value: 0.7) { Text("CPU") }        // gauge display (watchOS/iOS 16+)
+
+// ── Maps & Web ──
+Map(position: $pos) { }                  // MapKit SwiftUI (iOS 17+)
+WebView: use WKWebView via UIViewRepresentable
+
+
+── Codable Struct + CodingKeys ─────────────────────────
+
+struct User: Codable {
+    let id: Int
+    let firstName: String
+    let avatarURL: String
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case firstName = "first_name"
+        case avatarURL = "avatar_url"
+        case createdAt = "created_at"
+    }
+}
+// CodingKeys map JSON snake_case to Swift camelCase
+// Alternative: decoder.keyDecodingStrategy = .convertFromSnakeCase (global, all-or-nothing)
+
+
+── Custom Decoding ─────────────────────────────────────
+
+struct Post: Codable {
+    let id: Int
+    let title: String
+    let tags: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case id, title
+        case tags = "post_tags"          // JSON key differs from property name
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id    = try c.decode(Int.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        tags  = try c.decodeIfPresent([String].self, forKey: .tags) ?? []  // default if missing/null
+    }
+}
+// decodeIfPresent → returns nil instead of throwing if key missing or null
+// nestedContainer → let meta = try c.nestedContainer(keyedBy: MetaKeys.self, forKey: .meta)
+// singleValueContainer → for simple wrapper types
+// unkeyedContainer → for decoding arrays element-by-element
+
+
+── Resilient Enum (DTO Best Practice) ─────────────────
+
+// Problem: API adds new enum values → your app crashes on decode
+// Solution: catch-all case preserves the raw value
+
+enum Status: Codable, Equatable {
+    case active
+    case inactive
+    case archived
+    case unknown(String)              // catch-all — won't crash on new values
+
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        switch value {
+        case "active":   self = .active
+        case "inactive": self = .inactive
+        case "archived": self = .archived
+        default:         self = .unknown(value)
+        }
+    }
+
+}
+// Usage in a DTO struct:
+// struct Task: Codable { let id: Int; let status: Status }
+// Safely decodes: {"id": 1, "status": "pending"} → .unknown("pending")
