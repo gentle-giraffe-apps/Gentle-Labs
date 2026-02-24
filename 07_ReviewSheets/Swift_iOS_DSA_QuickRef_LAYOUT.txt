@@ -35,81 +35,81 @@ starts at y=18mm                    starts at y=18mm                    starts a
 |  Character: isLetter, ...         |  │ .prefix(while:)  ...  │        |  └───────────────────┘
 |  ┌─ CODE BLOCK ──────────┐        |  │ zip(a, b)        ...  │        |
 |  │ s[s.index(startIn..)  │        |  └────────────────────────┘        |  ┌─ SUBSECTION ──────┐
-|  │ Character(UnicodeSc..)│        |                                    |  │ Two Pointers      │
-|  └───────────────────────┘        |  ┌─ SECTION ─────────────┐        |  └───────────────────┘
-|                                   |  │ NeetCode DSA           │        |  ┌─ CODE ────────────┐
-|  ┌─ SECTION ─────────────┐        |  │ Categories             │        |  │ var lo=0, hi=...  │
-|  │ Array                 │        |  │ [MED BLUE bg]          │        |  │ while lo < hi ... │
-|  │ [MED BLUE bg]         │        |  └────────────────────────┘        |  └───────────────────┘
-|  └───────────────────────┘        |  [compact_list rows x18]           |
-|  [compact_list rows]              |  1. Arrays & Hashing ...           |  ┌─ SUBSECTION ──────┐
-|  Access: first, last, count,      |  2. Two Pointers ...               |  │ Sliding Window     │
-|    isEmpty, min(), max()          |  3. Sliding Window ...             |  └───────────────────┘
-|  Mutate: append, insert, ...      |  4. Stack ...                      |  ┌─ CODE ────────────┐
-|  Order: sort, sorted, ...         |  5. Binary Search ...              |  │ var left = 0      │
-|  Search: contains, ...            |  6. Linked List ...                |  │ for right in 0..< │
-|  Slice: prefix, suffix, ...       |  7. Trees ...                      |  │  while /*invalid*/ │
-|  Init: Array(repeating:), ...     |  8. Tries ...                      |  └───────────────────┘
-|  ┌─ CODE BLOCK ──────────┐        |  9. Heap / Priority Queue ...      |
-|  │ // Stack: append      │        |  10. Backtracking ...              |  ┌─ SUBSECTION ──────┐
-|  │ //  (push/pop/peek)   │        |  11. Graphs ...                    |  │ BFS (head-index)  │
-|  └───────────────────────┘        |  12. Adv. Graphs ...               |  └───────────────────┘
-|                                   |  13. 1-D DP ...                    |  ┌─ CODE ────────────┐
-|  ┌─ SECTION ─────────────┐        |  14. 2-D DP ...                    |  │ var queue=[start] │
-|  │ Dictionary            │        |  15. Greedy ...                    |  │ var head = 0      │
-|  │ [MED BLUE bg]         │        |  16. Intervals ...                 |  │ while head<queue  │
-|  └───────────────────────┘        |  17. Math & Geometry ...           |  │  ...              │
-|  Access: d["k"], default, ...     |  18. Bit Manipulation ...          |  │ // removeFirst    │
-|  Mutate: d["k"]=v, remove, ...    |  (all 18 fit — no overflow)       |  │ //   O(n) vs O(1) │
-|  Query: contains(where:)          |                                    |  └───────────────────┘
-|  ┌─ CODE BLOCK ──────────┐        |                                    |
-|  │ // Counting + Freq ..  │        |                                    |  ┌─ SUBSECTION ──────┐
-|  └───────────────────────┘        |                                    |  │ DFS (Recursive)   │
-|  ┌─ SUBSECTION ──────────┐        |                                    |  └───────────────────┘
-|  │ Sparse Grid           │        |                                    |  ┌─ CODE ────────────┐
-|  └───────────────────────┘        |                                    |  │ func dfs(_ node:  │
-|  ┌─ CODE BLOCK ──────────┐        |                                    |  │  visited.insert.. │
-|  │ grid = [[Int]:Int]()  │        |                                    |  │  for nb in ...    │
-|  │ grid[[23,77]] = 1     │        |                                    |  │    dfs(nb)        │
-|  │ grid[[-1,-1],def:0]   │        |                                    |  └───────────────────┘
-|  └───────────────────────┘        |                                    |
-|                                   |                                    |  ┌─ SUBSECTION ──────┐
-|  ┌─ SECTION ─────────────┐        |                                    |  │ Binary Search     │
-|  │ Set                   │        |                                    |  └───────────────────┘
-|  │ [MED BLUE bg]         │        |                                    |  ┌─ CODE ────────────┐
-|  └───────────────────────┘        |                                    |  │ var lo=0, hi=..   │
-|  Mutate: insert, remove, ...      |                                    |  │ while lo <= hi {  │
-|  Algebra: union, intersect, ...   |                                    |  │  let mid = lo+... │
-|                                   |                                    |  └───────────────────┘
-|  ┌─ SECTION ─────────────┐        |                                    |
-|  │ Tuple & Comparable    │        |                                    |  ┌─ SUBSECTION ──────┐
-|  │ [MED BLUE bg]         │        |                                    |  │ Heap / Top-K      │
+|  └───────────────────────┘        |                                    |  │ Two Pointers      │
+|                                   |  ┌─ SECTION ─────────────┐        |  └───────────────────┘
+|  ┌─ SECTION ─────────────┐        |  │ NeetCode DSA           │        |  ┌─ CODE ────────────┐
+|  │ Array                 │        |  │ Categories             │        |  │ var lo=0, hi=...  │
+|  │ [MED BLUE bg]         │        |  │ [MED BLUE bg]          │        |  │ while lo < hi ... │
+|  └───────────────────────┘        |  └────────────────────────┘        |  └───────────────────┘
+|  [compact_list rows]              |  [compact_list rows x18]           |
+|  Access: first, last, count,      |  1. Arrays & Hashing ...           |  ┌─ SUBSECTION ──────┐
+|    isEmpty, min(), max()          |  2. Two Pointers ...               |  │ Sliding Window     │
+|  Mutate: append, insert, ...      |  3. Sliding Window ...             |  └───────────────────┘
+|  Order: sort, sorted, ...         |  4. Stack ...                      |  ┌─ CODE ────────────┐
+|  Search: contains, ...            |  5. Binary Search ...              |  │ var left = 0      │
+|  Slice: prefix, suffix, ...       |  6. Linked List ...                |  │ for right in 0..< │
+|  Init: Array(repeating:), ...     |  7. Trees ...                      |  │  while /*invalid*/ │
+|  ┌─ CODE BLOCK ──────────┐        |  8. Tries ...                      |  └───────────────────┘
+|  │ // Stack: append      │        |  9. Heap / Priority Queue ...      |
+|  │ //  (push/pop/peek)   │        |  10. Backtracking ...              |  ┌─ SUBSECTION ──────┐
+|  └───────────────────────┘        |  11. Graphs ...                    |  │ BFS (head-index)  │
+|                                   |  12. Adv. Graphs ...               |  └───────────────────┘
+|  ┌─ SECTION ─────────────┐        |  13. 1-D DP ...                    |  ┌─ CODE ────────────┐
+|  │ Dictionary            │        |  14. 2-D DP ...                    |  │ var queue=[start] │
+|  │ [MED BLUE bg]         │        |  15. Greedy ...                    |  │ var head = 0      │
+|  └───────────────────────┘        |  16. Intervals ...                 |  │ while head<queue  │
+|  Access: d["k"], default, ...     |  17. Math & Geometry ...           |  │  ...              │
+|  Mutate: d["k"]=v, remove, ...    |  18. Bit Manipulation ...          |  │ // removeFirst    │
+|  Query: contains(where:)          |  (all 18 fit — no overflow)       |  │ //   O(n) vs O(1) │
+|  ┌─ CODE BLOCK ──────────┐        |                                    |  └───────────────────┘
+|  │ // Counting + Freq ..  │        |                                    |
+|  └───────────────────────┘        |                                    |  ┌─ SUBSECTION ──────┐
+|  ┌─ SUBSECTION ──────────┐        |                                    |  │ DFS (Recursive)   │
+|  │ Sparse Grid           │        |                                    |  └───────────────────┘
+|  └───────────────────────┘        |                                    |  ┌─ CODE ────────────┐
+|  ┌─ CODE BLOCK ──────────┐        |                                    |  │ func dfs(_ node:  │
+|  │ grid = [[Int]:Int]()  │        |                                    |  │  visited.insert.. │
+|  │ grid[[23,77]] = 1     │        |                                    |  │  for nb in ...    │
+|  │ grid[[-1,-1],def:0]   │        |                                    |  │    dfs(nb)        │
 |  └───────────────────────┘        |                                    |  └───────────────────┘
-|  ┌─ CODE BLOCK ──────────┐        |                                    |  ┌─ CODE ────────────┐
-|  │ let pair = (x:1,y:2)  │        |                                    |  │ arr.sorted(by:>)  │
-|  │ // Comparable up to 6  │        |                                    |  │  .prefix(k)       │
-|  │ (1,"b") < (2,"a")     │        |                                    |  └───────────────────┘
-|  └───────────────────────┘        |                                    |
-|                                   |                                    |  ┌─ SUBSECTION ──────┐
-|  (END OF COLUMN 1)                |  (END OF COLUMN 2)                 |  │ Stack / Monotonic │
+|                                   |                                    |
+|  ┌─ SECTION ─────────────┐        |                                    |  ┌─ SUBSECTION ──────┐
+|  │ Set                   │        |                                    |  │ Binary Search     │
+|  │ [MED BLUE bg]         │        |                                    |  └───────────────────┘
+|  └───────────────────────┘        |                                    |  ┌─ CODE ────────────┐
+|  Mutate: insert, remove, ...      |                                    |  │ var lo=0, hi=..   │
+|  Algebra: union, intersect, ...   |                                    |  │ while lo <= hi {  │
+|                                   |                                    |  │  let mid = lo+... │
+|  ┌─ SECTION ─────────────┐        |                                    |  └───────────────────┘
+|  │ Tuple & Comparable    │        |                                    |
+|  │ [MED BLUE bg]         │        |                                    |  ┌─ SUBSECTION ──────┐
+|  └───────────────────────┘        |                                    |  │ Heap / Top-K      │
+|  ┌─ CODE BLOCK ──────────┐        |                                    |  └───────────────────┘
+|  │ let pair = (x:1,y:2)  │        |                                    |  ┌─ CODE ────────────┐
+|  │ // Comparable up to 6  │        |                                    |  │ arr.sorted(by:>)  │
+|  │ (1,"b") < (2,"a")     │        |                                    |  │  .prefix(k)       │
+|  └───────────────────────┘        |                                    |  └───────────────────┘
+|                                   |                                    |
+|  (END OF COLUMN 1)                |  (END OF COLUMN 2)                 |  ┌─ SUBSECTION ──────┐
+|                                   |                                    |  │ Stack / Monotonic │
 |                                   |                                    |  └───────────────────┘
-|                                   |                                    |  ┌─ CODE ────────────┐
-                                                                         |  │ // Stack: append  │
-                                                                         |  │ // Monotonic:     │
-                                                                         |  │ for i in 0..<..   │
-                                                                         |  │  while let top=.. │
-                                                                         |  └───────────────────┘
-                                                                         |
-                                                                         |  ┌─ SUBSECTION ──────┐
-                                                                         |  │ Deque (Slide Max) │
-                                                                         |  └───────────────────┘
-                                                                         |  ┌─ CODE ────────────┐
-                                                                         |  │ var deque=[Int]() │
-                                                                         |  │ for i in 0..<..   │
-                                                                         |  │  ...              │
-                                                                         |  └───────────────────┘
-                                                                         |
-                                                                         |  (END OF COLUMN 3)
+                                                                        |  ┌─ CODE ────────────┐
+                                                                        |  │ // Stack: append  │
+                                                                        |  │ // Monotonic:     │
+                                                                        |  │ for i in 0..<..   │
+                                                                        |  │  while let top=.. │
+                                                                        |  └───────────────────┘
+                                                                        |
+                                                                        |  ┌─ SUBSECTION ──────┐
+                                                                        |  │ Deque (Slide Max) │
+                                                                        |  └───────────────────┘
+                                                                        |  ┌─ CODE ────────────┐
+                                                                        |  │ var deque=[Int]() │
+                                                                        |  │ for i in 0..<..   │
+                                                                        |  │  ...              │
+                                                                        |  └───────────────────┘
+                                                                        |
+                                                                        |  (END OF COLUMN 3)
 
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -138,7 +138,7 @@ starts at y=18mm                    starts at y=18mm                    starts a
 |  └────────────────────────┘        |  │   enum CodingKeys:     │        |  └───────────────────┘
 |                                   |  │     String, CodingKey { │        |  ┌─ CODE BLOCK ──────┐
 |  ┌─ SECTION ─────────────┐        |  │     case id             │        |  │ enum Status:      │
-|  │ FileManager            │        |  │     case firstName =    │        |  │   Codable, Eq.. { │
+|  │ FileManager            │        |  │     case firstName =    │        |  │   Decodable, Eq.. │
 |  │ [MED BLUE bg]          │        |  │       "first_name"     │        |  │  case active,     │
 |  └────────────────────────┘        |  │     ...                │        |  │    inactive,       │
 |  ┌─ CODE BLOCK (8 lines)─┐        |  │   }                    │        |  │    archived        │
@@ -186,6 +186,141 @@ starts at y=18mm                    starts at y=18mm                    starts a
 |                                   |  (END OF COLUMN 2)                 |
 
 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PAGE 3+ — Platform Patterns                                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+========================= PAGE HEADER (full width, 14mm tall) ==========================
+| [DARK BLUE bg]  [WHITE Helvetica Bold 14pt, centered]                                |
+|                      Platform Patterns                                               |
+========================================================================================
+
+
+COLUMN 1 (~85.7mm)                  COLUMN 2 (~85.7mm)                  COLUMN 3 (~85.7mm)
+starts at y=18mm                    starts at y=18mm                    starts at y=18mm
+|                                   |                                   |
+|  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────────┐        |  ┌─ SECTION ─────────┐
+|  │ In-Flight Coalescing  │        |  │ MainActor Isolation    │        |  │ Cooperative       │
+|  │ Cache                 │        |  │ [MED BLUE bg]          │        |  │ Cancellation      │
+|  │ [MED BLUE bg]         │        |  └────────────────────────┘        |  │ [MED BLUE bg]     │
+|  └───────────────────────┘        |  ┌─ CODE ────────────────┐        |  └───────────────────┘
+|  ┌─ BODY TEXT ───────────┐        |  │ @MainActor             │        |  ┌─ CODE ────────────┐
+|  │ Dedup concurrent reqs │        |  │ class ProfileVM: OO {  │        |  │ try Task.check..  │
+|  │ for the same key.     │        |  │   func load() async    │        |  │ guard !Task.is..  │
+|  └───────────────────────┘        |  │     throws { ... }     │        |  │ withTaskCancel..  │
+|  ┌─ CODE ────────────────┐        |  │ }                      │        |  └───────────────────┘
+|  │ actor RequestCoal.. { │        |  └────────────────────────┘        |  ┌─ BODY TEXT ───────┐
+|  │   var inFlight: ...   │        |  ┌─ CODE ────────────────┐        |  │ Cancellation is   │
+|  │   func fetch(key:..   │        |  │ MainActor.run { ... } │        |  │ cooperative --    │
+|  │     if let existing.. │        |  │ @MainActor func ..    │        |  │ tasks must check. │
+|  │     ...               │        |  │ nonisolated func ..   │        |  └───────────────────┘
+|  │   }                   │        |  └────────────────────────┘        |
+|  │ }                     │        |                                    |  ┌─ SECTION ─────────┐
+|  └───────────────────────┘        |  ┌─ SECTION ─────────────┐        |  │ AsyncSequence &   │
+|  ┌─ CODE ────────────────┐        |  │ Sendable               │        |  │ AsyncStream       │
+|  │ // Usage              │        |  │ [MED BLUE bg]          │        |  │ [MED BLUE bg]     │
+|  │ let loader = Req..    │        |  └────────────────────────┘        |  └───────────────────┘
+|  │ let data = try await  │        |  ┌─ BODY TEXT ───────────┐        |  ┌─ CODE ────────────┐
+|  │   loader.fetch(key:)  │        |  │ Types safe to pass    │        |  │ for await msg in  │
+|  └───────────────────────┘        |  │ across actor bounds.  │        |  │   webSocket.msgs  │
+|                                   |  └───────────────────────┘        |  │ AsyncStream<T> {  │
+|  ┌─ SECTION ─────────────┐        |  ┌─ CODE ────────────────┐        |  │   cont in ...     │
+|  │ Actor Reentrancy      │        |  │ struct Pt: Sendable {} │        |  │ }                 │
+|  │ [MED BLUE bg]         │        |  │ final class Token:     │        |  └───────────────────┘
+|  └───────────────────────┘        |  │   Sendable { let .. } │        |  ┌─ CODE ────────────┐
+|  ┌─ BODY TEXT ───────────┐        |  │ @Sendable closures    │        |  │ AsyncThrowingStr..│
+|  │ Each await is a       │        |  └────────────────────────┘        |  └───────────────────┘
+|  │ suspension point.     │        |  ┌─ BODY TEXT ───────────┐        |  ┌─ BODY TEXT ───────┐
+|  └───────────────────────┘        |  │ @unchecked Sendable:  │        |  │ Bridge delegates, │
+|  ┌─ CODE ────────────────┐        |  │ escape hatch w/ locks │        |  │ callbacks, NC,    │
+|  │ // BUG: read-modify-  │        |  └───────────────────────┘        |  │ KVO into async.   │
+|  │ // write SPLIT across │        |                                    |  └───────────────────┘
+|  │ // await              │        |                                    |
+|  │ actor Cache { ... }   │        |                                    |
+|  └───────────────────────┘        |                                    |
+|  ┌─ SUBSECTION ──────────┐        |                                    |
+|  │ Fix: keep critical    │        |                                    |
+|  │ section atomic        │        |                                    |
+|  └───────────────────────┘        |                                    |
+|  ┌─ CODE ────────────────┐        |                                    |
+|  │ // GOOD: async work   │        |                                    |
+|  │ // ABOVE, state below │        |                                    |
+|  │ func process() async  │        |                                    |
+|  └───────────────────────┘        |                                    |
+|  ┌─ BODY TEXT ───────────┐        |                                    |
+|  │ Rule: critical section│        |                                    |
+|  │ above OR below await. │        |                                    |
+|  └───────────────────────┘        |                                    |
+|                                   |                                    |
+|  (END OF COLUMN 1)                |  (END OF COLUMN 2)                 |  (END OF COLUMN 3)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PAGE 3+ (cont.) — Platform Patterns (cont.)                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+========================= PAGE HEADER (full width, 14mm tall) ==========================
+| [DARK BLUE bg]  [WHITE Helvetica Bold 14pt, centered]                                |
+|                   Platform Patterns (cont.)                                          |
+========================================================================================
+
+NOTE: The Combine Recipes section overflows from Page 3 into a continuation
+page. The auto-flow engine handles this automatically via _check_space().
+
+COLUMN 1 (~85.7mm)                  COLUMN 2 (~85.7mm)                  COLUMN 3 (~85.7mm)
+starts at y=18mm                    starts at y=18mm                    starts at y=18mm
+|                                   |                                   |
+|  ┌─ SECTION ─────────────┐        |                                   |
+|  │ Combine Recipes        │        |  (overflow content from Col 1     |
+|  │ [MED BLUE bg]          │        |   if needed — auto-flow decides)  |
+|  └────────────────────────┘        |                                   |
+|                                   |                                   |
+|  ┌─ SUBSECTION ──────────┐        |                                   |
+|  │ ViewModel + @Published │        |                                   |
+|  │ + @StateObject         │        |                                   |
+|  └────────────────────────┘        |                                   |
+|  ┌─ CODE BLOCK (25 ln) ──┐        |                                   |
+|  │ import Combine          │        |                                   |
+|  │ class ProfileVM: OO {   │        |                                   |
+|  │   @Published var name.. │        |                                   |
+|  │   ...                   │        |                                   |
+|  │   .store(in: &canc..)  │        |                                   |
+|  │ }                       │        |                                   |
+|  │ @StateObject var vm=..  │        |                                   |
+|  └────────────────────────┘        |                                   |
+|                                   |                                   |
+|  ┌─ SUBSECTION ──────────┐        |                                   |
+|  │ Repository Publisher + │        |                                   |
+|  │ AnyCancellable         │        |                                   |
+|  └────────────────────────┘        |                                   |
+|  ┌─ CODE BLOCK (17 ln) ──┐        |                                   |
+|  │ class UserRepo { ...    │        |                                   |
+|  │   .eraseToAnyPublisher()│        |                                   |
+|  │ }                       │        |                                   |
+|  │ var cancel: AnyCancell..│        |                                   |
+|  │   .sink(...)            │        |                                   |
+|  └────────────────────────┘        |                                   |
+|                                   |                                   |
+|  ┌─ SUBSECTION ──────────┐        |                                   |
+|  │ Search Debounce        │        |                                   |
+|  │ (classic pipeline)     │        |                                   |
+|  └────────────────────────┘        |                                   |
+|  ┌─ CODE BLOCK (8 ln) ───┐        |                                   |
+|  │ $searchText             │        |                                   |
+|  │   .debounce(for: .ms.. │        |                                   |
+|  │   .removeDuplicates()   │        |                                   |
+|  │   .sink { ... }         │        |                                   |
+|  │   .store(in: &canc..)  │        |                                   |
+|  └────────────────────────┘        |                                   |
+|  ┌─ BODY TEXT ───────────┐        |                                   |
+|  │ Key operators: debounce,│        |                                   |
+|  │ throttle, removeDups,   │        |                                   |
+|  │ combineLatest, merge... │        |                                   |
+|  └────────────────────────┘        |                                   |
+|                                   |                                   |
+|  (END OF COLUMN 1)                |  (END OF COLUMN 2)                 |  (END OF COLUMN 3)
+
+
 ========================================================================================
                               LAYOUT NOTES
 ========================================================================================
@@ -202,10 +337,21 @@ CONTENT FLOW:
            -> Structured Concurrency (async let, TaskGroup)
     Col 2: Task (Unstructured) -> SwiftUI .task
            -> SwiftUI Property Wrappers -> SwiftUI Components
+           (incl. List Skeleton (UITableView analog))
            -> Codable Struct + CodingKeys -> Custom Decoding
   Note: With concurrency + SwiftUI + Codable sections, Page 2 will
         likely need Page 3 overflow. Auto-flow handles this.
     Col 3: Resilient Enum (DTO Best Practice)
+
+  Page 3+ — "Platform Patterns"
+    Col 1: In-Flight Coalescing Cache -> Actor Reentrancy
+    Col 2: MainActor Isolation -> Sendable
+    Col 3: Cooperative Cancellation -> AsyncSequence & AsyncStream
+    Continuation — "Platform Patterns (cont.)"
+      Combine Recipes (3 subsections):
+        - ViewModel + @Published + @StateObject
+        - Repository Publisher + AnyCancellable
+        - Search Debounce (classic pipeline)
 
 FIXES APPLIED:
   - DFS long line broken into multi-line (was truncating at 95 chars)
@@ -220,6 +366,20 @@ FIXES APPLIED:
   - Resilient Enum: encode(to:) removed (decode-only for DTOs)
   - Array: removed 2D grid init line (overflows column width)
   - UserDefaults slimmed to 5-line code block with Codable warning
+  - Code block font reduced from 5.8pt to 5.5pt for column width fit
+  - Dynamic max_chars calculation replaces hardcoded 95-char limit
+  - Orphan prevention: subsection headers move with their code blocks across breaks
+  - body_text width-based truncation for proportional fonts
+  - `appendingPathComponent` updated to `appending(path:)` (iOS 16+)
+  - Resilient Enum changed from Codable to Decodable (decode-only DTO)
+  - UnicodeScalar force-unwrap line removed
+  - Task priorities: removed redundant .high/.low aliases
+  - MainActor `load()` fixed to `async throws`
+  - RequestCoalescer Value constrained to Sendable
+  - Actor reentrancy rewritten: read-modify-write split pattern instead of count < 10
+  - List Skeleton section added
+  - Platform Patterns page added
+  - Combine Recipes section added (3 subsections: ViewModel+@Published, Repository Publisher, Search Debounce)
 
 ELEMENT STYLING REFERENCE:
   ┌──────────────┬────────────────────────────────────────────────┐
@@ -229,7 +389,7 @@ ELEMENT STYLING REFERENCE:
   │ Section      │ Med blue bg (55,90,145), white Helv-B 8pt     │
   │ Subsection   │ Light blue bg (200,215,235), black Helv-B 6.5 │
   │ compact_list │ Black Helv-B 6pt label + gray Courier 5.5pt   │
-  │ Code block   │ Light gray bg (245,245,245), gray Courier 5.8 │
+  │ Code block   │ Light gray bg (245,245,245), gray Courier 5.5 │
   │ Body text    │ Gray Helvetica 6pt                             │
   └──────────────┴────────────────────────────────────────────────┘
 
@@ -238,4 +398,4 @@ COLUMN DIMENSIONS:
   Usable width:   267.4mm (279.4 - 2*6mm margins)
   Column width:    85.7mm ((267.4 - 2*4mm gaps) / 3)
   Column height:  ~192mm  (216 - 6mm margin - 18mm header top)
-  Code char limit: ~95 chars per line (Courier 5.8pt in 85.7mm col)
+  Code char limit: ~72 chars per line (Courier 5.5pt, dynamic calculation)

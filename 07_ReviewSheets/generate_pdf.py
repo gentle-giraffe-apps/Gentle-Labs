@@ -931,6 +931,82 @@ def build():
         'NotificationCenter, KVO into async/await.'
     )
 
+    # ── COMBINE RECIPES ──
+    pdf.section("Combine Recipes")
+
+    pdf.subsection("ViewModel + @Published + @StateObject")
+    pdf.code_block(
+        'import Combine\n'
+        '\n'
+        'class ProfileVM: ObservableObject {\n'
+        '    @Published var name = ""\n'
+        '    @Published var isLoading = false\n'
+        '    private var cancellables = Set<AnyCancellable>()\n'
+        '\n'
+        '    func load() {\n'
+        '        isLoading = true\n'
+        '        api.fetchProfile()\n'
+        '            .receive(on: DispatchQueue.main)\n'
+        '            .sink(\n'
+        '                receiveCompletion: { [weak self] _ in\n'
+        '                    self?.isLoading = false\n'
+        '                },\n'
+        '                receiveValue: { [weak self] p in\n'
+        '                    self?.name = p.name\n'
+        '                }\n'
+        '            )\n'
+        '            .store(in: &cancellables)\n'
+        '    }\n'
+        '}\n'
+        '\n'
+        '// View\n'
+        '@StateObject private var vm = ProfileVM()\n'
+        'Text(vm.name)\n'
+        '    .onAppear { vm.load() }'
+    )
+
+    pdf.subsection("Repository Publisher + AnyCancellable")
+    pdf.code_block(
+        'class UserRepo {\n'
+        '    func fetchUser(id: Int)\n'
+        '        -> AnyPublisher<User, Error> {\n'
+        '        URLSession.shared\n'
+        '            .dataTaskPublisher(for: url)\n'
+        '            .map(\\.data)\n'
+        '            .decode(type: User.self,\n'
+        '                    decoder: JSONDecoder())\n'
+        '            .eraseToAnyPublisher()\n'
+        '    }\n'
+        '}\n'
+        '\n'
+        '// Consumer\n'
+        'var cancel: AnyCancellable?\n'
+        'cancel = repo.fetchUser(id: 1)\n'
+        '    .receive(on: DispatchQueue.main)\n'
+        '    .sink(\n'
+        '        receiveCompletion: { ... },\n'
+        '        receiveValue: { user in ... }\n'
+        '    )'
+    )
+
+    pdf.subsection("Search Debounce (classic pipeline)")
+    pdf.code_block(
+        '// In VM init -- react to @Published changes\n'
+        '$searchText\n'
+        '    .debounce(for: .milliseconds(300),\n'
+        '             scheduler: RunLoop.main)\n'
+        '    .removeDuplicates()\n'
+        '    .sink { [weak self] query in\n'
+        '        self?.performSearch(query)\n'
+        '    }\n'
+        '    .store(in: &cancellables)'
+    )
+    pdf.body_text(
+        'Key operators: debounce, throttle, removeDuplicates,\n'
+        'combineLatest, merge, map, compactMap, flatMap,\n'
+        'receive(on:), eraseToAnyPublisher()'
+    )
+
     # ── Output ──
     out = os.path.join(os.path.dirname(__file__), "Swift_iOS_DSA_QuickRef.pdf")
     pdf.output(out)
