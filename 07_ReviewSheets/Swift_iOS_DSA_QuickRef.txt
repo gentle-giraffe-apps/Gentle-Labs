@@ -314,6 +314,78 @@ for i in 0..<arr.count {
 }
 
 
+── Recursion Case Study: Phone Letters ────────────────
+
+// Shared mapping (used by all three approaches)
+let key: [Character: [Character]] = [
+    "2": ["a","b","c"], "3": ["d","e","f"],
+    "4": ["g","h","i"], "5": ["j","k","l"],
+    "6": ["m","n","o"], "7": ["p","q","r","s"],
+    "8": ["t","u","v"], "9": ["w","x","y","z"]
+]
+
+── BFS (iterative, level-by-level) ──
+
+func letterCombinations(_ digits: String) -> [String] {
+    guard !digits.isEmpty else { return [] }
+    var queue = [""]
+    for d in digits {
+        var next = [String]()
+        for combo in queue {
+            for ch in key[d, default: []] {
+                next.append(combo + String(ch))
+            }
+        }
+        queue = next
+    }
+    return queue
+}
+
+── DFS (recursive, string concat) ──
+
+func letterCombinations(_ digits: String) -> [String] {
+    guard !digits.isEmpty else { return [] }
+    let digits = Array(digits)
+    var result = [String]()
+    func dfs(_ i: Int, _ path: String) {
+        if i == digits.count {
+            result.append(path); return
+        }
+        for ch in key[digits[i], default: []] {
+            dfs(i + 1, path + String(ch))
+        }
+    }
+    dfs(0, "")
+    return result
+}
+
+── Backtracking (choose / explore / undo) ──
+
+func letterCombinations(_ digits: String) -> [String] {
+    guard !digits.isEmpty else { return [] }
+    let digits = Array(digits)
+    var result = [String]()
+    var path = [Character]()
+    func backtrack(_ i: Int) {
+        if i == digits.count {
+            result.append(String(path)); return
+        }
+        for ch in key[digits[i], default: []] {
+            path.append(ch)       // choose
+            backtrack(i + 1)      // explore
+            path.removeLast()     // un-choose
+        }
+    }
+    backtrack(0)
+    return result
+}
+
+// BFS: iterative, builds all partial combos per level.
+// DFS: implicit stack, new String copy each call.
+// Backtracking: mutable path + explicit undo -- general
+// template for subsets, permutations, N-queens.
+
+
 ═══════════════════════════════════════════════════════════
   PAGE 2 — iOS APIs & Networking
 ═══════════════════════════════════════════════════════════
@@ -323,7 +395,7 @@ for i in 0..<arr.count {
 
 let ud = UserDefaults.standard
 ud.set(value, forKey: "k")       // Int, String, Bool, Array, Data, etc.
-ud.integer(forKey:)              // .string, .bool, .array, .double, .float, .object
+ud.integer(forKey:)              // .string, .bool, .array, .double, .data, .url
 ud.removeObject(forKey: "k")
 // WARNING: Codable structs stored via set(_:forKey:) won't auto-decode — use Data + JSONEncoder/Decoder
 
@@ -352,27 +424,62 @@ try fm.removeItem(at: fileURL)
 let items = try fm.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil)
 
 
+── Bundle Resources ───────────────────────────────────
+
+// Load bundled JSON file
+guard let url = Bundle.main.url(
+    forResource: "data", withExtension: "json"
+) else { fatalError("Missing resource") }
+let data = try Data(contentsOf: url)
+let items = try JSONDecoder().decode(
+    [Item].self, from: data)
+
+// Load bundled text file
+let text = try String(
+    contentsOf: Bundle.main.url(
+        forResource: "info", withExtension: "txt"
+    )!, encoding: .utf8)
+
+// Files must be in target's "Copy Bundle Resources"
+// build phase. Bundle is read-only at runtime.
+
+
 ── URLSession GET + JSONDecoder ────────────────────────
 
-// Minimal async GET
-let url = URL(string: "https://api.example.com/items")!
-let (data, resp) = try await URLSession.shared.data(from: url)
-guard let http = resp as? HTTPURLResponse,
-      http.statusCode == 200
-else { throw URLError(.badServerResponse) }
-let items = try JSONDecoder().decode([Item].self, from: data)
+// Generic over any Decodable -- works for single objects AND arrays (e.g. [Item]).
+// Accepts String so callers skip URL(string:)! boilerplate.
+func fetch<T: Decodable>(from urlString: String) async throws -> T {
+    guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+    let (data, resp) = try await URLSession.shared.data(from: url)
+    guard let http = resp as? HTTPURLResponse,
+          http.statusCode == 200
+    else { throw URLError(.badServerResponse) }
+    return try JSONDecoder().decode(T.self, from: data)
+}
 
-// With URLRequest (custom headers, etc.)
-var request = URLRequest(url: url)
-request.httpMethod = "GET"
-request.setValue("application/json", forHTTPHeaderField: "Accept")
-let (data, response) = try await URLSession.shared.data(for: request)
+// [Item] is Decodable when Item is -- no separate array overload needed.
+// Type annotation drives T:
+let items: [Item] = try await fetch(from: "https://api.example.com/items")
+let user: User = try await fetch(from: "https://api.example.com/user/1")
 
-// JSONDecoder options
-let decoder = JSONDecoder()
-decoder.keyDecodingStrategy = .convertFromSnakeCase
-decoder.dateDecodingStrategy = .iso8601
-let result = try decoder.decode(Wrapper.self, from: data)
+// With URLRequest & Decoder Options
+func fetch<T: Decodable>(
+    from urlString: String,
+    headers: [String: String] = [:],
+    decoder: JSONDecoder = JSONDecoder()
+) async throws -> T {
+    guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+    var req = URLRequest(url: url)
+    headers.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }
+    let (data, _) = try await URLSession.shared.data(for: req)
+    return try decoder.decode(T.self, from: data)
+}
+
+// Caller configures decoder per-call
+let dec = JSONDecoder()
+dec.keyDecodingStrategy = .convertFromSnakeCase
+dec.dateDecodingStrategy = .iso8601
+let user: User = try await fetch(from: "https://api.example.com/user/1", decoder: dec)
 
 
 ── Structured Concurrency ──────────────────────────────
@@ -385,7 +492,7 @@ let (u, p) = try await (user, posts)     // both run concurrently
 // TaskGroup — dynamic number of concurrent tasks
 let results = await withTaskGroup(of: String.self) { group in
     for url in urls {
-        group.addTask(name: "fetch-\(url)") { await fetch(url) }
+        group.addTask { await fetch(url) }  // name: param requires Swift 6.2+
     }
     var collected = [String]()
     for await result in group { collected.append(result) }
@@ -397,24 +504,24 @@ let results = await withTaskGroup(of: String.self) { group in
 ── Task (Unstructured) ─────────────────────────────────
 
 // Fire-and-forget (inherits actor context)
-Task(name: "refreshData") {
+Task {                                    // name: param requires Swift 6.2+
     await refreshData()
 }
 
 // Store handle — access value or cancel later
-let task = Task<String, Error>(name: "fetchName") {
+let task = Task<String, Error> {
     try await fetchUserName()
 }
 let name = try await task.value           // blocks until done
 task.cancel()                             // cooperative cancellation
 
 // Detached — does NOT inherit actor context or priority
-Task.detached(name: "bg-export", priority: .background) {
+Task.detached(priority: .background) {
     await exportLargeFile()
 }
 
-// Read current task name (useful in logging)
-if let name = Task.name { print("Running: \(name)") }
+// Task.name — read current task name (Swift 6.2+)
+// if let n = Task.name { print("Running: \(n)") }
 
 // Priorities: .userInitiated, .medium, .utility, .background
 
@@ -942,3 +1049,62 @@ $searchText
 // Key operators: debounce, throttle, removeDuplicates,
 // combineLatest, merge, map, compactMap, flatMap,
 // receive(on:), eraseToAnyPublisher()
+
+
+── Paginated ViewModel (@Observable) ──────────────────
+
+enum LoadState {
+    case idle, loading, loaded, error, empty
+}
+
+protocol FetchItemsUseCase {
+    func execute(offset: Int, limit: Int)
+        async throws -> [Item]
+}
+
+@Observable class PaginatedVM {
+    private(set) var items = [Item]()
+    private(set) var state: LoadState = .idle
+
+    private let useCase: FetchItemsUseCase
+    private var offset = 0
+    private let limit = 20
+    private var hasMore = true
+
+    init(useCase: FetchItemsUseCase) {
+        self.useCase = useCase
+    }
+
+    func loadNextPage() async {
+        guard state != .loading,
+              hasMore else { return }
+        state = .loading
+        do {
+            let page = try await useCase
+                .execute(offset: offset,
+                         limit: limit)
+            items += page
+            offset += page.count
+            hasMore = page.count == limit
+            state = items.isEmpty
+                ? .empty : .loaded
+        } catch {
+            state = .error
+        }
+    }
+}
+
+// View (infinite scroll trigger)
+List(vm.items) { item in
+    Row(item: item)
+        .task {
+            if item.id == vm.items.last?.id {
+                await vm.loadNextPage()
+            }
+        }
+}
+.task { await vm.loadNextPage() }
+
+// @Observable (iOS 17+): no @Published needed.
+// Guard prevents duplicate fetches & past-end loads.
+// hasMore: false when page.count < limit.
