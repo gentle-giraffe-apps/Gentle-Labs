@@ -331,10 +331,12 @@ CONTENT FLOW:
     Col 2: Higher-Order Functions -> NeetCode DSA Categories (all 18 fit)
     Col 3: DSA Patterns (Hash Map, Two Pointers, Sliding Window, BFS, DFS,
             Binary Search, Heap, Stack/Monotonic, Deque)
+            -> Recursion Case Study: Phone Letters (LC 17)
+               Shared key dict, BFS, DFS, Backtracking (auto-flows to next col/page)
 
   Page 2 — "iOS APIs & Networking"
-    Col 1: UserDefaults (slim) -> FileManager -> URLSession + URLRequest
-           -> Structured Concurrency (async let, TaskGroup)
+    Col 1: UserDefaults (slim) -> FileManager -> Bundle Resources
+           -> URLSession + URLRequest -> Structured Concurrency (async let, TaskGroup)
     Col 2: Task (Unstructured) -> SwiftUI .task
            -> SwiftUI Property Wrappers -> SwiftUI Components
            (incl. List Skeleton (UITableView analog))
@@ -352,6 +354,10 @@ CONTENT FLOW:
         - ViewModel + @Published + @StateObject
         - Repository Publisher + AnyCancellable
         - Search Debounce (classic pipeline)
+      Paginated ViewModel (@Observable):
+        - LoadState enum, FetchItemsUseCase protocol
+        - PaginatedVM with offset/limit pagination
+        - View with infinite scroll trigger
 
 FIXES APPLIED:
   - DFS long line broken into multi-line (was truncating at 95 chars)

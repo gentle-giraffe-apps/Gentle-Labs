@@ -377,6 +377,83 @@ def build():
         '}'
     )
 
+    # ── RECURSION CASE STUDY: PHONE LETTERS (LC 17) ──
+    pdf.section("Recursion Case Study: Phone Letters")
+    pdf.code_block(
+        '// Shared mapping (used by all three approaches)\n'
+        'let key: [Character: [Character]] = [\n'
+        '    "2": ["a","b","c"], "3": ["d","e","f"],\n'
+        '    "4": ["g","h","i"], "5": ["j","k","l"],\n'
+        '    "6": ["m","n","o"], "7": ["p","q","r","s"],\n'
+        '    "8": ["t","u","v"], "9": ["w","x","y","z"]\n'
+        ']'
+    )
+
+    pdf.subsection("BFS (iterative, level-by-level)")
+    pdf.code_block(
+        'func letterCombinations(_ digits: String) -> [String] {\n'
+        '    guard !digits.isEmpty else { return [] }\n'
+        '    var queue = [""]\n'
+        '    for d in digits {\n'
+        '        var next = [String]()\n'
+        '        for combo in queue {\n'
+        '            for ch in key[d, default: []] {\n'
+        '                next.append(combo + String(ch))\n'
+        '            }\n'
+        '        }\n'
+        '        queue = next\n'
+        '    }\n'
+        '    return queue\n'
+        '}'
+    )
+
+    pdf.subsection("DFS (recursive, string concat)")
+    pdf.code_block(
+        'func letterCombinations(_ digits: String) -> [String] {\n'
+        '    guard !digits.isEmpty else { return [] }\n'
+        '    let digits = Array(digits)\n'
+        '    var result = [String]()\n'
+        '    func dfs(_ i: Int, _ path: String) {\n'
+        '        if i == digits.count {\n'
+        '            result.append(path); return\n'
+        '        }\n'
+        '        for ch in key[digits[i], default: []] {\n'
+        '            dfs(i + 1, path + String(ch))\n'
+        '        }\n'
+        '    }\n'
+        '    dfs(0, "")\n'
+        '    return result\n'
+        '}'
+    )
+
+    pdf.subsection("Backtracking (choose / explore / undo)")
+    pdf.code_block(
+        'func letterCombinations(_ digits: String) -> [String] {\n'
+        '    guard !digits.isEmpty else { return [] }\n'
+        '    let digits = Array(digits)\n'
+        '    var result = [String]()\n'
+        '    var path = [Character]()\n'
+        '    func backtrack(_ i: Int) {\n'
+        '        if i == digits.count {\n'
+        '            result.append(String(path)); return\n'
+        '        }\n'
+        '        for ch in key[digits[i], default: []] {\n'
+        '            path.append(ch)       // choose\n'
+        '            backtrack(i + 1)      // explore\n'
+        '            path.removeLast()     // un-choose\n'
+        '        }\n'
+        '    }\n'
+        '    backtrack(0)\n'
+        '    return result\n'
+        '}'
+    )
+    pdf.body_text(
+        'BFS: iterative, builds all partial combos per level.\n'
+        'DFS: implicit stack, new String copy each call.\n'
+        'Backtracking: mutable path + explicit undo -- general\n'
+        'template for subsets, permutations, N-queens.'
+    )
+
     # ══════════════════════════════════════════════════════════
     #  PAGE 2 -- iOS APIs & Networking
     # ══════════════════════════════════════════════════════════
@@ -387,7 +464,7 @@ def build():
     pdf.code_block(
         'let ud = UserDefaults.standard\n'
         'ud.set(value, forKey: "k")     // Int, String, Bool, Array, Data\n'
-        'ud.integer(forKey:)            // .string, .bool, .array, .double\n'
+        'ud.integer(forKey:)            // .string, .bool, .data, .url\n'
         'ud.removeObject(forKey: "k")\n'
         '// Codable structs won\'t auto-decode -- use Data + JSONEncoder/Decoder'
     )
@@ -430,22 +507,60 @@ def build():
     # ── URLSESSION + JSONDECODER ──
     pdf.section("URLSession GET + JSONDecoder")
     pdf.code_block(
-        'let url = URL(string: "https://api.example.com/items")!\n'
-        'let (data, resp) = try await URLSession.shared.data(from: url)\n'
-        'guard let http = resp as? HTTPURLResponse,\n'
-        '      http.statusCode == 200\n'
-        'else { throw URLError(.badServerResponse) }\n'
-        'let items = try JSONDecoder().decode([Item].self, from: data)'
+        '// Generic over any Decodable -- works for\n'
+        '// single objects AND arrays (e.g. [Item]).\n'
+        '// Accepts String so callers skip URL(string:)!\n'
+        'func fetch<T: Decodable>(\n'
+        '    from urlString: String\n'
+        ') async throws -> T {\n'
+        '    guard let url = URL(string: urlString)\n'
+        '    else { throw URLError(.badURL) }\n'
+        '    let (data, resp) = try await\n'
+        '        URLSession.shared.data(from: url)\n'
+        '    guard let http = resp as? HTTPURLResponse,\n'
+        '          http.statusCode == 200\n'
+        '    else { throw URLError(.badServerResponse) }\n'
+        '    return try JSONDecoder()\n'
+        '        .decode(T.self, from: data)\n'
+        '}'
+    )
+    pdf.body_text(
+        '[Item] is Decodable when Item is -- no separate\n'
+        'array overload needed. Type annotation drives T.'
+    )
+    pdf.code_block(
+        'let items: [Item] = try await\n'
+        '    fetch(from: "https://api.ex.com/items")\n'
+        'let user: User = try await\n'
+        '    fetch(from: "https://api.ex.com/user/1")'
     )
     pdf.subsection("With URLRequest & Decoder Options")
     pdf.code_block(
-        'var req = URLRequest(url: url)\n'
-        'req.setValue("application/json", forHTTPHeaderField: "Accept")\n'
-        'let (data, _) = try await URLSession.shared.data(for: req)\n'
-        '\n'
+        'func fetch<T: Decodable>(\n'
+        '    from urlString: String,\n'
+        '    headers: [String: String] = [:],\n'
+        '    decoder: JSONDecoder = JSONDecoder()\n'
+        ') async throws -> T {\n'
+        '    guard let url = URL(string: urlString)\n'
+        '    else { throw URLError(.badURL) }\n'
+        '    var req = URLRequest(url: url)\n'
+        '    headers.forEach {\n'
+        '        req.setValue($0.value,\n'
+        '            forHTTPHeaderField: $0.key)\n'
+        '    }\n'
+        '    let (data, _) = try await\n'
+        '        URLSession.shared.data(for: req)\n'
+        '    return try decoder.decode(\n'
+        '        T.self, from: data)\n'
+        '}'
+    )
+    pdf.code_block(
         'let dec = JSONDecoder()\n'
         'dec.keyDecodingStrategy = .convertFromSnakeCase\n'
-        'dec.dateDecodingStrategy = .iso8601'
+        'dec.dateDecodingStrategy = .iso8601\n'
+        'let user: User = try await fetch(\n'
+        '    from: "https://api.ex.com/user/1",\n'
+        '    decoder: dec)'
     )
 
     # ── STRUCTURED CONCURRENCY ──
@@ -460,7 +575,7 @@ def build():
     pdf.code_block(
         'let results = await withTaskGroup(of: String.self) { group in\n'
         '    for url in urls {\n'
-        '        group.addTask(name: "fetch-\\(url)") {\n'
+        '        group.addTask {       // name: Swift 6.2+\n'
         '            await fetch(url)\n'
         '        }\n'
         '    }\n'
@@ -475,23 +590,21 @@ def build():
     pdf.section("Task (Unstructured)")
     pdf.code_block(
         '// Fire-and-forget (inherits actor context)\n'
-        'Task(name: "refreshData") { await refreshData() }\n'
+        'Task { await refreshData() }  // name: Swift 6.2+\n'
         '\n'
         '// Store handle -- access value or cancel later\n'
-        'let task = Task<String, Error>(name: "fetchName") {\n'
+        'let task = Task<String, Error> {\n'
         '    try await fetchUserName()\n'
         '}\n'
         'let name = try await task.value   // blocks until done\n'
         'task.cancel()                     // cooperative cancel\n'
         '\n'
         '// Detached -- does NOT inherit actor context\n'
-        'Task.detached(name: "bg-export", priority: .background) {\n'
+        'Task.detached(priority: .background) {\n'
         '    await exportLargeFile()\n'
         '}\n'
         '\n'
-        '// Read current task name (useful in logging)\n'
-        'if let n = Task.name { print("Running: \\(n)") }\n'
-        '\n'
+        '// Task.name -- read current task name (Swift 6.2+)\n'
         '// Priorities: .userInitiated .medium .utility .background'
     )
 
