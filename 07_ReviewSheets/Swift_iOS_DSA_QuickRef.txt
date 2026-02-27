@@ -541,6 +541,17 @@ Task.detached(priority: .background) {
 // Useful for: initial data loading, search-as-you-type debounce,
 //   reactive fetches tied to @State changes
 
+// Debounce (task cancellation trick)
+// .task(id:) cancels old task on each change.
+// try? swallows CancellationError from sleep;
+// guard ensures cancelled tasks don't proceed.
+.task(id: vm.query) {
+    let current = vm.query
+    try? await Task.sleep(for: .milliseconds(300))
+    guard !Task.isCancelled else { return }
+    vm.debouncedQuery = current
+}
+
 
 ── SwiftUI Property Wrappers ───────────────────────────
 
@@ -850,6 +861,45 @@ let data = try await loader.fetch(key: url) {
     return d
 }
 let image = UIImage(data: data)  // decode on caller
+
+
+── CacheEntry (TTL Expiration) ────────────────────────
+
+// Generic cache wrapper with time-to-live.
+// Injectable now: parameter makes it testable.
+
+struct CacheEntry<V> {
+    let value: V
+    let expiresAt: Date
+    init(value: V, ttl: TimeInterval,
+         now: Date = .now) {
+        self.value = value
+        self.expiresAt = now
+            .addingTimeInterval(ttl)
+    }
+    func isExpired(now: Date = .now)
+        -> Bool { now >= expiresAt }
+}
+extension CacheEntry: Sendable
+    where V: Sendable {}
+
+// Usage: actor-based cache with TTL
+actor TTLCache<K: Hashable, V: Sendable> {
+    private var store = [K: CacheEntry<V>]()
+
+    func get(_ key: K) -> V? {
+        guard let e = store[key],
+              !e.isExpired() else {
+            store[key] = nil; return nil
+        }
+        return e.value
+    }
+    func set(_ key: K, _ val: V,
+             ttl: TimeInterval = 300) {
+        store[key] = CacheEntry(
+            value: val, ttl: ttl)
+    }
+}
 
 
 ── Actor Reentrancy ───────────────────────────────────

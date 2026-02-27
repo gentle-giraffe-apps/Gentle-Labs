@@ -27,7 +27,8 @@ class CheatSheet(FPDF):
         self.col_top = 18  # below page header
         self.col_y = self.col_top
         self.current_page_title = ""
-        self._last_subsect = None  # orphan prevention tracking
+        self._pending_subsect = None  # deferred subsection rendering
+        self.alias_nb_pages()
 
     def page_header(self, title):
         self.current_page_title = title
@@ -38,6 +39,12 @@ class CheatSheet(FPDF):
         self.set_xy(self.margin, 2)
         self.cell(self.usable_w, 10, title, align="C")
         self.col_y = self.col_top
+
+    def footer(self):
+        self.set_y(self.h - self.margin + 1)
+        self.set_font("Helvetica", "", 5)
+        self.set_text_color(150, 150, 150)
+        self.cell(0, 3, f"Page {self.page_no()}/{{nb}}", align="C")
 
     def _col_left(self):
         return self.margin + self.col_idx * (self.col_w + self.col_gap)
@@ -53,46 +60,29 @@ class CheatSheet(FPDF):
                 self.col_idx = 0
                 self.col_y = self.col_top
 
-    def _check_space_keep_subsect(self, needed):
-        """Like _check_space, but if a subsection header was just placed on
-        this column and the content would overflow, erase the orphaned header
-        and re-draw it on the new column/page so header + content stay together."""
-        sub = self._last_subsect
-        if sub is not None:
-            title, sub_y, sub_page, sub_col = sub
-            same_loc = (sub_page == self.page and sub_col == self.col_idx)
-            would_overflow = (self.col_y + needed > self.h - self.margin)
-            if same_loc and would_overflow:
-                # White-out the orphaned header
-                self.set_fill_color(*WHITE)
-                self.rect(self._col_left(), sub_y, self.col_w,
-                          self.col_y - sub_y, "F")
-                self.col_y = sub_y
-                # Break with room for header + content
-                self._check_space(5.5 + needed)
-                # Re-draw subsection header in new location
-                x = self._col_left()
-                self.set_fill_color(*SUBSECT_BG)
-                self.set_text_color(*BLACK)
-                self.set_font("Helvetica", "B", 6.5)
-                self.set_xy(x, self.col_y)
-                self.cell(self.col_w, 4.5, f"  {title}", fill=True)
-                self.col_y += 5.5
-                self._last_subsect = None
-                return
-            self._last_subsect = None
-        self._check_space(needed)
+    def _flush_pending_subsect(self):
+        """Draw any buffered subsection header."""
+        if self._pending_subsect is not None:
+            title = self._pending_subsect
+            self._pending_subsect = None
+            x = self._col_left()
+            self.set_fill_color(*SUBSECT_BG)
+            self.set_text_color(*BLACK)
+            self.set_font("Helvetica", "B", 6.5)
+            self.set_xy(x, self.col_y)
+            self.cell(self.col_w, 4.5, f"  {title}", fill=True)
+            self.col_y += 5.5
 
     def new_page(self, title):
         """Force a new page with the given header title."""
+        self._pending_subsect = None
         self.add_page()
         self.page_header(title)
         self.col_idx = 0
         self.col_y = self.col_top
-        self._last_subsect = None
 
     def section(self, title):
-        self._last_subsect = None
+        self._pending_subsect = None
         self._check_space(7)
         x = self._col_left()
         self.set_fill_color(*SECTION_BG)
@@ -103,22 +93,17 @@ class CheatSheet(FPDF):
         self.col_y += 6.5
 
     def subsection(self, title):
-        # Reserve enough for header + at least 2 code lines to avoid orphans
-        self._check_space(6 + 2 * 3.4 + 2)
-        x = self._col_left()
-        self.set_fill_color(*SUBSECT_BG)
-        self.set_text_color(*BLACK)
-        self.set_font("Helvetica", "B", 6.5)
-        self.set_xy(x, self.col_y)
-        self.cell(self.col_w, 4.5, f"  {title}", fill=True)
-        # Track for orphan prevention (title, y_start, page, col_idx)
-        self._last_subsect = (title, self.col_y, self.page, self.col_idx)
-        self.col_y += 5.5
+        """Buffer subsection title -- drawn when next content confirms fit."""
+        self._pending_subsect = title
 
     def code_block(self, text):
         lines = text.strip().split("\n")
         needed = len(lines) * 3.4 + 2
-        self._check_space_keep_subsect(needed)
+        if self._pending_subsect is not None:
+            self._check_space(5.5 + needed)
+            self._flush_pending_subsect()
+        else:
+            self._check_space(needed)
         self.set_font("Courier", "", 5.5)
         self.set_text_color(*DARK_GRAY)
         # Dynamic max chars (Courier is monospace)
@@ -138,7 +123,11 @@ class CheatSheet(FPDF):
     def body_text(self, text):
         lines = text.strip().split("\n")
         needed = len(lines) * 3.2 + 1
-        self._check_space_keep_subsect(needed)
+        if self._pending_subsect is not None:
+            self._check_space(5.5 + needed)
+            self._flush_pending_subsect()
+        else:
+            self._check_space(needed)
         self.set_font("Helvetica", "", 6)
         self.set_text_color(*DARK_GRAY)
         x = self._col_left()
@@ -619,6 +608,18 @@ def build():
         '    await viewModel.load(tab: selectedTab)\n'
         '}'
     )
+    pdf.subsection("Debounce (task cancellation trick)")
+    pdf.code_block(
+        '// .task(id:) cancels old task on each change.\n'
+        '// try? swallows CancellationError from sleep;\n'
+        '// guard ensures cancelled tasks don\'t proceed.\n'
+        '.task(id: vm.query) {\n'
+        '    let current = vm.query\n'
+        '    try? await Task.sleep(for: .milliseconds(300))\n'
+        '    guard !Task.isCancelled else { return }\n'
+        '    vm.debouncedQuery = current\n'
+        '}'
+    )
 
     # ── SWIFTUI PROPERTY WRAPPERS ──
     pdf.section("SwiftUI Property Wrappers")
@@ -889,7 +890,9 @@ def build():
     # ══════════════════════════════════════════════════════════
     #  PAGE -- Platform Patterns
     # ══════════════════════════════════════════════════════════
-    pdf.new_page("Platform Patterns")
+    # Continue flowing from iOS APIs -- section headers provide visual separation.
+    # Update title so any overflow pages say "Platform Patterns (cont.)".
+    pdf.current_page_title = "Platform Patterns"
 
     # ── IN-FLIGHT COALESCING CACHE ──
     pdf.section("In-Flight Coalescing Cache")
@@ -924,6 +927,48 @@ def build():
         '    return d\n'
         '}\n'
         'let image = UIImage(data: data)  // decode on caller'
+    )
+
+    # ── CACHE ENTRY (TTL) ──
+    pdf.section("CacheEntry (TTL Expiration)")
+    pdf.body_text(
+        'Generic cache wrapper with time-to-live.\n'
+        'Injectable now: parameter makes it testable.'
+    )
+    pdf.code_block(
+        'struct CacheEntry<V> {\n'
+        '    let value: V\n'
+        '    let expiresAt: Date\n'
+        '    init(value: V, ttl: TimeInterval,\n'
+        '         now: Date = .now) {\n'
+        '        self.value = value\n'
+        '        self.expiresAt = now\n'
+        '            .addingTimeInterval(ttl)\n'
+        '    }\n'
+        '    func isExpired(now: Date = .now)\n'
+        '        -> Bool { now >= expiresAt }\n'
+        '}\n'
+        'extension CacheEntry: Sendable\n'
+        '    where V: Sendable {}'
+    )
+    pdf.code_block(
+        '// Usage: actor-based cache with TTL\n'
+        'actor TTLCache<K: Hashable, V: Sendable> {\n'
+        '    private var store = [K: CacheEntry<V>]()\n'
+        '\n'
+        '    func get(_ key: K) -> V? {\n'
+        '        guard let e = store[key],\n'
+        '              !e.isExpired() else {\n'
+        '            store[key] = nil; return nil\n'
+        '        }\n'
+        '        return e.value\n'
+        '    }\n'
+        '    func set(_ key: K, _ val: V,\n'
+        '             ttl: TimeInterval = 300) {\n'
+        '        store[key] = CacheEntry(\n'
+        '            value: val, ttl: ttl)\n'
+        '    }\n'
+        '}'
     )
 
     # ── ACTOR REENTRANCY ──
