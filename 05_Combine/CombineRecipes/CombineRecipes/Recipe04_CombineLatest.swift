@@ -23,7 +23,7 @@ final class FormViewModel: ObservableObject {
     init() {
         $email.combineLatest($password)
             .map { email, password -> (Bool, String) in
-                guard !email.isEmpty || !password.isEmpty else {
+                guard !email.isEmpty && !password.isEmpty else {
                     return (false, "Enter your credentials")
                 }
                 let emailOK = email.contains("@") && email.contains(".")

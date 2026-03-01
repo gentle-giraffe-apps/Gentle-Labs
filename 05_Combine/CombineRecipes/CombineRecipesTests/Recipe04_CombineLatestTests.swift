@@ -16,6 +16,13 @@ final class Recipe04_CombineLatestTests: XCTestCase {
         XCTAssertEqual(vm.message, "Enter your credentials")
     }
 
+    func testOneFieldEmptyShowsCredentialsPrompt() {
+        let vm = FormViewModel()
+        vm.password = "123456"
+        XCTAssertFalse(vm.isValid)
+        XCTAssertEqual(vm.message, "Enter your credentials")
+    }
+
     func testInvalidEmailShowsEmailError() {
         let vm = FormViewModel()
         vm.email = "notanemail"

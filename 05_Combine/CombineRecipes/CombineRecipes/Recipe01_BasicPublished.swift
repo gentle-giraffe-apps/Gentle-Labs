@@ -9,6 +9,12 @@ import SwiftUI
 // the simplest way you encounter Combine in SwiftUI — often
 // without realizing it.
 //
+// Note: This project uses SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor
+// (see Project.swift). All classes are implicitly @MainActor, so
+// .receive(on: DispatchQueue.main) is redundant in later recipes
+// but included for clarity since most Combine tutorials assume
+// no default isolation.
+//
 // Key points:
 // • @Published var count  →  behind the scenes, a Combine publisher
 // • ObservableObject      →  SwiftUI listens for changes
