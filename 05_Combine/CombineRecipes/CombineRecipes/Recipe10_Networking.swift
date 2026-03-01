@@ -57,7 +57,7 @@ final class NetworkingViewModel: ObservableObject {
         errorMessage = nil
 
         fetcher.fetchPosts()
-            .receive(on: DispatchQueue.main)
+            .receive(on: DispatchQueue.main) // redundant with @MainActor isolation, but explicit for clarity
             .sink(
                 receiveCompletion: { [weak self] completion in
                     guard let self else { return }
