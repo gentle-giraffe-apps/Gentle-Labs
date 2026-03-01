@@ -1,0 +1,1027 @@
+System Design Interview — Quick Reference
+==========================================
+
+═══════════════════════════════════════════════════════════
+  PAGE 1 — Request Flow & Edge Layer
+═══════════════════════════════════════════════════════════
+
+
+── Device → Backend: Full Request Path ────────────────
+
+  Mobile/Browser
+       │
+       ▼
+  DNS Resolution ─── returns IP (or CDN edge IP)
+       │
+       ▼
+  CDN (CloudFront, Akamai) ─── static assets, cached responses
+       │  (cache miss)
+       ▼
+  Load Balancer (L4/L7) ─── distributes traffic across instances
+       │
+       ▼
+  API Gateway / Edge ─── auth, rate-limit, routing, transform
+       │
+       ▼
+  Application Service(s) ─── business logic
+       │
+       ├──▶ Cache (Redis) ─── hot data, sessions, leaderboards
+       ├──▶ SQL DB (Postgres) ─── transactional, relational data
+       ├──▶ NoSQL DB (Cassandra) ─── high-write, wide-column data
+       ├──▶ Message Queue (Kafka) ─── async events, decoupling
+       ├──▶ Object Store (S3) ─── files, images, backups
+       └──▶ Search Index (Elasticsearch) ─── full-text search
+
+
+── DNS ─────────────────────────────────────────────────
+
+- Translates domain name → IP address
+- TTL controls how long clients/resolvers cache the answer
+- Record types: A (IPv4), AAAA (IPv6), CNAME (alias), MX (mail)
+- Route policies: round-robin, latency-based, geo-based, weighted, failover
+- Used to route to CDN edge or load balancer IP
+
+
+── CDN (Content Delivery Network) ─────────────────────
+
+- Edge servers geographically close to users
+- Caches static assets: images, JS, CSS, videos, fonts
+- Can also cache API responses (Cache-Control headers)
+- Reduces latency and origin server load
+- Push vs Pull:
+    Push — origin uploads to CDN proactively (good for large/static files)
+    Pull — CDN fetches from origin on first request, then caches (simpler)
+- Invalidation: TTL expiry, versioned URLs (/app.v2.js), purge API
+- Examples: CloudFront, Akamai, Cloudflare, Fastly
+
+
+── Load Balancer ──────────────────────────────────────
+
+- Distributes incoming traffic across multiple server instances
+- L4 (Transport): routes by IP/port, fast, no payload inspection
+- L7 (Application): routes by URL path, headers, cookies — smarter
+- Algorithms:
+    Round-robin — simple rotation
+    Weighted round-robin — higher-capacity servers get more traffic
+    Least connections — route to server with fewest active connections
+    IP hash — same client IP → same server (sticky sessions)
+    Consistent hashing — minimizes redistribution when servers change
+- Health checks: periodic pings, removes unhealthy instances
+- SSL termination: decrypt HTTPS at LB, forward HTTP internally
+- Examples: AWS ALB/NLB, Nginx, HAProxy, Envoy
+
+
+── API Gateway / Edge Layer ───────────────────────────
+
+What it does:
+- Single entry point for all client requests
+- Authentication & Authorization — validate JWT/OAuth tokens
+- Rate Limiting — protect backends from overload (token bucket, sliding window)
+- Request Routing — fan out to correct microservice
+- Protocol Translation — REST ↔ gRPC, HTTP ↔ WebSocket
+- Request/Response Transformation — add headers, reshape payloads
+- API Versioning — route /v1/ vs /v2/ to different services
+- Request Validation — schema checks before hitting services
+- Circuit Breaking — stop sending traffic to failing services
+- Logging & Metrics — centralized observability at the edge
+- CORS handling — cross-origin policies
+- IP whitelisting/blacklisting
+
+Examples: Kong, AWS API Gateway, Apigee, Envoy, Nginx
+
+Rate Limiting Algorithms:
+- Token Bucket — tokens added at fixed rate, request costs 1 token
+    Pros: allows bursts (up to bucket capacity), smooth long-term rate
+- Sliding Window Log — track timestamp of each request in a window
+    Pros: precise, no boundary spikes. Cons: memory (stores all timestamps)
+- Sliding Window Counter — hybrid: weight current + previous window counts
+    Pros: memory-efficient, smooths boundary edges
+- Fixed Window Counter — count requests per time window
+    Pros: simple. Cons: boundary spike (2x rate at window edges)
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 2 — API Design
+═══════════════════════════════════════════════════════════
+
+
+── REST API Best Practices ────────────────────────────
+
+Naming:
+- Use nouns, not verbs: /users, /orders (not /getUsers)
+- Plural resource names: /users/{id}, /users/{id}/orders
+- Nested for relationships: /users/{id}/posts (max 2 levels deep)
+- Query params for filtering: /users?status=active&sort=name&order=asc
+- Use kebab-case for multi-word paths: /order-items
+
+HTTP Methods:
+  GET     /users          — list users (idempotent, cacheable)
+  GET     /users/{id}     — get single user
+  POST    /users          — create user (not idempotent)
+  PUT     /users/{id}     — full replace (idempotent)
+  PATCH   /users/{id}     — partial update (idempotent)
+  DELETE  /users/{id}     — delete (idempotent)
+
+Status Codes:
+  200 OK              — success (GET, PUT, PATCH)
+  201 Created         — success (POST), include Location header
+  204 No Content      — success (DELETE), no body
+  400 Bad Request     — invalid input / validation error
+  401 Unauthorized    — missing or invalid auth credentials
+  403 Forbidden       — authenticated but not authorized
+  404 Not Found       — resource doesn't exist
+  409 Conflict        — duplicate / state conflict
+  429 Too Many Reqs   — rate limited
+  500 Internal Error  — server bug
+  502 Bad Gateway     — upstream service failed
+  503 Service Unavail — overloaded or maintenance
+
+Pagination:
+- Offset-based: ?offset=20&limit=10 (simple, but skip is O(n) in DB)
+- Cursor-based: ?cursor=abc123&limit=10 (stable, efficient for large sets)
+- Response: { data: [...], next_cursor: "xyz", has_more: true }
+
+Versioning:
+- URL path: /api/v1/users (most common, explicit)
+- Header: Accept: application/vnd.api.v2+json
+- Query: /users?version=2
+
+Idempotency:
+- GET, PUT, DELETE are naturally idempotent
+- POST is not — use idempotency key header for safe retries
+    Client sends: Idempotency-Key: <uuid>
+    Server stores result keyed by uuid, returns same result on retry
+
+Response Envelope:
+  {
+    "data": { ... },
+    "meta": { "page": 1, "total": 42 },
+    "errors": []
+  }
+
+HATEOAS (rarely used in practice, but know the concept):
+- Responses include links to related actions/resources
+  { "id": 1, "links": { "self": "/users/1", "orders": "/users/1/orders" } }
+
+
+── GraphQL Basics ─────────────────────────────────────
+
+Core idea: client specifies exactly what data it needs in a single request.
+
+Query (read):
+  query {
+    user(id: "1") {
+      name
+      email
+      posts(limit: 5) {
+        title
+        createdAt
+      }
+    }
+  }
+
+Mutation (write):
+  mutation {
+    createUser(input: { name: "Alice", email: "a@b.com" }) {
+      id
+      name
+    }
+  }
+
+Subscription (real-time, over WebSocket):
+  subscription {
+    messageAdded(chatId: "123") {
+      id
+      text
+      sender { name }
+    }
+  }
+
+Key concepts:
+- Schema defines types, queries, mutations (strongly typed)
+- Resolvers: functions that fetch data for each field
+- Single endpoint: POST /graphql (vs many REST endpoints)
+- Client controls response shape — no over-fetching or under-fetching
+- N+1 problem: naive resolvers fire a query per item
+    Solution: DataLoader — batches + caches within a request
+
+GraphQL vs REST trade-offs:
+  GraphQL                         REST
+  ─────────                       ────
+  Flexible queries                Fixed endpoints
+  Single round-trip               May need multiple calls
+  Harder to cache (POST)          HTTP caching works natively
+  Complex server implementation   Simpler server
+  Schema = documentation          Needs OpenAPI/Swagger
+  Better for mobile (bandwidth)   Better for simple CRUD
+
+
+── gRPC Basics ────────────────────────────────────────
+
+- Binary protocol over HTTP/2 (faster than JSON over HTTP/1.1)
+- Protocol Buffers (protobuf) for serialization — compact, typed
+- Streaming: unary, server-streaming, client-streaming, bidirectional
+- Code generation: .proto file → client/server stubs in any language
+- Best for: service-to-service communication, low-latency, high-throughput
+- Not great for: browser clients (need gRPC-Web proxy)
+
+  service UserService {
+    rpc GetUser (UserRequest) returns (UserResponse);
+    rpc ListUsers (ListRequest) returns (stream UserResponse);
+  }
+
+
+── WebSockets ─────────────────────────────────────────
+
+- Full-duplex, persistent connection between client and server
+- Upgrade from HTTP: client sends Upgrade: websocket header
+- Use for: chat, live notifications, collaborative editing, real-time dashboards
+- Server sends push messages without client polling
+- Stateful — harder to load-balance (need sticky sessions or pub/sub fan-out)
+- Alternative: Server-Sent Events (SSE) — server push only, simpler, HTTP-based
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 3 — Databases
+═══════════════════════════════════════════════════════════
+
+
+── PostgreSQL (Relational / SQL) ──────────────────────
+
+When to use:
+- Structured data with relationships (users, orders, payments)
+- Need ACID transactions
+- Complex queries: JOINs, aggregations, subqueries, window functions
+- Data integrity: foreign keys, constraints, triggers
+
+ACID:
+  Atomicity    — all or nothing (transaction fully commits or fully rolls back)
+  Consistency  — data always valid per schema constraints
+  Isolation    — concurrent transactions don't interfere
+  Durability   — committed data survives crashes (WAL — write-ahead log)
+
+Isolation Levels (weakest → strongest):
+  Read Uncommitted — see uncommitted changes (dirty reads)
+  Read Committed   — only see committed data (Postgres default)
+  Repeatable Read  — snapshot at transaction start, no phantom reads in PG
+  Serializable     — full isolation, as if transactions ran one-by-one
+
+Indexes:
+- B-tree (default): equality + range queries, most common
+- Hash: equality only, rarely used
+- GIN: full-text search, JSONB containment, arrays
+- GiST: geometric, spatial data
+- Composite index: CREATE INDEX idx ON t(a, b) — leftmost prefix rule
+- Covering index: INCLUDE (col) — avoids table lookup
+- Partial index: WHERE active = true — smaller, faster
+
+Explain:
+  EXPLAIN ANALYZE SELECT ... — shows execution plan + actual timings
+  Look for: Seq Scan (bad on large tables), Index Scan (good), Nested Loop vs Hash Join
+
+Connection Pooling:
+- Postgres forks a process per connection (expensive)
+- Use PgBouncer or built-in pooler to reuse connections
+- Typical: app → PgBouncer (pool of 20-50 conns) → Postgres
+
+Replication:
+- Streaming replication: primary → replica(s), async or synchronous
+- Read replicas: route reads to replicas, writes to primary
+- Failover: promote replica to primary on failure
+
+
+── Cassandra (NoSQL — Wide-Column Store) ──────────────
+
+When to use:
+- Massive write throughput (time-series, logs, IoT, activity feeds)
+- No single point of failure needed (peer-to-peer, no master)
+- Horizontal scaling to hundreds of nodes
+- Queries are known in advance (design table per query)
+
+Data Model:
+- Keyspace → Table → Partition → Rows
+- Primary key = Partition key + Clustering columns
+    Partition key: determines which node stores the data
+    Clustering columns: sort order within a partition
+- Design rule: one table per query pattern (denormalization is expected)
+  CREATE TABLE posts_by_user (
+      user_id UUID,
+      created_at TIMESTAMP,
+      post_id UUID,
+      content TEXT,
+      PRIMARY KEY (user_id, created_at)
+  ) WITH CLUSTERING ORDER BY (created_at DESC);
+
+Consistency Levels:
+  ONE       — fastest, write/read from 1 replica
+  QUORUM    — majority of replicas (N/2 + 1), strong consistency
+  ALL       — all replicas, slowest but strongest
+  LOCAL_QUORUM — quorum within local data center
+- Tunable per query: trade consistency for availability/latency
+- Quorum read + Quorum write = strong consistency (R + W > N)
+
+Anti-patterns:
+- Don't do JOINs (no support)
+- Don't do aggregations across partitions
+- Don't use secondary indexes on high-cardinality columns
+- Don't read-before-write (use lightweight transactions sparingly)
+
+Cassandra vs Postgres:
+  Cassandra                       Postgres
+  ─────────                       ────────
+  AP (available + partition-tol)  CP (consistent + partition-tol)
+  No JOINs, limited queries      Rich SQL, JOINs, aggregations
+  Linear horizontal scale         Vertical + read replicas
+  Eventual consistency default    Strong consistency default
+  Design table per query          Normalize, query flexibly
+
+
+── Other NoSQL Options (Know When to Reach For) ───────
+
+MongoDB (Document Store):
+- JSON-like documents (BSON), flexible schema
+- Good for: content management, catalogs, user profiles
+- Rich query language, secondary indexes, aggregation pipeline
+- Horizontal scaling via sharding
+
+DynamoDB (Key-Value / Document — AWS Managed):
+- Single-digit ms latency at any scale
+- Partition key + optional sort key
+- Provisioned or on-demand capacity
+- Good for: session stores, shopping carts, gaming leaderboards
+- DAX for in-memory caching layer
+- Global tables for multi-region replication
+
+Neo4j (Graph DB):
+- Nodes + edges with properties
+- Cypher query language
+- Good for: social networks, recommendation engines, fraud detection
+
+Time-Series DBs (InfluxDB, TimescaleDB):
+- Optimized for time-stamped data: metrics, IoT, monitoring
+- Automatic downsampling and retention policies
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 4 — Caching, Queues & Streaming
+═══════════════════════════════════════════════════════════
+
+
+── Redis (In-Memory Cache / Data Store) ───────────────
+
+What it is:
+- In-memory key-value store, sub-millisecond reads
+- Supports: strings, hashes, lists, sets, sorted sets, streams, HyperLogLog
+
+Common use cases:
+- Cache: DB query results, API responses, session data
+- Rate limiting: INCR + EXPIRE (sliding window counter)
+- Leaderboards: sorted sets (ZADD, ZRANGE, ZRANK)
+- Pub/Sub: real-time message broadcasting
+- Distributed locks: SET key val NX EX 30 (SETNX with TTL)
+- Counters: INCR/DECR (atomic)
+- Queue (simple): LPUSH + BRPOP
+
+Caching Strategies:
+
+  Cache-Aside (Lazy Loading):
+    Read: check cache → miss → read DB → write cache → return
+    Write: write DB → invalidate cache (delete key)
+    Pros: only caches what's actually read, cache failure non-fatal
+    Cons: cache miss penalty (3 round-trips), stale data possible
+
+  Write-Through:
+    Write: write cache + DB together (synchronous)
+    Read: always from cache
+    Pros: cache always consistent with DB
+    Cons: write latency (2 writes), caches data that may never be read
+
+  Write-Behind (Write-Back):
+    Write: write cache → async flush to DB (batched)
+    Pros: fast writes, batch DB writes
+    Cons: data loss risk if cache crashes before flush
+
+  Read-Through:
+    Cache itself fetches from DB on miss (cache is the abstraction layer)
+    Similar to cache-aside but cache library handles the logic
+
+Cache Eviction Policies:
+- LRU (Least Recently Used) — most common
+- LFU (Least Frequently Used)
+- TTL (Time To Live) — expire after N seconds
+- Random
+
+Cache Invalidation Problems:
+- Hardest problem in CS (along with naming things)
+- Thundering herd: many requests hit DB simultaneously on cache expiry
+    Solution: lock (only one fetches), stale-while-revalidate, pre-warm
+- Stale data: cache and DB drift apart
+    Solution: short TTLs, event-driven invalidation, write-through
+- Hot key: single key gets extreme traffic
+    Solution: local cache + distributed cache, key replication
+
+
+── Kafka (Distributed Event Streaming) ────────────────
+
+What it is:
+- Distributed, append-only commit log
+- Not a traditional message queue — messages persist (configurable retention)
+- Producers → Topics → Partitions → Consumer Groups
+
+Core Concepts:
+  Topic       — named feed / category of messages
+  Partition   — ordered, immutable sequence within a topic
+  Offset      — position of a message within a partition
+  Producer    — writes messages to topics
+  Consumer    — reads messages from topics
+  Consumer Group — set of consumers that share partitions (parallel processing)
+  Broker      — single Kafka server node
+  Cluster     — group of brokers
+
+Key Properties:
+- Ordering guaranteed within a partition (not across partitions)
+- Messages keyed → same key always goes to same partition (ordering per entity)
+- Consumer group: each partition assigned to exactly 1 consumer in the group
+    → max parallelism = number of partitions
+- Messages are NOT deleted after consumption (retained by time or size)
+- Replay: consumers can re-read by seeking to an earlier offset
+
+When to use Kafka:
+- Event-driven architecture (order placed → inventory, email, analytics)
+- Log aggregation from many services
+- Stream processing (with Kafka Streams or Flink)
+- CDC event propagation
+- Decoupling producers from consumers
+- High throughput (millions of messages/sec)
+
+Kafka vs Traditional Message Queue (RabbitMQ, SQS):
+  Kafka                           RabbitMQ / SQS
+  ─────                           ──────────────
+  Log-based, persistent           Queue-based, msg deleted on ACK
+  Replay possible                 No replay (once consumed, gone)
+  Consumer groups (partition)     Competing consumers
+  High throughput, batching       Lower latency per message
+  Ordering per partition          Ordering per queue (FIFO queues)
+  Complex to operate              Simpler to manage
+
+
+── Message Queue Patterns ─────────────────────────────
+
+Point-to-Point:
+- One producer → queue → one consumer processes each message
+- Use: task/job queues, background work (emails, image processing)
+
+Pub/Sub (Publish-Subscribe):
+- Producer publishes to topic, all subscribers receive a copy
+- Use: event notification, fan-out (order placed → email + inventory + analytics)
+
+Dead Letter Queue (DLQ):
+- Messages that fail processing N times → moved to DLQ
+- Allows inspection, debugging, manual replay
+- Always configure DLQ for production queues
+
+Exactly-Once Delivery:
+- At-most-once: fire and forget (may lose messages)
+- At-least-once: retry until ACK (may duplicate — most common)
+- Exactly-once: hard, requires idempotent consumers or transactional support
+    Pattern: at-least-once delivery + idempotent processing (dedup by message ID)
+
+Backpressure:
+- Consumer can't keep up with producer
+- Solutions: buffer (queue depth), rate-limit producer, scale consumers, drop/sample
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 5 — CDC, Sharding & Data Patterns
+═══════════════════════════════════════════════════════════
+
+
+── CDC (Change Data Capture) ──────────────────────────
+
+What it is:
+- Captures row-level changes (INSERT, UPDATE, DELETE) from a database
+- Streams them as events to downstream systems
+- Source of truth stays in the DB; consumers react to changes
+
+How it works:
+- Log-based (preferred): reads the DB's write-ahead log (WAL/binlog)
+    Postgres → logical replication slots
+    MySQL → binlog
+    Tool: Debezium (most popular, open source) → Kafka Connect
+- Trigger-based: DB triggers write changes to a changelog table (older, slower)
+- Polling: periodically query for changed rows (simple but laggy)
+
+Architecture:
+  Postgres (WAL) → Debezium → Kafka → consumers
+                                  ├──▶ Elasticsearch (search index)
+                                  ├──▶ Redis (cache update)
+                                  ├──▶ Data Warehouse (analytics)
+                                  └──▶ Another microservice
+
+Rules & Best Practices:
+- Every table should have a primary key (CDC needs it to identify rows)
+- Include a timestamp column (updated_at) for ordering and debugging
+- Schema changes need careful handling — Debezium supports schema registry
+- Consumers must be idempotent (may receive duplicates on restart/rebalance)
+- Tombstone events: DELETE emits key + null value (signals downstream to delete)
+- Ordering: guaranteed per primary key within a partition (use PK as Kafka key)
+- Snapshot: initial full-table snapshot on first start, then incremental changes
+
+When to use CDC:
+- Keep caches (Redis) in sync with DB without app-level invalidation
+- Populate search indexes (Elasticsearch) from source-of-truth DB
+- Replicate data across microservices without tight coupling
+- Feed data warehouse / data lake for analytics
+- Event sourcing lite — react to state changes as events
+
+
+── Sharding (Horizontal Partitioning) ─────────────────
+
+What it is:
+- Split data across multiple database instances (shards)
+- Each shard holds a subset of the data
+- Enables horizontal scaling beyond single-node limits
+
+Sharding Strategies:
+
+  Key/Hash-based:
+    shard = hash(partition_key) % num_shards
+    Pros: even distribution
+    Cons: resharding is painful (all data must move)
+    Better: consistent hashing (only K/N data moves when adding a node)
+
+  Range-based:
+    Users A-M → shard 1, N-Z → shard 2
+    Pros: range queries stay on one shard
+    Cons: hot spots (some ranges busier than others)
+
+  Directory/Lookup:
+    Lookup service maps key → shard
+    Pros: flexible, can rebalance without rehashing
+    Cons: lookup service is a bottleneck / single point of failure
+
+  Geographic:
+    US users → US shard, EU users → EU shard
+    Pros: data locality, compliance (GDPR)
+    Cons: cross-region queries are expensive
+
+Challenges:
+- JOINs across shards: very expensive, avoid if possible
+- Transactions across shards: need distributed transactions (2PC) — slow
+- Resharding: adding/removing shards requires data migration
+- Hot shards: uneven data or traffic distribution
+- Auto-increment IDs: need distributed ID generation (Snowflake IDs, UUIDs)
+- Aggregations: must scatter-gather across all shards
+
+Best Practices:
+- Choose partition key carefully (high cardinality, even distribution)
+- Common keys: user_id, tenant_id, org_id
+- Avoid shard-crossing queries in your data model
+- Use consistent hashing to minimize data movement
+- Consider: do you actually NEED sharding? Postgres can handle millions of rows
+    with proper indexes — shard only when vertical scaling is exhausted
+
+
+── Consistent Hashing ─────────────────────────────────
+
+Problem: hash(key) % N redistributes almost ALL keys when N changes
+Solution: map both keys and servers onto a ring (0 to 2^32)
+
+How it works:
+- Hash each server to a point on the ring
+- Hash each key to a point on the ring
+- Key is assigned to the next server clockwise on the ring
+- Adding/removing a server only affects keys between it and its predecessor
+
+Virtual nodes:
+- Each physical server gets multiple points on the ring (e.g., 150 vnodes)
+- Ensures even distribution even with few physical servers
+- When a server is removed, its load spreads across many servers (not just one)
+
+Used in: Cassandra, DynamoDB, consistent caching, load balancers
+
+
+── Database Replication ───────────────────────────────
+
+Single-Leader (Master-Slave):
+- One primary handles all writes
+- Replicas handle reads (read scaling)
+- Replication lag: replicas may be slightly behind
+- Failover: promote replica on primary failure
+
+Multi-Leader:
+- Multiple primaries accept writes (e.g., multi-region)
+- Conflict resolution needed (last-write-wins, merge, custom)
+- Use case: multi-datacenter, offline-capable apps
+
+Leaderless (Dynamo-style):
+- Any node accepts reads/writes
+- Quorum: R + W > N for consistency
+- Read repair: detect and fix stale replicas on read
+- Anti-entropy: background process syncs replicas
+- Used by: Cassandra, DynamoDB, Riak
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 6 — Distributed Systems Concepts
+═══════════════════════════════════════════════════════════
+
+
+── CAP Theorem ────────────────────────────────────────
+
+In a network partition, you must choose:
+  C (Consistency)    — every read sees the latest write
+  A (Availability)   — every request gets a response (even if stale)
+  P (Partition Tol)  — system works despite network splits
+
+P is unavoidable in distributed systems → real choice is CP vs AP
+
+  CP (Consistency + Partition Tolerance):
+    Refuse requests if can't guarantee consistency
+    Examples: Postgres, MongoDB (default), ZooKeeper, etcd
+
+  AP (Availability + Partition Tolerance):
+    Serve potentially stale data rather than error out
+    Examples: Cassandra, DynamoDB, CouchDB
+
+In practice: most systems are tunable (Cassandra quorum = CP-ish)
+
+
+── PACELC ─────────────────────────────────────────────
+
+Extension of CAP: when there is NO partition (normal operation)...
+  PAC — during Partition: choose Availability vs Consistency
+  ELC — Else (no partition): choose Latency vs Consistency
+
+Example: DynamoDB = PA/EL (available in partition, low latency normally)
+         Postgres = PC/EC (consistent always, higher latency for consistency)
+
+
+── Distributed ID Generation ──────────────────────────
+
+Requirements: unique, roughly sortable, no coordination
+
+Snowflake ID (Twitter):
+  64 bits: [timestamp 41b] [machine ID 10b] [sequence 12b]
+  - Sortable by time
+  - 4096 IDs per millisecond per machine
+  - No coordination between machines
+
+UUID v4:
+  128 bits, random
+  - Universally unique, no coordination
+  - Not sortable, bad for B-tree indexes (random inserts)
+
+UUID v7 (newer):
+  128 bits: [unix timestamp ms] [random]
+  - Time-sortable + random suffix
+  - Better for DB indexes than v4
+
+ULID:
+  128 bits: [timestamp 48b] [random 80b]
+  - Lexicographically sortable, Crockford Base32 encoded
+  - Similar benefits to UUID v7
+
+
+── Consistency Models ─────────────────────────────────
+
+Strong Consistency:
+- After a write completes, all subsequent reads see that write
+- Expensive: requires coordination (consensus protocols, quorum)
+
+Eventual Consistency:
+- After a write, replicas will converge "eventually" (ms to seconds)
+- Reads may return stale data for a window
+- Most distributed systems default to this
+
+Causal Consistency:
+- If A causes B, everyone sees A before B
+- Concurrent operations may be seen in different orders
+- Implemented with vector clocks or logical timestamps
+
+Read-Your-Own-Writes:
+- User always sees their own updates immediately
+- Others may see stale data
+- Implementation: read from leader for recent writes, or sticky sessions
+
+
+── Consensus Protocols ────────────────────────────────
+
+Problem: multiple nodes must agree on a value despite failures
+
+Raft:
+- Leader election + log replication
+- Leader sends entries to followers, commits when majority ACK
+- Simpler than Paxos, widely used (etcd, CockroachDB, Consul)
+
+Paxos:
+- Proposers, Acceptors, Learners
+- Guarantees agreement if majority available
+- Hard to implement correctly, Raft is preferred in practice
+
+Two-Phase Commit (2PC):
+- Coordinator → Prepare (all vote yes/no) → Commit/Abort
+- Blocking: if coordinator crashes after Prepare, participants stuck
+- Used for distributed transactions (cross-shard, cross-DB)
+
+Three-Phase Commit (3PC):
+- Adds Pre-Commit phase to avoid blocking
+- Rarely used in practice (Raft/Paxos preferred)
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 7 — Scalability Patterns & Architecture
+═══════════════════════════════════════════════════════════
+
+
+── Scaling Strategies ─────────────────────────────────
+
+Vertical Scaling (Scale Up):
+- Bigger machine (more CPU, RAM, disk)
+- Simple, but has a ceiling
+- Good first step before adding complexity
+
+Horizontal Scaling (Scale Out):
+- More machines behind a load balancer
+- Requires stateless services (or externalized state)
+- No ceiling in theory, but adds complexity
+
+Stateless Services:
+- No local state — all state in external stores (DB, Redis, S3)
+- Any instance can handle any request
+- Enables easy horizontal scaling and zero-downtime deploys
+
+
+── Microservices vs Monolith ──────────────────────────
+
+Monolith:
+- Single deployable unit
+- Simpler development, testing, debugging
+- Scales by running multiple copies behind LB
+- Right choice for: small teams, early-stage, unclear boundaries
+
+Microservices:
+- Each service owns its data and logic, deployed independently
+- Communicate via APIs (REST, gRPC) or events (Kafka)
+- Independent scaling, deployment, tech stacks
+- Right choice for: large teams, clear domain boundaries, independent scaling needs
+
+Challenges of microservices:
+- Network latency between services
+- Distributed transactions (Saga pattern)
+- Service discovery
+- Observability (distributed tracing)
+- Data consistency across services
+- Operational complexity (deploy, monitor N services)
+
+Saga Pattern (distributed transactions):
+- Sequence of local transactions, each publishes an event
+- If one step fails, execute compensating transactions to undo
+- Choreography: each service listens and reacts (decoupled, harder to debug)
+- Orchestration: central coordinator directs the saga (easier to understand)
+
+Service Mesh:
+- Infrastructure layer for service-to-service communication
+- Handles: mTLS, retries, circuit breaking, observability, traffic shaping
+- Sidecar proxy pattern (Envoy) attached to each service
+- Examples: Istio, Linkerd
+
+
+── Circuit Breaker ────────────────────────────────────
+
+Problem: downstream service is failing, don't keep hammering it
+
+States:
+  Closed → requests flow normally, count failures
+  Open   → after threshold, reject requests immediately (fail fast)
+  Half-Open → after timeout, let a few requests through to test recovery
+
+Benefits:
+- Prevents cascade failures
+- Gives downstream time to recover
+- Fast failure instead of timeout waiting
+
+
+── Back-of-Envelope Estimation ────────────────────────
+
+Key Numbers to Know:
+  1 day  = 86,400 seconds ≈ 10^5 seconds
+  1 year = 31.5M seconds  ≈ 3 × 10^7 seconds
+
+  1 KB = 10^3 bytes
+  1 MB = 10^6 bytes
+  1 GB = 10^9 bytes
+  1 TB = 10^12 bytes
+
+  QPS (Queries Per Second):
+    100M DAU, each user makes 10 requests/day
+    = 1B requests/day
+    = 1B / 100K ≈ 10K QPS average
+    Peak ≈ 2-3x average ≈ 20-30K QPS
+
+Storage:
+  1M users × 1 KB profile = 1 GB
+  1M users × 1 MB media = 1 TB
+  1B messages/day × 100 bytes = 100 GB/day ≈ 36 TB/year
+
+Latency:
+  L1 cache ref         ≈ 1 ns
+  L2 cache ref         ≈ 4 ns
+  RAM ref              ≈ 100 ns
+  SSD random read      ≈ 100 μs
+  HDD random read      ≈ 10 ms
+  Network round-trip:
+    Same datacenter    ≈ 0.5 ms
+    Cross-continent    ≈ 100-150 ms
+
+Throughput:
+  SSD sequential read  ≈ 500 MB/s - 3 GB/s
+  HDD sequential read  ≈ 100 MB/s
+  1 Gbps network       ≈ 125 MB/s
+  10 Gbps network      ≈ 1.25 GB/s
+
+
+── Availability & SLA ─────────────────────────────────
+
+  99%      → 3.65 days downtime/year
+  99.9%    → 8.76 hours/year
+  99.99%   → 52.6 minutes/year
+  99.999%  → 5.26 minutes/year
+
+Series: A → B — availability = A × B (both must work)
+  0.999 × 0.999 = 0.998 (worse than either alone)
+
+Parallel: A || B — availability = 1 - (1-A)(1-B) (either works)
+  1 - (0.001)(0.001) = 0.999999 (much better)
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 8 — Observability & Security
+═══════════════════════════════════════════════════════════
+
+
+── Observability (Three Pillars) ──────────────────────
+
+Metrics:
+- Numeric time-series: counters, gauges, histograms
+- USE method (resources): Utilization, Saturation, Errors
+- RED method (services): Rate, Errors, Duration
+- Tools: Prometheus + Grafana, Datadog, CloudWatch
+
+Logging:
+- Structured logs (JSON) with correlation IDs
+- Log levels: DEBUG, INFO, WARN, ERROR
+- Centralized: ELK stack (Elasticsearch, Logstash, Kibana), Splunk
+- Include: timestamp, service, trace_id, user_id, request_id
+
+Tracing (Distributed):
+- Follow a request across multiple services
+- Each service adds a span to the trace
+- Propagate trace_id via headers (W3C Trace Context)
+- Tools: Jaeger, Zipkin, AWS X-Ray, OpenTelemetry
+
+Alerting:
+- Alert on symptoms, not causes (high error rate > CPU high)
+- SLO-based alerts: burn rate exceeds threshold
+- PagerDuty, OpsGenie for on-call routing
+
+
+── Authentication & Authorization ─────────────────────
+
+Authentication (who are you?):
+  JWT (JSON Web Token):
+    - Stateless: token contains claims, signed by server
+    - Header.Payload.Signature (Base64)
+    - No server-side session storage needed
+    - Downside: can't revoke until expiry (use short TTL + refresh tokens)
+
+  OAuth 2.0 Flow (simplified):
+    1. User redirected to auth provider (Google, GitHub)
+    2. User grants permission
+    3. Auth provider returns authorization code
+    4. Backend exchanges code for access_token + refresh_token
+    5. Backend uses access_token to call provider's API
+    6. Issue your own JWT/session to the user
+
+  Session-based:
+    - Server stores session in Redis/DB, client holds session_id cookie
+    - Stateful but revocable, simpler
+
+Authorization (what can you do?):
+  RBAC — Role-Based Access Control (admin, editor, viewer)
+  ABAC — Attribute-Based (department=engineering AND level>=5)
+  ACL  — Access Control Lists (per-resource permissions)
+
+
+── Common Security Considerations ─────────────────────
+
+- HTTPS everywhere (TLS termination at LB or edge)
+- Input validation and sanitization at API boundary
+- Rate limiting to prevent abuse
+- SQL injection prevention: parameterized queries
+- CORS: restrict allowed origins
+- Secrets management: Vault, AWS Secrets Manager (never in code/config)
+- Encryption at rest (DB, S3) and in transit (TLS)
+- Principle of least privilege for service-to-service auth
+
+
+═══════════════════════════════════════════════════════════
+  PAGE 9 — System Design Interview Framework
+═══════════════════════════════════════════════════════════
+
+
+── How to Approach a System Design Question ───────────
+
+Step 1: Requirements Clarification (3-5 min)
+  - Functional: what does the system DO? (core features)
+  - Non-functional: scale, latency, availability, consistency
+  - Ask: DAU? Read/write ratio? Data size? Geographic distribution?
+  - Ask: What's most important — consistency or availability?
+  - Scope: what's in vs out for this interview
+
+Step 2: Back-of-Envelope Estimation (3-5 min)
+  - QPS (average and peak)
+  - Storage (per day, per year)
+  - Bandwidth
+  - Cache size needed
+
+Step 3: High-Level Design (10-15 min)
+  - Draw the request flow: Client → CDN → LB → API GW → Services → DB
+  - Identify core services and their responsibilities
+  - Choose primary data store(s)
+  - Identify what needs caching, queuing, async processing
+
+Step 4: Detailed Design (10-15 min)
+  - Deep dive into 2-3 critical components (interviewer may guide)
+  - Data model: tables, keys, indexes, access patterns
+  - API design: key endpoints, request/response
+  - Discuss trade-offs for each decision
+
+Step 5: Bottlenecks & Scale (5 min)
+  - Single points of failure? How to add redundancy
+  - Hot spots? How to distribute load
+  - What happens at 10x, 100x scale?
+  - Monitoring and alerting
+
+
+── Common System Design Problems ──────────────────────
+
+URL Shortener:
+  - Write: hash/encode long URL → store mapping in DB
+  - Read: lookup short code → redirect (301/302)
+  - Key decisions: hash collision handling, caching hot URLs, analytics
+  - Scale: read-heavy, cache-aside with Redis, shard by short code
+
+Chat System (WhatsApp/Slack):
+  - WebSocket for real-time delivery
+  - Message stored in Cassandra (write-heavy, partition by chat_id)
+  - Online presence: heartbeat + Redis pub/sub
+  - Push notifications for offline users
+  - Group chat: fan-out on write vs fan-out on read
+
+News Feed (Twitter/Instagram):
+  - Fan-out on write: pre-compute feed for each follower (fast read, slow write)
+  - Fan-out on read: assemble feed at read time (slow read, simple write)
+  - Hybrid: fan-out on write for normal users, on read for celebrities
+  - Ranking: relevance scoring, ML model
+  - Store: Redis sorted set for feed, Postgres for posts
+
+Notification System:
+  - Kafka for event ingestion (order_placed, message_received)
+  - Notification service: template, user preferences, dedup
+  - Delivery: push (APNs/FCM), email (SES), SMS (Twilio), in-app (WebSocket)
+  - Priority queue: urgent vs batch
+  - Rate limiting per user per channel
+
+Rate Limiter:
+  - Token bucket or sliding window (see API Gateway section)
+  - Redis: INCR + EXPIRE for distributed rate limiting
+  - Key by: user_id, IP, API key
+  - Return 429 with Retry-After header
+
+Distributed File Storage (S3-like):
+  - Metadata service: file name, size, chunks → SQL DB
+  - Block storage: split files into chunks, replicate across nodes
+  - Consistent hashing for chunk placement
+  - Erasure coding for durability (vs 3x replication)
+
+Search Autocomplete:
+  - Trie data structure for prefix matching
+  - Precompute top suggestions per prefix
+  - Update async via MapReduce/Spark on search logs
+  - Cache hot prefixes in Redis
+  - CDN for most common prefixes
+
+Ride-Sharing (Uber/Lyft):
+  - Geospatial index: QuadTree or Geohash for nearby drivers
+  - Matching service: assign rider to nearest available driver
+  - Real-time location updates: WebSocket or frequent polling
+  - ETA: graph algorithms (Dijkstra) + historical traffic data
+  - Surge pricing: supply/demand ratio per geo region
+
+Video Streaming (YouTube/Netflix):
+  - Upload: chunk video, transcode to multiple resolutions (HLS/DASH)
+  - CDN: serve video chunks from edge (most traffic)
+  - Adaptive bitrate: client switches quality based on bandwidth
+  - Metadata: title, description, tags → Postgres
+  - View counts: Kafka → aggregate → Cassandra/Redis
