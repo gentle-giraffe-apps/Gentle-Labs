@@ -10,7 +10,7 @@
 // Concepts: dictionary default subscript, min/max tracking, for-in loop
 
 // do {
-//     let numbers = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3]
+//     var numbers = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3]
 //
 //     var freq = [Int: Int]()
 //     var maximum = Int.min
@@ -24,6 +24,17 @@
 //
 //     print("freq:", freq)
 //     print("min:", minimum, "max:", maximum)
+//
+//     Move all 3's to the end in-place.
+//     Idea: Scan left-to-right. Anything illegal(non-three), swap and advance boundary.
+//     Invariant: 1..<boundary..<scan is correctly partitioned.
+//     var boundary = 0
+//     for scan in 0..<numbers.count {
+//         if numbers[scan] != 3 {
+//            numbers.swapAt(scan, boundary)
+//            boundary += 1
+//         }
+//     }
 // }
 
 // CHUNK 2: If-Let Dictionary + Two-Sum + Set Duplicate Detection
