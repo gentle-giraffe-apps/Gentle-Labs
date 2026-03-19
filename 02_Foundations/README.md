@@ -1,5 +1,15 @@
 # Lab Coding Guide
 
+## Getting Started
+
+This lab uses Tuist. To open it:
+
+```bash
+cd ListDetail
+tuist generate
+open ListDetail.xcodeproj
+```
+
 ## General
 
 ### Immediate First Steps
