@@ -190,7 +190,7 @@ Follow-up: StoreKit 2: async/await, automatic JWS verification, Transaction list
 
 75% — App extensions (share, notification, etc.)
 
-Extensions are separate binaries that run in a host process (not your app). They have their own Info.plist, entitlements, and memory limits (~120 MB for widgets, varies by type).
+Extensions are separate binaries that run in a host process (not your app). They have their own Info.plist, entitlements, and memory limits (~120 MB for share extensions, varies by type).
 Follow-up: Share data via app groups: shared UserDefaults or shared container. Extensions cannot access the main app's sandbox directly.
 Follow-up: Extensions are constrained: notification service ~30 seconds, ~24 MB. Widgets ~30 MB. Share extensions ~120 MB. Exceeding limits = immediate termination by the system.
 

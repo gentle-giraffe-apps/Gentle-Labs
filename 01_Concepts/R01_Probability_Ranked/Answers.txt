@@ -346,8 +346,8 @@ flatMap and switchToLatest from Combine.
 
 70% — List performance
 
-List: UIKit-backed (UITableView), built-in swipe actions, separators,
-editing mode. Lazy by default.
+List: UIKit-backed (UICollectionView since iOS 16), built-in swipe actions,
+separators, editing mode. Lazy by default.
 LazyVStack in ScrollView: fully customizable, lazy loading, but you build
 everything yourself (no free swipe actions).
 ScrollView + ForEach (no Lazy): loads ALL children immediately. Only for
@@ -460,21 +460,27 @@ using the Observation framework.
 
 60% — Pagination design
 
-UI: List with .onAppear on last item (or second-to-last) calls loadMore().
-Use .onAppear + Task { }, not .task — you want the fetch to survive if
-the user scrolls the trigger row off screen.
-Gotcha: .onAppear fires EVERY time a row scrolls into view (not just once),
-and re-fires on tab switches and navigation returns. Always guard in the VM.
-ViewModel: holds items array, cursor/page, isLoading, hasMore.
-loadMore() must guard !isLoading && hasMore to block duplicate calls.
-Set isLoading = false after BOTH success and error — otherwise one failed
-fetch permanently blocks pagination.
-Service: accepts cursor, returns page + nextCursor (or nil if last page).
-Handle errors: show inline error on the last row, retry button, don't
-clear existing data.
-Cursor-based is more reliable (stable under inserts/deletes). Offset-based
-is simpler but can skip or duplicate items if data changes between pages.
+UI: Trigger loadMore() near the end of the list (e.g. last/second-last row via .onAppear).
+Gotcha: .onAppear (and .task) can fire multiple times (scrolling, navigation, tab switches).
 
+ViewModel (source of truth):
+- state: items, cursor/page, isLoading, hasMore
+- loadMore() must guard: !isLoading && hasMore
+- reset isLoading on both success and failure
+- make pagination idempotent (safe under repeated triggers)
+
+Service:
+- input: cursor/page
+- output: items + nextCursor (nil if end)
+
+Errors:
+- keep existing items
+- show inline error at bottom with retry
+- do not clear data on page failure
+
+Notes:
+- Trigger mechanism (.onAppear or .task) is secondary; correctness lives in the ViewModel
+- Cursor pagination is more robust; offset is simpler but can skip/duplicate under mutations
 
 59% — Profiling and performance
 
@@ -497,21 +503,38 @@ before mutation, copy only if shared.
 
 57% — Offline-first design
 
-Network updates the database. UI reads from the database only.
-Database is the single source of truth. Network syncs in the background.
-Show cached data immediately, fetch fresh data, update when it arrives.
-Conflict resolution: last-writer-wins (simple), operational transforms
-(collaborative), CRDTs (conflict-free by design, complex).
-LWW (Last-Writer-Wins): each field carries a timestamp. When merging,
-the newest timestamp per field wins. Per-field timestamps preserve more
-data — device A changes name, device B changes email, both survive.
-Per-record timestamps are simpler but one device's changes overwrite
-the other entirely.
-CRDTs (Conflict-free Replicated Data Types): data structures mathematically
-designed to merge without conflicts regardless of sync order. Types include
-counters, grow-only sets, OR-sets, and LWW-registers. Great for distributed
-state, overkill for most apps where server-authority is sufficient.
+Offline-first design
 
+Principle:
+UI reads from local store only. Repository coordinates local + remote.
+Local store is the source of truth; network syncs in background.
+
+Flow:
+1. Read from DB → render immediately
+2. Fetch from network
+3. Write to DB
+4. UI updates via DB observation
+
+Layers:
+- View → observes state (no networking)
+- ViewModel → exposes state, triggers intents
+- Repository → orchestrates cache + network
+- Data sources → Local (DB), Remote (API)
+
+Key behaviors:
+- show cached data instantly (fast startup)
+- stale-while-revalidate (refresh in background)
+- writes go: UI → Repository → DB → sync to server
+
+Conflicts:
+- simple: last-writer-wins (timestamp)
+- better: per-field merge to avoid overwrites
+- advanced: CRDTs (rare; only for true multi-writer systems)
+
+Notes:
+- never bind UI directly to network responses
+- DB must be observable (Combine/AsyncSequence)
+- server-authoritative systems often don’t need complex conflict resolution
 
 56% — Property wrappers (custom)
 
