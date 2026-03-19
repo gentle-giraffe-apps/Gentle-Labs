@@ -1,3 +1,25 @@
+Task:
+
+Build a product list screen.
+Use Protocol Oriented Programming if possible.
+
+Requirements:
+- fetch products
+- show loading state
+- show error state
+- support refresh
+- add search (filter by title, client-side)
+
+Use SwiftUI or UIKit.
+
+Focus:
+- state management
+- data flow
+- separation of concerns
+
+Start with your approach, then code.
+Keep UI simple.
+
 Model:
 
 struct Product: Codable, Identifiable {
@@ -27,27 +49,6 @@ func fetchProducts() async throws -> [Product] {
     
     return try JSONDecoder().decode([Product].self, from: data)
 }
-
-Task:
-
-Build a product list screen.
-
-Requirements:
-- fetch products
-- show loading state
-- show error state
-- support refresh
-- add search (filter by title, client-side)
-
-Use SwiftUI or UIKit.
-
-Focus:
-- state management
-- data flow
-- separation of concerns
-
-Start with your approach, then code.
-Keep UI simple.
 
 
 Follow-ups (time permitting):
