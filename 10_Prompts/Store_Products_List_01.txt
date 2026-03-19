@@ -1,0 +1,40 @@
+Model:
+
+struct Product: Codable, Identifiable {
+    let id: Int
+    let title: String
+    let price: Double
+    let description: String
+    let category: String
+    let image: String
+}
+
+API:
+GET https://fakestoreapi.com/products
+
+
+Task:
+
+Build a product list screen.
+
+Requirements:
+- fetch products
+- show loading state
+- show error state
+- support refresh
+- add search (filter by title, client-side)
+
+Use SwiftUI or UIKit.
+
+Focus:
+- state management
+- data flow
+- separation of concerns
+
+Start with your approach, then code.
+Keep UI simple.
+
+
+Follow-ups (time permitting):
+- what states exist?
+- what happens on rapid refresh?
