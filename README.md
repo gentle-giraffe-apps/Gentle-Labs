@@ -47,7 +47,7 @@ Ranked concept sets (R01–R11) with questions, answers, and lesson notes. Topic
 
 ### 02_Foundations
 
-A complete **ListDetail** SwiftUI app demonstrating the base pattern used across all labs: protocol-based services, `@Observable` ViewModels, and a generic `ContentLoadingState<T>` enum for loading/error/empty states.
+A complete **ListDetail** SwiftUI app demonstrating a pattern: protocol-based services, `@Observable` ViewModels, and a generic `ContentLoadingState<T>` enum for loading/error/empty states.
 
 Includes a [Lab Coding Guide](02_Foundations/README.md) that walks through every layer step-by-step.
 
@@ -141,18 +141,6 @@ Syntax katas organized by interview probability. Each chunk is a self-contained,
 Coding prompts that spec out realistic features — requirements, data flow, and acceptance criteria — so you can build them from scratch.
 
 Currently includes prompts for core product flows (e.g., Store Products List using Protocol-Oriented Programming).
-
----
-
-## Getting Started
-
-Each lab is a self-contained Tuist project. To open one:
-
-```bash
-cd 02_Foundations/ListDetail
-tuist generate
-open ListDetail.xcodeproj
-```
 
 ---
 
