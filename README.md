@@ -10,15 +10,15 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 
 | Folder | What's Inside |
 |--------|--------------|
-| [`01_Concepts`](#01_concepts) | Ranked Q&A sets covering Swift, SwiftUI, concurrency, architecture, and more |
-| [`02_Foundations`](#02_foundations) | ListDetail app — the baseline MVVM pattern every other lab builds on |
-| [`03_Concurrency`](#03_concurrency) | ImageList app — parallel fetching with `async let` and task groups |
-| [`04_Architecture`](#04_architecture) | Clean Architecture, Modular Architecture, and System Design reference notes |
-| [`05_Combine`](#05_combine) | 10 Combine operator recipes + an interactive playground |
-| [`06_AsyncAlgorithms`](#06_asyncalgorithms) | 10 async/await recipes — modern equivalents of the Combine set |
-| [`07_ReviewSheets`](#07_reviewsheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
-| [`08_PatternPractice`](#08_patternpractice) | LeetCode-style syntax katas for high-frequency interview patterns |
-| [`10_Prompts`](#10_prompts) | Coding prompts that spec out buildable features from scratch |
+| [`01_Concepts`](01_Concepts) | Ranked Q&A sets covering Swift, SwiftUI, concurrency, architecture, and more |
+| [`02_Foundations`](02_Foundations) | ListDetail app — the baseline MVVM pattern every other lab builds on |
+| [`03_Concurrency`](03_Concurrency) | ImageList app — parallel fetching with `async let` and task groups |
+| [`04_Architecture`](04_Architecture) | Clean Architecture, Modular Architecture, and System Design reference notes |
+| [`05_Combine`](05_Combine) | 10 Combine operator recipes + an interactive playground |
+| [`06_AsyncAlgorithms`](06_AsyncAlgorithms) | 10 async/await recipes — modern equivalents of the Combine set |
+| [`07_ReviewSheets`](07_ReviewSheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
+| [`08_PatternPractice`](08_PatternPractice) | LeetCode-style syntax katas for high-frequency interview patterns |
+| [`10_Prompts`](10_Prompts) | Coding prompts that spec out buildable features from scratch |
 
 ---
 
