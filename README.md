@@ -11,7 +11,7 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 | Folder | What's Inside |
 |--------|--------------|
 | [`01_Concepts`](01_Concepts) | Ranked Q&A sets covering Swift, SwiftUI, concurrency, architecture, and more |
-| [`02_Foundations`](02_Foundations) | ListDetail app — the baseline MVVM pattern every other lab builds on |
+| [`02_Foundations`](02_Foundations) | ListDetail app - a baseline MVVM pattern |
 | [`03_Concurrency`](03_Concurrency) | ImageList app — parallel fetching with `async let` and task groups |
 | [`04_Architecture`](04_Architecture) | Clean Architecture, Modular Architecture, and System Design reference notes |
 | [`05_Combine`](05_Combine) | 10 Combine operator recipes + an interactive playground |
