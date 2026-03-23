@@ -38,7 +38,6 @@ Fetch Snippet:
 func fetchProducts() async throws -> [Product] {
     guard let url = URL(string: "https://fakestoreapi.com/products") else { 
         throw URLError(.badURL)
-        return
     }
     let (data, response) = try await URLSession.shared.data(from: url)
     
