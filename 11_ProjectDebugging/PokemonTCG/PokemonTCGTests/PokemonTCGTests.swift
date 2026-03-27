@@ -3,6 +3,7 @@ import Testing
 @testable import PokemonTCG
 
 @Suite("PokemonTCG Tests")
+@MainActor
 struct PokemonTCGTests {
 
     @Test("Mock service returns expected page size")
@@ -29,17 +30,15 @@ struct PokemonTCGTests {
     }
 
     @Test("ViewModel initial fetch transitions to loaded state")
-    @MainActor
     func viewModelInitialFetch() async {
         let viewModel = CardListViewModel(service: MockCardService())
-        #expect(viewModel.state == .unloaded)
+        #expect(viewModel.state == .initial)
         await viewModel.initialFetch()
         #expect(viewModel.state == .loaded)
         #expect(viewModel.cards.count == 20)
     }
 
     @Test("ViewModel handles error state")
-    @MainActor
     func viewModelErrorState() async {
         let viewModel = CardListViewModel(service: FailingCardService())
         await viewModel.initialFetch()
