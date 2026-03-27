@@ -13,18 +13,11 @@ struct CardListView: View {
         NavigationStack {
             Group {
                 switch viewModel.state {
-                case .unloaded:
+                case .initial:
                     ProgressView("Starting up…")
                 case .loading:
                     ProgressView("Loading cards…")
-                case .refreshing:
-                    cardList(items: viewModel.cards)
-                        .overlay {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                                .padding(.top, 8)
-                        }
-                case .loaded:
+                case .refreshing, .loaded:
                     if viewModel.cards.isEmpty {
                         ContentUnavailableView.search(text: viewModel.searchText)
                     } else {
@@ -66,7 +59,7 @@ struct CardListView: View {
                 }
             }
 
-            if viewModel.cards.count < viewModel.totalCount {
+            if viewModel.searchText.isEmpty && viewModel.cards.count < viewModel.totalCount {
                 HStack {
                     Spacer()
                     ProgressView()

@@ -12,11 +12,11 @@ final class CardListViewModel {
 
     // MARK: - State
 
-    private(set) var state: ContentLoadingState = .unloaded
+    private(set) var state: ContentLoadingState = .initial
     private(set) var cards: [Card] = []
     private(set) var totalCount: Int = 0
     var searchText: String = "" {
-        didSet { filterCards() }
+        didSet { debounceFilter() }
     }
 
     // MARK: - Pagination
@@ -30,6 +30,7 @@ final class CardListViewModel {
     // MARK: - Local filtering
 
     private var allFetchedCards: [Card] = []
+    private var filterTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -40,7 +41,7 @@ final class CardListViewModel {
     // MARK: - Public API
 
     func initialFetch() async {
-        guard state == .unloaded else { return }
+        guard state == .initial else { return }
         await fetchFirstPage()
     }
 
@@ -88,11 +89,22 @@ final class CardListViewModel {
         } catch {
             if cards.isEmpty {
                 state = .error("Something went wrong. Please try again.")
+            } else {
+                state = .loaded
             }
         }
     }
 
     // MARK: - Local Filtering
+
+    private func debounceFilter() {
+        filterTask?.cancel()
+        filterTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            filterCards()
+        }
+    }
 
     private func filterCards() {
         if searchText.isEmpty {

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Content Loading State
 
 enum ContentLoadingState: Equatable, Sendable {
-    case unloaded
+    case initial
     case loading
     case refreshing
     case loaded
