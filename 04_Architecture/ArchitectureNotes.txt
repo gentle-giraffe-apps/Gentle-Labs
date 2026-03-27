@@ -1,13 +1,18 @@
 Client Architecture Notes
 
-┌ App/Features ───┐ Coordinator / SessionManager → Views → ViewModels ─┐
-|                 |                                                    | (Domain Models)
-├ Domain Layer ───┤ Use Case / Repository Protocols                   ─┘ 
+┌ Presentation ───┐ Coordinator / SessionManager → Views → ViewModels
+|                 |                                                    
+├ Domain Layer ───┤ Use Case / Repository Protocols / Domain Models / Intent Definitions
 |                 |
-├ Data Layer ─────┤ Repository Implementation, DTOs ⇄ Mappers ⇄ Domain Models, Caching
+├ Data Layer ─────┤ Repository Implementation, DTO to Domain mappers, Caching, Intent Implementations
 |
 | Infra ──────────┤ Concrete networking and DB clients
 
+Key Dependencies: 
+                   
+   Presentation --- imports ---
+                               | --> Domain (imports nothing)
+   Data         --- imports ---
 
 1. Clean architecture
     1. Coordinator -> View -> ViewModel -> UseCase/Repository <-> Services -> Persistence (DB/Disk) + Network
