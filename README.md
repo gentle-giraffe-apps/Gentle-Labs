@@ -144,7 +144,7 @@ Currently includes prompts for core product flows (e.g., Store Products List usi
 
 ### 11_ProjectDebugging
 
-Sample projects that are fully functional apps with intentional bugs for debugging practice. Currently includes an **ArtInstitute** app — a SwiftUI MVVM app using the Art Institute of Chicago public API with pagination and search.
+Sample projects that are fully functional apps with intentional bugs for debugging practice. Currently includes a **PokemonTCG** app — a SwiftUI MVVM app using the Pokemon TCG API with pagination and search.
 
 ---
 

@@ -6,4 +6,4 @@ Sample projects designed as debugging exercises. Each project is a fully functio
 
 | Folder | Description |
 |--------|-------------|
-| `ArtInstitute` | SwiftUI MVVM app using the Art Institute of Chicago API with pagination and search |
+| `PokemonTCG` | SwiftUI MVVM app using the Pokemon TCG API with pagination and search |
