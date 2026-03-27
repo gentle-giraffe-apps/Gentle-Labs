@@ -19,6 +19,9 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 | [`07_ReviewSheets`](07_ReviewSheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
 | [`08_PatternPractice`](08_PatternPractice) | LeetCode-style syntax katas for high-frequency interview patterns |
 | [`10_Prompts`](10_Prompts) | Coding prompts that spec out buildable features from scratch |
+| [`11_ProjectDebugging`](11_ProjectDebugging) | Sample projects with intentional bugs for debugging practice |
+
+> **Note:** Section 09 is intentionally skipped.
 
 ---
 
@@ -26,22 +29,19 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 
 ### 01_Concepts
 
-Ranked concept sets (R01–R11) with questions, answers, and lesson notes. Topics progress from broad overviews to focused deep-dives.
+Ranked concept sets (R01–R08) with questions, answers, and lesson notes.
 
 <details>
 <summary>Topics covered</summary>
 
-- R01 Broad Overview
-- R02 Deeper Dives
-- R03 Lifecycle
-- R04 Probability
-- R05 SwiftUI
-- R06 Concurrency
-- R07 Swift Language
-- R08 Architecture
-- R09 iOS Platform
-- R10 UIKit (Legacy)
-- R11 Combine
+- R01 Probability
+- R02 SwiftUI
+- R03 Concurrency
+- R04 Swift Language
+- R05 Architecture
+- R06 iOS Platform
+- R07 UIKit (Legacy)
+- R08 Combine
 
 </details>
 
@@ -141,6 +141,10 @@ Syntax katas organized by interview probability. Each chunk is a self-contained,
 Coding prompts that spec out realistic features — requirements, data flow, and acceptance criteria — so you can build them from scratch.
 
 Currently includes prompts for core product flows (e.g., Store Products List using Protocol-Oriented Programming).
+
+### 11_ProjectDebugging
+
+Sample projects that are fully functional apps with intentional bugs for debugging practice. Currently includes an **ArtInstitute** app — a SwiftUI MVVM app using the Art Institute of Chicago public API with pagination and search.
 
 ---
 
