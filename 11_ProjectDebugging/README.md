@@ -6,4 +6,4 @@ Sample projects designed as debugging exercises. Each project is a fully functio
 
 | Folder | Description |
 |--------|-------------|
-| `PokemonTCG` | SwiftUI MVVM app using the Pokemon TCG API with pagination and search |
+| `DisneyCharacters` | SwiftUI MVVM app using the Disney Characters API with pagination and search |

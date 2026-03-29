@@ -1,13 +1,13 @@
 import ProjectDescription
 
 let project = Project(
-    name: "PokemonTCG",
+    name: "DisneyCharacters",
     targets: [
         .target(
-            name: "PokemonTCG",
+            name: "DisneyCharacters",
             destinations: [.iPhone, .iPad],
             product: .app,
-            bundleId: "com.jr.PokemonTCG",
+            bundleId: "com.jr.DisneyCharacters",
             deploymentTargets: .iOS("18.0"),
             infoPlist: .extendingDefault(with: [
                 "UILaunchScreen": [:],
@@ -15,8 +15,8 @@ let project = Project(
                     "UIApplicationSupportsMultipleScenes": true,
                 ],
             ]),
-            sources: ["PokemonTCG/**"],
-            resources: ["PokemonTCG/Assets.xcassets"],
+            sources: ["DisneyCharacters/**"],
+            resources: ["DisneyCharacters/Assets.xcassets"],
             settings: .settings(
                 base: [
                     "DEVELOPMENT_TEAM": "HGE6ZKLW3Q",
@@ -30,14 +30,14 @@ let project = Project(
             )
         ),
         .target(
-            name: "PokemonTCGTests",
+            name: "DisneyCharactersTests",
             destinations: [.iPhone, .iPad],
             product: .unitTests,
-            bundleId: "com.jr.PokemonTCGTests",
+            bundleId: "com.jr.DisneyCharactersTests",
             deploymentTargets: .iOS("18.0"),
-            sources: ["PokemonTCGTests/**"],
+            sources: ["DisneyCharactersTests/**"],
             dependencies: [
-                .target(name: "PokemonTCG"),
+                .target(name: "DisneyCharacters"),
             ]
         )
     ]
