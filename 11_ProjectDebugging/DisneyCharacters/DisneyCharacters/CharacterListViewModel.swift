@@ -4,17 +4,17 @@ import Foundation
 
 @MainActor
 @Observable
-final class CardListViewModel {
+final class CharacterListViewModel {
 
     // MARK: - Dependencies
 
-    let service: CardService
+    let service: CharacterService
 
     // MARK: - State
 
     private(set) var state: ContentLoadingState = .initial
-    private(set) var cards: [Card] = []
-    private(set) var totalCount: Int = 0
+    private(set) var characters: [DisneyCharacter] = []
+    private(set) var totalPages: Int = 0
     var searchText: String = "" {
         didSet { debounceFilter() }
     }
@@ -24,17 +24,17 @@ final class CardListViewModel {
     private var currentPage = 1
     private let pageSize = 20
     private var hasMorePages: Bool {
-        allFetchedCards.count < totalCount
+        currentPage < totalPages
     }
 
     // MARK: - Local filtering
 
-    private var allFetchedCards: [Card] = []
+    private var allFetchedCharacters: [DisneyCharacter] = []
     private var filterTask: Task<Void, Never>?
 
     // MARK: - Init
 
-    init(service: CardService) {
+    init(service: CharacterService) {
         self.service = service
     }
 
@@ -52,10 +52,10 @@ final class CardListViewModel {
         await performFetch(page: 1, replacing: true)
     }
 
-    func fetchNextPageIfNeeded(currentItem: Card) async {
+    func fetchNextPageIfNeeded(currentItem: DisneyCharacter) async {
         guard hasMorePages,
               state != .loading,
-              let lastItem = allFetchedCards.last,
+              let lastItem = allFetchedCharacters.last,
               currentItem.id == lastItem.id
         else { return }
 
@@ -73,21 +73,21 @@ final class CardListViewModel {
 
     private func performFetch(page: Int, replacing: Bool) async {
         do {
-            let response = try await service.fetchCards(page: page, pageSize: pageSize)
+            let response = try await service.fetchCharacters(page: page, pageSize: pageSize)
 
-            totalCount = response.totalCount
+            totalPages = response.info.totalPages
 
             if replacing {
-                allFetchedCards = response.data
+                allFetchedCharacters = response.data
             } else {
-                allFetchedCards += response.data
+                allFetchedCharacters += response.data
             }
-            filterCards()
+            filterCharacters()
             state = .loaded
         } catch is CancellationError {
             // Task was cancelled — no state change
         } catch {
-            if cards.isEmpty {
+            if characters.isEmpty {
                 state = .error("Something went wrong. Please try again.")
             } else {
                 state = .loaded
@@ -102,15 +102,15 @@ final class CardListViewModel {
         filterTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            filterCards()
+            filterCharacters()
         }
     }
 
-    private func filterCards() {
+    private func filterCharacters() {
         if searchText.isEmpty {
-            cards = allFetchedCards
+            characters = allFetchedCharacters
         } else {
-            cards = allFetchedCards.filter {
+            characters = allFetchedCharacters.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText)
             }
         }

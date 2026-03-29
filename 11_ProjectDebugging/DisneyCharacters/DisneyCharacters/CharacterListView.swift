@@ -1,11 +1,11 @@
 import SwiftUI
 
-// MARK: - Card List View
+// MARK: - Character List View
 
-struct CardListView: View {
-    @State private var viewModel: CardListViewModel
+struct CharacterListView: View {
+    @State private var viewModel: CharacterListViewModel
 
-    init(viewModel: CardListViewModel) {
+    init(viewModel: CharacterListViewModel) {
         _viewModel = State(wrappedValue: viewModel)
     }
 
@@ -16,12 +16,12 @@ struct CardListView: View {
                 case .initial:
                     ProgressView("Starting up…")
                 case .loading:
-                    ProgressView("Loading cards…")
+                    ProgressView("Loading characters…")
                 case .refreshing, .loaded:
-                    if viewModel.cards.isEmpty {
+                    if viewModel.characters.isEmpty {
                         ContentUnavailableView.search(text: viewModel.searchText)
                     } else {
-                        cardList(items: viewModel.cards)
+                        characterList(items: viewModel.characters)
                     }
                 case .error(let message):
                     ContentUnavailableView {
@@ -35,8 +35,8 @@ struct CardListView: View {
                     }
                 }
             }
-            .navigationTitle("Pokémon TCG")
-            .searchable(text: $viewModel.searchText, prompt: "Search cards…")
+            .navigationTitle("Disney Characters")
+            .searchable(text: $viewModel.searchText, prompt: "Search characters…")
             .task {
                 await viewModel.initialFetch()
             }
@@ -48,18 +48,18 @@ struct CardListView: View {
 
     // MARK: - Subviews
 
-    private func cardList(items: [Card]) -> some View {
+    private func characterList(items: [DisneyCharacter]) -> some View {
         List {
-            ForEach(items) { card in
-                NavigationLink(value: card) {
-                    CardRow(card: card)
+            ForEach(items) { character in
+                NavigationLink(value: character) {
+                    CharacterRow(character: character)
                 }
                 .task {
-                    await viewModel.fetchNextPageIfNeeded(currentItem: card)
+                    await viewModel.fetchNextPageIfNeeded(currentItem: character)
                 }
             }
 
-            if viewModel.searchText.isEmpty && viewModel.cards.count < viewModel.totalCount {
+            if viewModel.searchText.isEmpty && viewModel.characters.count < viewModel.totalPages * 20 {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -69,62 +69,54 @@ struct CardListView: View {
             }
         }
         .listStyle(.plain)
-        .navigationDestination(for: Card.self) { card in
-            CardDetailView(card: card)
+        .navigationDestination(for: DisneyCharacter.self) { character in
+            CharacterDetailView(character: character)
         }
     }
 }
 
-// MARK: - Card Row
+// MARK: - Character Row
 
-struct CardRow: View {
-    let card: Card
+struct CharacterRow: View {
+    let character: DisneyCharacter
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: card.images?.smallURL) { phase in
+            AsyncImage(url: character.imageURL) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .aspectRatio(contentMode: .fill)
                 case .failure:
-                    Image(systemName: "photo")
+                    Image(systemName: "person.circle.fill")
                         .foregroundStyle(.secondary)
                 default:
                     ProgressView()
                 }
             }
-            .frame(width: 60, height: 84)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .frame(width: 60, height: 60)
+            .clipShape(Circle())
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                Circle()
                     .fill(.quaternary)
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(card.name)
+                Text(character.name)
                     .font(.headline)
                     .lineLimit(2)
 
-                if let types = card.types, !types.isEmpty {
-                    Text(types.joined(separator: ", "))
+                if !character.films.isEmpty {
+                    Text(character.films.joined(separator: ", "))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                }
-
-                HStack(spacing: 8) {
-                    if let hp = card.hp {
-                        Text("HP \(hp)")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    if let rarity = card.rarity {
-                        Text(rarity)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+                } else if !character.tvShows.isEmpty {
+                    Text(character.tvShows.joined(separator: ", "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
         }
@@ -135,17 +127,17 @@ struct CardRow: View {
 // MARK: - Previews
 
 #Preview("Live") {
-    CardListView(viewModel: CardListViewModel(service: NetworkCardService()))
+    CharacterListView(viewModel: CharacterListViewModel(service: NetworkCharacterService()))
 }
 
 #Preview("Mock") {
-    CardListView(viewModel: CardListViewModel(service: MockCardService()))
+    CharacterListView(viewModel: CharacterListViewModel(service: MockCharacterService()))
 }
 
 #Preview("Empty") {
-    CardListView(viewModel: CardListViewModel(service: EmptyCardService()))
+    CharacterListView(viewModel: CharacterListViewModel(service: EmptyCharacterService()))
 }
 
 #Preview("Error") {
-    CardListView(viewModel: CardListViewModel(service: FailingCardService()))
+    CharacterListView(viewModel: CharacterListViewModel(service: FailingCharacterService()))
 }
