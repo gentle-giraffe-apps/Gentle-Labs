@@ -19,6 +19,7 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 | [`07_ReviewSheets`](#07_reviewsheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
 | [`08_PatternPractice`](#08_patternpractice) | LeetCode-style syntax katas for high-frequency interview patterns |
 | [`10_Prompts`](#10_prompts) | Coding prompts that spec out buildable features from scratch |
+| [`11_ProjectDebugging`](#11_projectdebugging) | Fully functional apps with intentional bugs introduced for debugging practice |
 
 ---
 
@@ -141,6 +142,14 @@ Syntax katas organized by interview probability. Each chunk is a self-contained,
 Coding prompts that spec out realistic features — requirements, data flow, and acceptance criteria — so you can build them from scratch.
 
 Currently includes prompts for core product flows (e.g., Store Products List using Protocol-Oriented Programming).
+
+### 11_ProjectDebugging
+
+Fully functional apps with intentional bugs introduced for debugging practice. Each project follows the same MVVM patterns used across the repo.
+
+Currently includes:
+
+- **DisneyCharacters** — SwiftUI app that browses Disney characters with pagination, search, and pull-to-refresh. Includes Network, Mock, Empty, and Failing service variants for previews/testing.
 
 ---
 
