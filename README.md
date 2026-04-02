@@ -10,18 +10,16 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 
 | Folder | What's Inside |
 |--------|--------------|
-| [`01_Concepts`](01_Concepts) | Ranked Q&A sets covering Swift, SwiftUI, concurrency, architecture, and more |
-| [`02_Foundations`](02_Foundations) | ListDetail app - a baseline MVVM pattern |
-| [`03_Concurrency`](03_Concurrency) | ImageList app — parallel fetching with `async let` and task groups |
-| [`04_Architecture`](04_Architecture) | Clean Architecture, Modular Architecture, and System Design reference notes |
-| [`05_Combine`](05_Combine) | 10 Combine operator recipes + an interactive playground |
-| [`06_AsyncAlgorithms`](06_AsyncAlgorithms) | 10 async/await recipes — modern equivalents of the Combine set |
-| [`07_ReviewSheets`](07_ReviewSheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
-| [`08_PatternPractice`](08_PatternPractice) | LeetCode-style syntax katas for high-frequency interview patterns |
-| [`10_Prompts`](10_Prompts) | Coding prompts that spec out buildable features from scratch |
-| [`11_ProjectDebugging`](11_ProjectDebugging) | Sample projects with intentional bugs for debugging practice |
-
-> **Note:** Section 09 is intentionally skipped.
+| [`01_Concepts`](#01_concepts) | Ranked Q&A sets covering Swift, SwiftUI, concurrency, architecture, and more |
+| [`02_Foundations`](#02_foundations) | ListDetail app — the baseline MVVM pattern every other lab builds on |
+| [`03_Concurrency`](#03_concurrency) | ImageList app — parallel fetching with `async let` and task groups |
+| [`04_Architecture`](#04_architecture) | Clean Architecture, Modular Architecture, and System Design reference notes |
+| [`05_Combine`](#05_combine) | 10 Combine operator recipes + an interactive playground |
+| [`06_AsyncAlgorithms`](#06_asyncalgorithms) | 10 async/await recipes — modern equivalents of the Combine set |
+| [`07_ReviewSheets`](#07_reviewsheets) | Quick-reference cheat sheets for Swift, DSA, and System Design |
+| [`08_PatternPractice`](#08_patternpractice) | LeetCode-style syntax katas for high-frequency interview patterns |
+| [`10_Prompts`](#10_prompts) | Coding prompts that spec out buildable features from scratch |
+| [`11_ProjectDebugging`](#11_projectdebugging) | Fully functional apps with intentional bugs introduced for debugging practice |
 
 ---
 
@@ -29,25 +27,28 @@ Small, focused labs that exercise core Swift and iOS engineering skills under re
 
 ### 01_Concepts
 
-Ranked concept sets (R01–R08) with questions, answers, and lesson notes.
+Ranked concept sets (R01–R11) with questions, answers, and lesson notes. Topics progress from broad overviews to focused deep-dives.
 
 <details>
 <summary>Topics covered</summary>
 
-- R01 Probability
-- R02 SwiftUI
-- R03 Concurrency
-- R04 Swift Language
-- R05 Architecture
-- R06 iOS Platform
-- R07 UIKit (Legacy)
-- R08 Combine
+- R01 Broad Overview
+- R02 Deeper Dives
+- R03 Lifecycle
+- R04 Probability
+- R05 SwiftUI
+- R06 Concurrency
+- R07 Swift Language
+- R08 Architecture
+- R09 iOS Platform
+- R10 UIKit (Legacy)
+- R11 Combine
 
 </details>
 
 ### 02_Foundations
 
-A complete **ListDetail** SwiftUI app demonstrating a pattern: protocol-based services, `@Observable` ViewModels, and a generic `ContentLoadingState<T>` enum for loading/error/empty states.
+A complete **ListDetail** SwiftUI app demonstrating the base pattern used across all labs: protocol-based services, `@Observable` ViewModels, and a generic `ContentLoadingState<T>` enum for loading/error/empty states.
 
 Includes a [Lab Coding Guide](02_Foundations/README.md) that walks through every layer step-by-step.
 
@@ -144,10 +145,30 @@ Currently includes prompts for core product flows (e.g., Store Products List usi
 
 ### 11_ProjectDebugging
 
-Sample projects that are fully functional apps with intentional bugs for debugging practice. Currently includes a **PokemonTCG** app — a SwiftUI MVVM app using the Pokemon TCG API with pagination and search.
+Fully functional apps with intentional bugs introduced for debugging practice. Each project follows the same MVVM patterns used across the repo.
+
+Currently includes:
+
+- **DisneyCharacters** — SwiftUI app that browses Disney characters with pagination, search, and pull-to-refresh. Includes Network, Mock, Empty, and Failing service variants for previews/testing.
+
+---
+
+## Getting Started
+
+Each lab is a self-contained Tuist project. To open one:
+
+```bash
+cd 02_Foundations/ListDetail
+tuist generate
+open ListDetail.xcodeproj
+```
 
 ---
 
 ## AI-Assisted Content
 
 Some content in this repository was generated with the assistance of large language models. All AI-generated material has been reviewed, edited where necessary, and approved by the repo maintainer.
+
+## License
+
+[MIT](LICENSE)
