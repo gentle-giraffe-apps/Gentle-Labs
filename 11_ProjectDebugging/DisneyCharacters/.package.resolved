@@ -1,0 +1,15 @@
+{
+  "originHash" : "8e5daa9917bd6579853d4a9450de87f0dd5f93f7243bb3e80eab920fdb35edb3",
+  "pins" : [
+    {
+      "identity" : "smartasyncimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/gentle-giraffe-apps/SmartAsyncImage.git",
+      "state" : {
+        "revision" : "fd0e3430ca3e7868ead9cd68d7eee1f5b0d65b10",
+        "version" : "0.1.1"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -1,3 +1,4 @@
+import SmartAsyncImage
 import SwiftUI
 
 // MARK: - Character Detail View
@@ -22,7 +23,7 @@ struct CharacterDetailView: View {
     @ViewBuilder
     private var characterImage: some View {
         if let url = character.imageURL {
-            AsyncImage(url: url) { phase in
+            SmartAsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -31,7 +32,7 @@ struct CharacterDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 case .failure:
                     imagePlaceholder(systemName: "exclamationmark.triangle")
-                default:
+                case .empty, .loading:
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 400)
                 }
