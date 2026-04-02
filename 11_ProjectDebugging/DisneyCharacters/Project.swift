@@ -2,6 +2,9 @@ import ProjectDescription
 
 let project = Project(
     name: "DisneyCharacters",
+    packages: [
+        .remote(url: "https://github.com/gentle-giraffe-apps/SmartAsyncImage.git", requirement: .upToNextMinor(from: "0.1.2")),
+    ],
     targets: [
         .target(
             name: "DisneyCharacters",
@@ -16,7 +19,13 @@ let project = Project(
                 ],
             ]),
             sources: ["DisneyCharacters/**"],
-            resources: ["DisneyCharacters/Assets.xcassets"],
+            resources: [
+                "DisneyCharacters/Assets.xcassets",
+                "DisneyCharacters/Data/all_characters.json",
+            ],
+            dependencies: [
+                .package(product: "SmartAsyncImage", type: .runtime),
+            ],
             settings: .settings(
                 base: [
                     "DEVELOPMENT_TEAM": "HGE6ZKLW3Q",

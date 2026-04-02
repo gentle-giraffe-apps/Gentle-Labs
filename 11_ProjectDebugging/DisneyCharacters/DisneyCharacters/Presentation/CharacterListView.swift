@@ -1,3 +1,4 @@
+import SmartAsyncImage
 import SwiftUI
 
 // MARK: - Character List View
@@ -82,7 +83,7 @@ struct CharacterRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: character.imageURL) { phase in
+            SmartAsyncImage(url: character.imageURL) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -91,7 +92,7 @@ struct CharacterRow: View {
                 case .failure:
                     Image(systemName: "person.circle.fill")
                         .foregroundStyle(.secondary)
-                default:
+                case .empty, .loading:
                     ProgressView()
                 }
             }
