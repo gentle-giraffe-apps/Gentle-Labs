@@ -9,11 +9,20 @@ Client Architecture Notes
 | Infra ──────────┤ Concrete networking and DB clients
 
 Key Dependencies: 
+   
+  ______________                 _____________________                ____________
+ |              |               |                     |              |            |
+ | PRESENTATION | --imports-->  | DOMAIN (standalone) | <--imports-- | DATA LAYER |
+ `______________'               `_____________________'              `____________'
                    
-   Presentation --- imports ---
-                               | --> Domain (imports nothing)
-   Data         --- imports ---
-
+                                                                           |
+                                                                           | imports
+                                                                           V
+                                                                       ___________
+                                                                      |           |
+                                                                      |   INFRA   |
+                                                                      `___________'
+                                                                      
 1. Clean architecture
     1. Coordinator -> View -> ViewModel -> UseCase/Repository <-> Services -> Persistence (DB/Disk) + Network
 2. Modular architecture
